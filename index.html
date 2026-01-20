@@ -17,31 +17,42 @@
             <div class="logo">
                 <img src="blgreen.png"/>
             </div>
-            <UL class="links">
+            <ul class="links">
                 <li>
-                <a href="#" class="link link__hover-effect">Home</a>
+                <a href="" class="link link__hover-effect">Home</a>
                 </li>
                 <li>
-                <a href="#" class="link link__hover-effect">Select A Movie</a>
+                <a href="#movies" class="link link__hover-effect select-first">Select A Movie</a>
                 </li>
                 <li>
                 <a class="btn-contact">Contact Us</a>
                 </li>
-            </div>
+            </ul>
         </nav>
         <header class="header">
             <div class="container">
                 <div class="row">
                     <h1>The Best Site To Find All Your Favorite Movies</h1>
                     <div class="search__wrapper">
-                        <input type="text" placeholder="Search by Keyword, Year, or Title">
-                        <button class="search__btn">
+                        <input class="search-input" type="text" placeholder="Search by Keyword, Year, or Title">
+                        <button class="search__btn" type="button">
                             <img src="1486506270-glass-magnifying-out-search-detective-magnifier-zoom_81489 (1).svg">
                         </button>
                     </div>
                 </div>
             </div>
         </header>
+    </section>
+    <div id="placeholder">
+        <img src="theater.jpg" class="theater__img" alt="placeholder">
+    </div>
+    <section id="movies">
+            <div class="container">
+                <div class="row">
+                   <p class="results"></p>
+                    <div class="movie-list"></div>
+                </div>
+            </div>
     </section>
 </body>
 </html>

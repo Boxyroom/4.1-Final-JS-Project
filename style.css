@@ -7,16 +7,28 @@
 *:focus {
     outline: none;
 }
-body {
+html {
+  position: relative;
   background-image: linear-gradient(
-      rgba(255, 255, 255, 0.7),
+      rgba(255, 255, 255, 0.666),
       rgba(255, 255, 255, 0.7)
     ),
     url("moviereel.jpg");
   background-size: cover;
   background-position: center;
+  min-height: 100vh;
 }
 
+html::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: inherit;
+  background-size: inherit;
+  background-position: inherit;
+  filter: grayscale(100%) contrast(1.2);
+  z-index: -1;
+}
 
 nav {
     display: flex;
@@ -32,9 +44,12 @@ nav {
 .logo img {
     height: 170px;
     width: 170px;
-     background: transparent;
+    background: transparent;
     mix-blend-mode: multiply;
 
+}
+.select-first {
+    color:#1E3A8A !important;
 }
 a {
     text-decoration: none;
@@ -64,6 +79,7 @@ a {
     max-width: 430px;
     align-items: center;
     list-style: none;
+    font-weight: 900;
     
 }
 .link {
@@ -98,13 +114,16 @@ a {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    margin-top: 60px;
+    margin-top: 20px;
+}
+h1 {
+    color: #1E3A8A !important;
 }
 input {
     background-color: #fff;
     border-radius: 20px;
     border: 1px solid #0a1f44;
-    color: green;
+    color: black;
     display: inline-block;
     height: 70px;
     line-height: 40px;
@@ -118,7 +137,7 @@ input {
 }
 .search__wrapper {
     display: flex;
-    margin-top: 80px;
+    margin-top: 20px;
 }
 .search__btn {
     width: 100px;
@@ -135,7 +154,7 @@ input {
      width: auto;
 }
 
-/* find movie page*/
+/*MOVIE CARD DISPLAY*/
 
 body {
     font-family: "Open Sans", sans-serif;
@@ -153,17 +172,19 @@ body {
     gap: 25px;
 }
 .movie-card {
-    background: rgb(6, 76, 6);
-    border-radius: 12px;
+    background: #e5e7eb34;
+    border-radius: 28px;
     overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.24);
     transition: transform 300ms ease, box-shadow .2s ease;
-    color: white;
+    color: #1E3A8A !important;
+    border: 2px solid green;
+    font-weight: 700;
 }
 
 .movie-card:hover {
     transform: scale(1.05);
-    box-shadow: 0 10px 28px rgba(0,0,0,0.65);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.65);
 }
 .movie-card__container {
     padding: 15px;
@@ -172,6 +193,9 @@ body {
 .movie-card__container h3 {
     margin: 0 0 10px;
     font-size: 18px;
+    min-height: 48px;
+    line-height: 1.2;
+    overflow: hidden;
 }
 
 .movie-card__container p {
@@ -183,4 +207,70 @@ body {
     object-fit: cover;
     border-bottom: 1px solid #eee;
 }
+
+/*SKELETON LOADING STATE*/
+
+/* SKELETON LOADING */
+.skeleton-card {
+    background: rgb(6, 76, 6);
+    border-radius: 12px;
+    overflow: hidden;
+    padding: 15px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.skeleton {
+    background: linear-gradient(90deg, #3a3a3a 25%, #4a4a4a 50%, #3a3a3a 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.2s infinite;
+    border-radius: 6px;
+}
+
+.skeleton-img {
+    width: 100%;
+    height: 350px;
+    margin-bottom: 10px;
+}
+
+.skeleton-title {
+    height: 20px;
+    width: 80%;
+    margin-bottom: 10px;
+}
+
+.skeleton-year {
+    height: 16px;
+    width: 40%;
+}
+
+@keyframes skeleton-loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+.results {
+    color: rgb(30, 123, 30);
+    margin-bottom: 16px;
+    margin-top: 16px;
+    font-size: 20px;
+    font-weight: 900;
+}
+#placeholder {
+  width: 100%;
+  margin-top: 120px; /* pushes it into the lower half */
+  display: flex;
+  justify-content: center;
+  opacity: 1;
+  transition: opacity 0.4s ease;
+}
+
+#placeholder img {
+  max-width: 300px;
+  opacity: 1;
+  border-radius: 50px;
+  z-index: -1;
+}
+ .theater__img {
+    transform: scale(1.5);
+    position: fixed;
+ }
 

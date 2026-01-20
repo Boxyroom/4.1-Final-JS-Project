@@ -26,8 +26,8 @@ function userHTML(user) {
 }
 
 */ 
-const params = new URLSearchParams(window.location.search);
-    const keyword = params.get("search");
+/*const params = new URLSearchParams(window.location.search);
+const keyword = params.get("search");
 
     async function loadMovies() {
         if (!keyword) return;
@@ -58,4 +58,4 @@ const params = new URLSearchParams(window.location.search);
         });
     }
 
-    loadMovies();
+    loadMovies();*/
