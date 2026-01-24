@@ -6,6 +6,11 @@ const btn = document.querySelector('.search__btn');
 const movieList = document.querySelector('.movie-list');
 const firstBtn = document.querySelector('.select-first');
 const resultsText = document.querySelector('.results');
+const modalBtn = document.querySelector('.menu-btn');
+const modalMenu = document.querySelector('.modal-menu');
+const modalLinks = document.querySelectorAll('.modal-link, .modal-contact');
+const overlay = document.querySelector('.modal-overlay');
+const pageClose = document.querySelectorAll('.menu-btn, .title, .search-input, .search__btn');
 
 // SEARCH BUTTON
 btn.addEventListener('click', () => {
@@ -30,8 +35,50 @@ firstBtn.addEventListener('click', async (e) => {
     document.getElementById('movies').scrollIntoView({
     behavior: 'smooth'
 });
-
 });
+
+/*MODAL FUNCTIONS*/
+
+modalBtn.addEventListener('click', () => {
+    modalMenu.classList.toggle('open');
+    overlay.classList.toggle('open');
+    pageClose.forEach(e => {
+        e.classList.toggle('close')
+    });
+    document.body.classList.toggle('noscroll')
+});
+
+modalLinks.forEach(link => {
+    link.addEventListener('click', async (e) => {
+        e.preventDefault(); 
+
+        // SELECT A MOVIE IN THE MODAL
+        if (link.getAttribute('href') === '#movies') {
+            await loadFirstMovies();
+            document.getElementById('movies').scrollIntoView({
+                behavior: 'smooth'
+            });
+        }
+
+        // CONTACT US IN THE MODAL
+        if (link.classList.contains('modal-contact')) {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+
+        modalMenu.classList.remove('open');
+        overlay.classList.remove('open');
+          pageClose.forEach(e => {
+        e.classList.remove('close')
+    });
+        document.body.classList.remove('noscroll');
+    });
+});
+
+
+
 
 //SKELETON STATE
 
@@ -82,15 +129,6 @@ async function loadFirstMovies() {
 
 // RENDER MOVIES
 function displayMovies(movies) {
-
-     const placeholder = document.getElementById("placeholder");
-    if (placeholder) {
-        placeholder.style.opacity = "0";
-        setTimeout(() => {
-            placeholder.style.display = "none";
-        }, 400);
-    }
-
     movieList.innerHTML = movies.map(movie => `
         <div class="movie">
             <div class="movie-card">

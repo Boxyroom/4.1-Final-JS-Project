@@ -25,14 +25,24 @@
                 <a href="#movies" class="link link__hover-effect select-first">Select A Movie</a>
                 </li>
                 <li>
-                <a class="btn-contact">Contact Us</a>
+                <button class="btn-contact">Contact Us</button>
                 </li>
             </ul>
+            <button class="menu-btn">Menu</button>
         </nav>
+        <!-- MODAL MENU-->
+        <div class="modal">
+        <div class="modal-menu">
+            <a href="" class="modal-link">Home</a>
+            <a href="#movies" class="modal-link">Select A Movie</a>
+            <button class="modal-contact">Contact Us</button>
+        </div>
+        <div class="modal-overlay"></div>
+        </div>
         <header class="header">
             <div class="container">
                 <div class="row">
-                    <h1>The Best Site To Find All Your Favorite Movies</h1>
+                    <h1 class="title">The Best Site To Find All Your Favorite Movies</h1>
                     <div class="search__wrapper">
                         <input class="search-input" type="text" placeholder="Search by Keyword, Year, or Title">
                         <button class="search__btn" type="button">
@@ -43,9 +53,6 @@
             </div>
         </header>
     </section>
-    <div id="placeholder">
-        <img src="theater.jpg" class="theater__img" alt="placeholder">
-    </div>
     <section id="movies">
             <div class="container">
                 <div class="row">
