@@ -1,43 +1,48 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
     <script src="app.js" defer></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap"
+        rel="stylesheet">
     <title>Movies</title>
 </head>
+
 <body>
     <section id="landing">
         <!--NAV-->
-        <nav> 
-            <div class="logo">
-                <img src="blgreen.png"/>
+        <nav>
+            <div class="container nav-inner">
+                <div class="logo">
+                    <img src="blgreen.png" />
+                </div>
+                <ul class="links">
+                    <li>
+                        <a href="" class="link link__hover-effect">Home</a>
+                    </li>
+                    <li>
+                        <a href="#movies" class="link link__hover-effect select-first">Select A Movie</a>
+                    </li>
+                    <li>
+                        <button class="btn-contact">Contact Us</button>
+                    </li>
+                </ul>
+                <button class="menu-btn">Menu</button>
             </div>
-            <ul class="links">
-                <li>
-                <a href="" class="link link__hover-effect">Home</a>
-                </li>
-                <li>
-                <a href="#movies" class="link link__hover-effect select-first">Select A Movie</a>
-                </li>
-                <li>
-                <button class="btn-contact">Contact Us</button>
-                </li>
-            </ul>
-            <button class="menu-btn">Menu</button>
         </nav>
         <!-- MODAL MENU-->
         <div class="modal">
-        <div class="modal-menu">
-            <a href="" class="modal-link">Home</a>
-            <a href="#movies" class="modal-link">Select A Movie</a>
-            <button class="modal-contact">Contact Us</button>
-        </div>
-        <div class="modal-overlay"></div>
+            <div class="modal-menu">
+                <a href="" class="modal-link">Home</a>
+                <a href="#movies" class="modal-link">Select A Movie</a>
+                <button class="modal-contact">Contact Us</button>
+            </div>
+            <div class="modal-overlay"></div>
         </div>
         <header class="header">
             <div class="container">
@@ -54,12 +59,28 @@
         </header>
     </section>
     <section id="movies">
-            <div class="container">
-                <div class="row">
-                   <p class="results"></p>
-                    <div class="movie-list"></div>
-                </div>
+        <div class="container">
+            <div class="row">
+                <p class="results"></p>
+                <div class="movie-list"></div>
             </div>
+        </div>
     </section>
+    <footer>
+        <div class="container">
+            <div class="footer__row">
+                <figure class="footer__logo logo">
+                    <img src="blgreen.png" class="footer__logo--img"/>
+                </figure>
+                <div class="footer__links">
+                    <a href="" class="footer__link link__hover-effect">Home</a>
+                    <a href="#movies" class="footer__link link__hover-effect select-first">Select A Movie</a>
+                </div>
+                <div class="footer__copyright">Copyright &copy; 2025 John Clavette</div>
+
+            </div>
+        </div>
+    </footer>
 </body>
+
 </html>
