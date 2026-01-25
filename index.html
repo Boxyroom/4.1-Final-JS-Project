@@ -10,6 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap"
         rel="stylesheet">
+    <link rel="icon" href="data:,">
     <title>Movies</title>
 </head>
 
@@ -54,6 +55,13 @@
                             <img src="1486506270-glass-magnifying-out-search-detective-magnifier-zoom_81489 (1).svg">
                         </button>
                     </div>
+                    <div class="sort">
+                        <select id="sort-years">
+                            <option value="" selected disabled>Sort by Release Year</option>
+                            <option value="low__to__high" class="low__to__high">Oldest to Newest</option>
+                            <option value="high__to__low" class="high__to__low">Newest to Oldest</option>
+                        </select>
+                    </div>
                 </div>
             </div>
         </header>
@@ -73,7 +81,7 @@
                     <img src="blgreen.png" class="footer__logo--img"/>
                 </figure>
                 <div class="footer__links">
-                    <a href="" class="footer__link link__hover-effect">Home</a>
+                    <a href="#" class="footer__link link__hover-effect">Home</a>
                     <a href="#movies" class="footer__link link__hover-effect select-first">Select A Movie</a>
                 </div>
                 <div class="footer__copyright">Copyright &copy; 2025 John Clavette</div>

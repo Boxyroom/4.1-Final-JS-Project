@@ -1,5 +1,5 @@
 // http://www.omdbapi.com/?i=tt3896198&apikey=1a39d518
-
+console.log("JS LOADED");
 // SEARCH BAR
 const input = document.querySelector(".search-input");
 const btn = document.querySelector(".search__btn");
@@ -13,6 +13,10 @@ const overlay = document.querySelector(".modal-overlay");
 const pageClose = document.querySelectorAll(
   ".menu-btn, .title, .search-input, .search__btn",
 );
+const sortSelect = document.querySelector("#sort-years");
+let currentMovies = [];
+
+
 
 // SEARCH BUTTON
 btn.addEventListener("click", () => {
@@ -81,6 +85,28 @@ modalLinks.forEach((link) => {
   });
 });
 
+//SORTING FUNCTION
+
+sortSelect.addEventListener("change", () => {
+  if (!currentMovies.length) return;
+
+  const sortType = sortSelect.value;
+
+  const sorted = [...currentMovies].sort((a, b) => {
+    const yearA = Number(a.Year);
+    const yearB = Number(b.Year);
+
+    if (sortType === "low__to__high") {
+      return yearA - yearB;
+    }
+    else if (sortType === "high__to__low") {
+      return yearB - yearA;
+    }
+    return 0;
+  });
+  displayMovies(sorted.slice(0, 6));
+});
+
 //SKELETON STATE
 
 function showSkeletons() {
@@ -94,6 +120,8 @@ function showSkeletons() {
 
   movieList.innerHTML = skeletonHTML.repeat(6);
 }
+
+
 
 // LOAD MOVIES BY KEYWORD
 async function loadMovies(keyword) {
@@ -110,7 +138,8 @@ async function loadMovies(keyword) {
     return;
   }
 
-  displayMovies(data.Search.slice(0, 6));
+  currentMovies = data.Search;
+  displayMovies(currentMovies.slice(0, 6));
 }
 
 // LOAD FIRST SIX MOVIES FROM API
@@ -128,7 +157,8 @@ async function loadFirstMovies() {
     return;
   }
 
-  displayMovies(data.Search.slice(0, 6));
+  currentMovies = data.Search;
+  displayMovies(currentMovies.slice(0, 6));
 }
 
 // RENDER MOVIES

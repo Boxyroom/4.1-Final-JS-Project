@@ -289,6 +289,25 @@ input {
     scale: 1.09;
 }
 
+/*SORT YEARS*/
+
+.sort {
+    margin-top: 30px;
+    display: flex;
+    justify-content: center;
+}
+
+#sort-years {
+    font-size: 16px;
+    background-color: green;
+    color: white;
+    height: 40px;
+    width: 200px;
+    border-radius: 20px;
+    font-weight: 600;
+    text-align: center;
+}
+
 /*MOVIE CARD DISPLAY*/
 
 
@@ -526,6 +545,24 @@ footer {
     }
     .modal-contact {
         margin-top: 40px;
+    }
+    .sort {
+        margin-top: 20px;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        display: none;
+    }
+
+    .header .row {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+    #sort-years {
+        width: 100%;
+        max-width: 300px;
+        padding: 0 12px;
     }
 
 }
