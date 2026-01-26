@@ -112,18 +112,18 @@ sortSelect.addEventListener("change", () => {
 
 //LOAD 6 MORE MOVIES
 
-moreBtn.addEventListener("click", () => {
-  movieCount = (movieCount + 6);
-  newMovieCount = (movieCount + 6);
+//moreBtn.addEventListener("click", () => {
+  //movieCount = (movieCount + 6);
+ // newMovieCount = (movieCount + 6);
   
-  displayMovies(currentMovies.slice(movieCount, newMovieCount));
+ // displayMovies(currentMovies.slice(movieCount, newMovieCount));
 
-  if (newMovieCount >= currentMovies.length) {
-    moreBtn.style.display = "none";
-  }
+ // if (newMovieCount >= currentMovies.length) {
+   // moreBtn.style.display = "none";
+  //}
 
 
-});
+//});
 
 
 //SKELETON STATE
@@ -160,10 +160,10 @@ async function loadMovies(keyword) {
   }
 
   currentMovies = data.Search;
-  movieCount = 0;
-  newMovieCount = 6;
-  movieList.innerHTML = "";
-  moreBtn.style.display = currentMovies.length > 6 ? "flex" : "none";
+  //movieCount = 0;
+  //newMovieCount = 6;
+  //movieList.innerHTML = "";
+ // moreBtn.style.display = currentMovies.length > 6 ? "flex" : "none";
 
   displayMovies(currentMovies.slice(movieCount, newMovieCount));
 }
@@ -185,17 +185,17 @@ async function loadFirstMovies() {
   }
 
   currentMovies = data.Search;
-  movieCount = 0;
-  newMovieCount = 6;
-  movieList.innerHTML = "";
-  moreBtn.style.display = currentMovies.length > 6 ? "flex" : "none";
+  //movieCount = 0;
+  //newMovieCount = 6;
+  //movieList.innerHTML = "";
+  //moreBtn.style.display = currentMovies.length > 6 ? "flex" : "none";
 
   displayMovies(currentMovies.slice(movieCount, newMovieCount));
 }
 
 // RENDER MOVIES
 function displayMovies(movies) {
-  movieList.innerHTML += movies
+  movieList.innerHTML = movies
     .map(
       (movie) => `
         <div class="movie">
