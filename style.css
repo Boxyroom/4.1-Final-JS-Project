@@ -3,6 +3,7 @@
     padding: 0;
     box-sizing: border-box;
     font-family: "Open Sans", sans-serif;
+    transition: all 300ms ease;
 }
 
 *:focus {
@@ -151,6 +152,7 @@ a {
 
 /*MODAL*/
 
+
 .menu-btn {
     display: none;
 }
@@ -229,6 +231,16 @@ a {
 .menu-btn.close {
     opacity: 0;
     pointer-events: none;
+}
+.modal-close {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 2rem;
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
 }
 
 /*HEADER*/
@@ -357,9 +369,10 @@ input {
 
 .movie-card img {
     width: 100%;
-    height: 350px;
+    height: auto;
     object-fit: cover;
     border-bottom: 1px solid #eee;
+    display: block;
 }
 
 /*SKELETON LOADING STATE*/
@@ -461,7 +474,7 @@ footer {
 
 /* RESPONSIVENESS */
 
-@media (max-width: 450px) {
+@media (max-width: 768px) {
 
     nav {
         flex-direction: column;
@@ -507,6 +520,10 @@ footer {
     .search-input {
         width: 100%;
         margin-right: 0;
+
+    }
+    h1 {
+        text-align: center;
     }
 
     .search__btn {
@@ -524,14 +541,14 @@ footer {
     }
 
     .search__btn {
-        width: 50px;
-        height: 50px;
+        width: 72px;
+        height: 72px;
         padding: 0 20;
     }
 
     .search__btn img {
-        width: 44px;
-        height: 44px;
+        width: 72px;
+        height: 72px;
     }
 
     #landing,
@@ -540,8 +557,8 @@ footer {
     .header,
     .search__wrapper,
     .movie-list {
-        padding-left: 12px;
-        padding-right: 12px;
+        padding-left: 20px;
+        padding-right: 20px;
     }
     .modal-contact {
         margin-top: 40px;
@@ -565,5 +582,9 @@ footer {
         padding: 0 12px;
     }
 
+}
+
+@media (max-width: 500px) {
+    
 }
 /* test */

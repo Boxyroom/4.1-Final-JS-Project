@@ -8,7 +8,7 @@ const firstBtns = document.querySelectorAll(".select-first");
 const resultsText = document.querySelector(".results");
 const modalBtn = document.querySelector(".menu-btn");
 const modalMenu = document.querySelector(".modal-menu");
-const modalLinks = document.querySelectorAll(".modal-link, .modal-contact");
+const modalLinks = document.querySelectorAll(".modal-link, .modal-contact, .modal-close");
 const overlay = document.querySelector(".modal-overlay");
 const pageClose = document.querySelectorAll(
   ".menu-btn, .title, .search-input, .search__btn",
