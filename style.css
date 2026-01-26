@@ -329,6 +329,11 @@ input {
     padding: 0 20px;
 }
 
+.movies__row {
+    align-items: center;
+    justify-content: center;
+}
+
 .movie-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -373,6 +378,37 @@ input {
     object-fit: cover;
     border-bottom: 1px solid #eee;
     display: block;
+}
+
+
+.load__more {
+    background-color: green;
+    border-radius: 50px;
+    display: flex;
+    justify-content: center;
+    cursor: pointer;
+    max-width: none;
+    max-height: 48px;
+    min-height: 48px;
+    padding: 50px 50px;
+    align-items: center;
+    max-width: 100px;
+    margin: 0 auto;
+    border: 2px #5d3eff;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    align-items: center;
+    transition: 300ms ease;
+    margin-top: 44px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.24);
+    display: none;
+}
+.load__more:hover {
+    scale: 1.09;
+    opacity: 0.8;
+    background-color: rgb(72, 143, 72);
 }
 
 /*SKELETON LOADING STATE*/

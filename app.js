@@ -7,6 +7,7 @@ const movieList = document.querySelector(".movie-list");
 const firstBtns = document.querySelectorAll(".select-first");
 const resultsText = document.querySelector(".results");
 const modalBtn = document.querySelector(".menu-btn");
+const moreBtn = document.querySelector(".load__more");
 const modalMenu = document.querySelector(".modal-menu");
 const modalLinks = document.querySelectorAll(".modal-link, .modal-contact, .modal-close");
 const overlay = document.querySelector(".modal-overlay");
@@ -15,6 +16,8 @@ const pageClose = document.querySelectorAll(
 );
 const sortSelect = document.querySelector("#sort-years");
 let currentMovies = [];
+let movieCount = 0;
+let newMovieCount = 6;
 
 
 
@@ -104,8 +107,24 @@ sortSelect.addEventListener("change", () => {
     }
     return 0;
   });
-  displayMovies(sorted.slice(0, 6));
+  displayMovies(sorted.slice(movieCount, newMovieCount));
 });
+
+//LOAD 6 MORE MOVIES
+
+moreBtn.addEventListener("click", () => {
+  movieCount = (movieCount + 6);
+  newMovieCount = (movieCount + 6);
+  
+  displayMovies(currentMovies.slice(movieCount, newMovieCount));
+
+  if (newMovieCount >= currentMovies.length) {
+    moreBtn.style.display = "none";
+  }
+
+
+});
+
 
 //SKELETON STATE
 
@@ -120,6 +139,8 @@ function showSkeletons() {
 
   movieList.innerHTML = skeletonHTML.repeat(6);
 }
+
+
 
 
 
@@ -139,8 +160,14 @@ async function loadMovies(keyword) {
   }
 
   currentMovies = data.Search;
-  displayMovies(currentMovies.slice(0, 6));
+  movieCount = 0;
+  newMovieCount = 6;
+  movieList.innerHTML = "";
+  moreBtn.style.display = currentMovies.length > 6 ? "flex" : "none";
+
+  displayMovies(currentMovies.slice(movieCount, newMovieCount));
 }
+
 
 // LOAD FIRST SIX MOVIES FROM API
 async function loadFirstMovies() {
@@ -158,12 +185,17 @@ async function loadFirstMovies() {
   }
 
   currentMovies = data.Search;
-  displayMovies(currentMovies.slice(0, 6));
+  movieCount = 0;
+  newMovieCount = 6;
+  movieList.innerHTML = "";
+  moreBtn.style.display = currentMovies.length > 6 ? "flex" : "none";
+
+  displayMovies(currentMovies.slice(movieCount, newMovieCount));
 }
 
 // RENDER MOVIES
 function displayMovies(movies) {
-  movieList.innerHTML = movies
+  movieList.innerHTML += movies
     .map(
       (movie) => `
         <div class="movie">
