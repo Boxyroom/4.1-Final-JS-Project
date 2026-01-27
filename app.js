@@ -1,5 +1,5 @@
 // http://www.omdbapi.com/?i=tt3896198&apikey=1a39d518
-console.log("JS LOADED");
+
 // SEARCH BAR
 const input = document.querySelector(".search-input");
 const btn = document.querySelector(".search__btn");
@@ -7,7 +7,6 @@ const movieList = document.querySelector(".movie-list");
 const firstBtns = document.querySelectorAll(".select-first");
 const resultsText = document.querySelector(".results");
 const modalBtn = document.querySelector(".menu-btn");
-const moreBtn = document.querySelector(".load__more");
 const modalMenu = document.querySelector(".modal-menu");
 const modalLinks = document.querySelectorAll(".modal-link, .modal-contact, .modal-close");
 const overlay = document.querySelector(".modal-overlay");
@@ -16,8 +15,7 @@ const pageClose = document.querySelectorAll(
 );
 const sortSelect = document.querySelector("#sort-years");
 let currentMovies = [];
-let movieCount = 0;
-let newMovieCount = 6;
+
 
 
 
@@ -95,7 +93,7 @@ sortSelect.addEventListener("change", () => {
 
   const sortType = sortSelect.value;
 
-  const sorted = [...currentMovies].sort((a, b) => {
+  const sorted = [...currentMovies.slice(0, 6)].sort((a, b) => {
     const yearA = Number(a.Year);
     const yearB = Number(b.Year);
 
@@ -107,23 +105,10 @@ sortSelect.addEventListener("change", () => {
     }
     return 0;
   });
-  displayMovies(sorted.slice(movieCount, newMovieCount));
+  displayMovies(sorted.slice(0, 6));
 });
 
-//LOAD 6 MORE MOVIES
 
-//moreBtn.addEventListener("click", () => {
-  //movieCount = (movieCount + 6);
- // newMovieCount = (movieCount + 6);
-  
- // displayMovies(currentMovies.slice(movieCount, newMovieCount));
-
- // if (newMovieCount >= currentMovies.length) {
-   // moreBtn.style.display = "none";
-  //}
-
-
-//});
 
 
 //SKELETON STATE
@@ -141,12 +126,29 @@ function showSkeletons() {
 }
 
 
+function applySort() {
+  const sortType = sortSelect.value;
 
+  const moviesToSort = currentMovies.slice(0, 6);
+
+  if (sortType === "low__to__high") {
+    return [...moviesToSort].sort((a, b) => Number(a.Year) - Number(b.Year));
+  }
+
+  if (sortType === "high__to__low") {
+    return [...moviesToSort].sort((a, b) => Number(b.Year) - Number(a.Year));
+  }
+
+  return moviesToSort;
+}
 
 
 // LOAD MOVIES BY KEYWORD
 async function loadMovies(keyword) {
   showSkeletons();
+
+  sortSelect.value = "";
+
   resultsText.textContent = `Search results for "${keyword}"...`;
 
   const response = await fetch(
@@ -160,18 +162,16 @@ async function loadMovies(keyword) {
   }
 
   currentMovies = data.Search;
-  //movieCount = 0;
-  //newMovieCount = 6;
-  //movieList.innerHTML = "";
- // moreBtn.style.display = currentMovies.length > 6 ? "flex" : "none";
-
-  displayMovies(currentMovies.slice(movieCount, newMovieCount));
+  displayMovies(applySort());
 }
 
 
 // LOAD FIRST SIX MOVIES FROM API
 async function loadFirstMovies() {
   showSkeletons();
+
+  sortSelect.value = "";
+
   resultsText.textContent = "Our Top Movies...";
 
   const response = await fetch(
@@ -185,12 +185,7 @@ async function loadFirstMovies() {
   }
 
   currentMovies = data.Search;
-  //movieCount = 0;
-  //newMovieCount = 6;
-  //movieList.innerHTML = "";
-  //moreBtn.style.display = currentMovies.length > 6 ? "flex" : "none";
-
-  displayMovies(currentMovies.slice(movieCount, newMovieCount));
+   displayMovies(applySort());
 }
 
 // RENDER MOVIES
