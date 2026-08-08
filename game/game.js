@@ -53,6 +53,17 @@
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d");
 
+  const GROUND_SRC = location.pathname.includes("/game")
+    ? "../theater.jpg"
+    : "theater.jpg";
+  const groundImg = new Image();
+  let groundReady = false;
+  groundImg.onload = () => {
+    groundReady = true;
+  };
+  groundImg.src = GROUND_SRC;
+
+
   const ui = {
     title: document.getElementById("title"),
     tutorial: document.getElementById("tutorial"),
@@ -716,8 +727,8 @@
     setMode("play");
     showCoach(
       isTouchPrimary()
-        ? "Move with the stick. Dash through packs to hurt them — or dash away to live."
-        : "WASD move · Space dash through/away · Hold F to focus big foes",
+        ? "You are the big lantern in the center (label: YOUR LANTERN). Drag Move to steer."
+        : "You are the big lantern in the center (YOUR LANTERN). WASD move · Space dash",
     );
     lastTs = performance.now();
     cancelAnimationFrame(animId);
@@ -1369,17 +1380,39 @@
   }
 
   function drawGround(w, h) {
-    // wet marsh base
-    const base = ctx.createLinearGradient(0, 0, w, h);
-    base.addColorStop(0, "#0e1a14");
-    base.addColorStop(0.45, "#15261c");
-    base.addColorStop(1, "#0a120e");
-    ctx.fillStyle = base;
-    ctx.fillRect(0, 0, w, h);
+    // photographic marsh floor
+    if (groundReady) {
+      const tile = 420;
+      const camX = state.camera.x;
+      const camY = state.camera.y;
+      const minTX = Math.floor((camX - w) / tile) - 1;
+      const maxTX = Math.floor((camX + w) / tile) + 1;
+      const minTY = Math.floor((camY - h) / tile) - 1;
+      const maxTY = Math.floor((camY + h) / tile) + 1;
+      for (let ty = minTY; ty <= maxTY; ty++) {
+        for (let tx = minTX; tx <= maxTX; tx++) {
+          const s = worldToScreen(tx * tile, ty * tile);
+          ctx.save();
+          ctx.globalAlpha = 0.55;
+          ctx.drawImage(groundImg, s.x, s.y, tile + 2, tile + 2);
+          ctx.restore();
+        }
+      }
+      // cool green grade over photo
+      ctx.fillStyle = "rgba(10, 28, 18, 0.55)";
+      ctx.fillRect(0, 0, w, h);
+    } else {
+      const base = ctx.createLinearGradient(0, 0, w, h);
+      base.addColorStop(0, "#0e1a14");
+      base.addColorStop(0.45, "#15261c");
+      base.addColorStop(1, "#0a120e");
+      ctx.fillStyle = base;
+      ctx.fillRect(0, 0, w, h);
+    }
 
     const camX = state.camera.x;
     const camY = state.camera.y;
-    const tile = 96;
+    const tile = 88;
     const minTX = Math.floor((camX - w) / tile) - 1;
     const maxTX = Math.floor((camX + w) / tile) + 1;
     const minTY = Math.floor((camY - h) / tile) - 1;
@@ -1388,60 +1421,37 @@
     for (let ty = minTY; ty <= maxTY; ty++) {
       for (let tx = minTX; tx <= maxTX; tx++) {
         const n = hash2(tx, ty);
-        const wx = tx * tile + n * 40;
-        const wy = ty * tile + hash2(ty, tx) * 40;
+        const wx = tx * tile + n * 36;
+        const wy = ty * tile + hash2(ty, tx) * 36;
         const s = worldToScreen(wx, wy);
-        if (s.x < -80 || s.y < -80 || s.x > w + 80 || s.y > h + 80) continue;
+        if (s.x < -90 || s.y < -90 || s.x > w + 90 || s.y > h + 90) continue;
 
-        // mud patch / puddle
-        if (n > 0.48) {
+        if (n > 0.5) {
           ctx.beginPath();
-          ctx.fillStyle = n > 0.78 ? "rgba(36, 62, 68, 0.72)" : "rgba(58, 44, 24, 0.5)";
-          ctx.ellipse(s.x, s.y, 20 + n * 32, 12 + n * 16, n * 2, 0, TAU);
+          ctx.fillStyle = n > 0.8 ? "rgba(40, 70, 78, 0.55)" : "rgba(70, 52, 28, 0.4)";
+          ctx.ellipse(s.x, s.y, 22 + n * 30, 12 + n * 14, n * 2, 0, TAU);
           ctx.fill();
-          if (n > 0.82) {
-            const shimmer = ctx.createRadialGradient(s.x - 4, s.y - 2, 2, s.x, s.y, 26);
-            shimmer.addColorStop(0, "rgba(160,190,170,0.12)");
-            shimmer.addColorStop(1, "rgba(160,190,170,0)");
-            ctx.fillStyle = shimmer;
-            ctx.beginPath();
-            ctx.ellipse(s.x, s.y, 20, 11, n * 2, 0, TAU);
-            ctx.fill();
-          }
         }
 
-        // reed clumps
-        if (n < 0.38 || n > 0.85) {
-          const blades = 4 + ((n * 10) | 0) % 5;
+        if (n < 0.4 || n > 0.86) {
+          const blades = 5 + ((n * 10) | 0) % 4;
           for (let b = 0; b < blades; b++) {
-            const sway = Math.sin(state.time * 1.3 + tx + b) * 4;
-            const bx = s.x - 10 + b * 5;
-            const by = s.y + 8;
-            ctx.strokeStyle = `rgba(${34 + b * 10}, ${90 + b * 12}, ${48 + b * 8}, 0.8)`;
-            ctx.lineWidth = 2;
+            const sway = Math.sin(state.time * 1.4 + tx + b) * 5;
+            const bx = s.x - 12 + b * 6;
+            const by = s.y + 10;
+            ctx.strokeStyle = `rgba(${40 + b * 12}, ${110 + b * 14}, ${55 + b * 8}, 0.88)`;
+            ctx.lineWidth = 2.2;
             ctx.beginPath();
             ctx.moveTo(bx, by);
-            ctx.quadraticCurveTo(bx + sway, by - 18, bx + sway * 1.5, by - 34 - (b % 3) * 5);
+            ctx.quadraticCurveTo(bx + sway, by - 20, bx + sway * 1.6, by - 40 - (b % 3) * 6);
             ctx.stroke();
-            // seed head
-            ctx.fillStyle = "rgba(120, 90, 40, 0.7)";
+            ctx.fillStyle = "rgba(150, 110, 45, 0.85)";
             ctx.beginPath();
-            ctx.ellipse(bx + sway * 1.5, by - 34 - (b % 3) * 5, 1.6, 3.2, 0, 0, Math.PI * 2);
+            ctx.ellipse(bx + sway * 1.6, by - 40 - (b % 3) * 6, 2, 4, 0, 0, TAU);
             ctx.fill();
           }
         }
       }
-    }
-
-    // soft mist bands
-    for (let i = 0; i < 5; i++) {
-      const my = ((state.time * 8 + i * 120) % (h + 100)) - 50;
-      const mist = ctx.createLinearGradient(0, my, 0, my + 60);
-      mist.addColorStop(0, "rgba(170,190,175,0)");
-      mist.addColorStop(0.5, `rgba(170,190,175,${0.03 + i * 0.008})`);
-      mist.addColorStop(1, "rgba(170,190,175,0)");
-      ctx.fillStyle = mist;
-      ctx.fillRect(0, my, w, 60);
     }
   }
 
@@ -1453,84 +1463,112 @@
   }
 
   function drawLantern(ps, p) {
-    const flicker = 0.85 + Math.sin(state.time * 17) * 0.08 + Math.sin(state.time * 31) * 0.05;
-    const lightR = 170 * flicker;
-    const pool = ctx.createRadialGradient(ps.x, ps.y + 8, 8, ps.x, ps.y + 8, lightR);
-    pool.addColorStop(0, `rgba(255, 200, 90, ${0.34 * flicker})`);
-    pool.addColorStop(0.35, `rgba(240, 160, 50, ${0.14 * flicker})`);
-    pool.addColorStop(1, "rgba(240,160,50,0)");
+    const flicker = 0.88 + Math.sin(state.time * 18) * 0.07 + Math.sin(state.time * 29) * 0.04;
+
+    // big warm ground pool so you always spot yourself
+    const pool = ctx.createRadialGradient(ps.x, ps.y + 18, 6, ps.x, ps.y + 18, 210 * flicker);
+    pool.addColorStop(0, `rgba(255, 210, 110, ${0.55 * flicker})`);
+    pool.addColorStop(0.25, `rgba(255, 170, 60, ${0.22 * flicker})`);
+    pool.addColorStop(0.65, `rgba(255, 140, 40, 0.08)`);
+    pool.addColorStop(1, "rgba(255,140,40,0)");
     ctx.fillStyle = pool;
     ctx.beginPath();
-    ctx.arc(ps.x, ps.y + 8, lightR, 0, TAU);
+    ctx.arc(ps.x, ps.y + 18, 210 * flicker, 0, TAU);
     ctx.fill();
 
-    drawShadow(ps.x, ps.y + 10, 16, 10, p.dashTimer > 0 ? 0.15 : 0.4);
+    drawShadow(ps.x, ps.y + 22, 28, 14, p.dashTimer > 0 ? 0.2 : 0.45);
 
     ctx.save();
     ctx.translate(ps.x, ps.y);
-    ctx.scale(1.35, 1.35);
-    if (p.dashTimer > 0) ctx.rotate(Math.sin(state.time * 40) * 0.08);
+    ctx.scale(2.1, 2.1);
+    if (p.dashTimer > 0) ctx.rotate(Math.sin(state.time * 40) * 0.1);
+
+    // ring plate under lantern
+    ctx.beginPath();
+    ctx.fillStyle = "rgba(255, 200, 90, 0.2)";
+    ctx.ellipse(0, 16, 14, 5, 0, 0, TAU);
+    ctx.fill();
 
     // handle
-    ctx.strokeStyle = "#6b4a22";
-    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = "#5a3a16";
+    ctx.lineWidth = 2.8;
     ctx.beginPath();
-    ctx.arc(0, -12, 7, Math.PI * 1.1, Math.PI * 1.9);
+    ctx.arc(0, -13, 8, Math.PI * 1.05, Math.PI * 1.95);
     ctx.stroke();
 
-    // brass cap
-    ctx.fillStyle = "#b8842f";
+    // top cap
+    const cap = ctx.createLinearGradient(-9, -10, 9, 0);
+    cap.addColorStop(0, "#6e4518");
+    cap.addColorStop(0.5, "#e0a84a");
+    cap.addColorStop(1, "#7a4a1a");
+    ctx.fillStyle = cap;
     ctx.beginPath();
-    ctx.moveTo(-8, -8);
-    ctx.lineTo(8, -8);
-    ctx.lineTo(6, -3);
-    ctx.lineTo(-6, -3);
+    ctx.moveTo(-9, -9);
+    ctx.lineTo(9, -9);
+    ctx.lineTo(7, -2);
+    ctx.lineTo(-7, -2);
     ctx.closePath();
     ctx.fill();
 
-    // glass chamber
-    const glass = ctx.createLinearGradient(-7, -2, 8, 12);
-    glass.addColorStop(0, "rgba(255,230,160,0.55)");
-    glass.addColorStop(0.5, "rgba(255,190,80,0.35)");
-    glass.addColorStop(1, "rgba(180,110,40,0.45)");
+    // glass
+    const glass = ctx.createLinearGradient(-8, -1, 9, 14);
+    glass.addColorStop(0, "rgba(255,245,200,0.75)");
+    glass.addColorStop(0.45, "rgba(255,190,80,0.45)");
+    glass.addColorStop(1, "rgba(160,90,30,0.55)");
     ctx.fillStyle = glass;
     ctx.beginPath();
-    ctx.moveTo(-7, -2);
-    ctx.lineTo(7, -2);
-    ctx.lineTo(6, 11);
-    ctx.lineTo(-6, 11);
+    ctx.moveTo(-8, -1);
+    ctx.lineTo(8, -1);
+    ctx.lineTo(7, 13);
+    ctx.lineTo(-7, 13);
     ctx.closePath();
     ctx.fill();
-    ctx.strokeStyle = "rgba(255,240,200,0.35)";
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgba(255,255,230,0.55)";
+    ctx.lineWidth = 1.2;
     ctx.stroke();
 
-    // flame
-    const flameH = 7 + flicker * 4;
-    const flame = ctx.createRadialGradient(0, 2, 0.5, 0, 2, flameH);
-    flame.addColorStop(0, "#fff6c8");
-    flame.addColorStop(0.45, "#ffb84a");
-    flame.addColorStop(1, "rgba(255,120,40,0)");
+    // bright flame core
+    const flameH = 9 + flicker * 5;
+    const flame = ctx.createRadialGradient(0, 3, 0.4, 0, 3, flameH);
+    flame.addColorStop(0, "#fffce8");
+    flame.addColorStop(0.35, "#ffd056");
+    flame.addColorStop(0.75, "#ff8a2a");
+    flame.addColorStop(1, "rgba(255,80,0,0)");
     ctx.fillStyle = flame;
     ctx.beginPath();
-    ctx.moveTo(0, 2 - flameH);
-    ctx.quadraticCurveTo(4, 2, 0, 6);
-    ctx.quadraticCurveTo(-4, 2, 0, 2 - flameH);
+    ctx.moveTo(0, 3 - flameH);
+    ctx.quadraticCurveTo(5, 3, 0, 8);
+    ctx.quadraticCurveTo(-5, 3, 0, 3 - flameH);
     ctx.fill();
 
-    // base
-    ctx.fillStyle = "#8a5a24";
-    ctx.fillRect(-7, 11, 14, 4);
-    ctx.fillStyle = "#5c3a16";
-    ctx.fillRect(-5, 15, 10, 3);
+    // brass cage lines
+    ctx.strokeStyle = "rgba(90, 55, 20, 0.65)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, -1);
+    ctx.lineTo(0, 13);
+    ctx.moveTo(-4, -1);
+    ctx.lineTo(-3.5, 13);
+    ctx.moveTo(4, -1);
+    ctx.lineTo(3.5, 13);
+    ctx.stroke();
 
-    // dash streak
+    // base
+    const base = ctx.createLinearGradient(-8, 13, 8, 20);
+    base.addColorStop(0, "#5a3612");
+    base.addColorStop(0.5, "#c48932");
+    base.addColorStop(1, "#4a2c10");
+    ctx.fillStyle = base;
+    ctx.fillRect(-8, 13, 16, 5);
+    ctx.fillStyle = "#3a220c";
+    ctx.fillRect(-6, 18, 12, 3);
+
     if (p.dashTimer > 0) {
-      ctx.globalAlpha = 0.35;
-      ctx.strokeStyle = "#ffd36a";
-      ctx.lineWidth = 3;
+      ctx.globalAlpha = 0.45;
+      ctx.strokeStyle = "#ffe08a";
+      ctx.lineWidth = 4;
       ctx.beginPath();
-      ctx.moveTo(-Math.cos(p.facing) * 22, -Math.sin(p.facing) * 22);
+      ctx.moveTo(-Math.cos(p.facing) * 26, -Math.sin(p.facing) * 26);
       ctx.lineTo(0, 0);
       ctx.stroke();
       ctx.globalAlpha = 1;
@@ -1538,15 +1576,23 @@
 
     ctx.restore();
 
-    // hp ring (subtle)
-    ctx.strokeStyle = "rgba(215,228,213,0.2)";
-    ctx.lineWidth = 3;
+    // always-readable identity marker
+    ctx.textAlign = "center";
+    ctx.font = "800 14px Outfit, sans-serif";
+    ctx.fillStyle = "rgba(0,0,0,0.55)";
+    ctx.fillRect(ps.x - 34, ps.y - 52, 68, 18);
+    ctx.fillStyle = "#ffe08a";
+    ctx.fillText("YOUR LANTERN", ps.x, ps.y - 39);
+
+    // hp ring
+    ctx.strokeStyle = "rgba(215,228,213,0.25)";
+    ctx.lineWidth = 4;
     ctx.beginPath();
-    ctx.arc(ps.x, ps.y, p.r + 10, 0, TAU);
+    ctx.arc(ps.x, ps.y, 34, 0, TAU);
     ctx.stroke();
     ctx.strokeStyle = "#f0b429";
     ctx.beginPath();
-    ctx.arc(ps.x, ps.y, p.r + 10, -Math.PI / 2, -Math.PI / 2 + TAU * (p.hp / p.maxHp));
+    ctx.arc(ps.x, ps.y, 34, -Math.PI / 2, -Math.PI / 2 + TAU * (p.hp / p.maxHp));
     ctx.stroke();
   }
 
@@ -1720,11 +1766,11 @@
   function drawDarkness(w, h, ps, p) {
     // night veil with lantern cutout
     ctx.save();
-    ctx.fillStyle = "rgba(4, 8, 6, 0.42)";
+    ctx.fillStyle = "rgba(4, 8, 6, 0.28)";
     ctx.fillRect(0, 0, w, h);
     ctx.globalCompositeOperation = "destination-out";
     const flicker = 0.9 + Math.sin(state.time * 19) * 0.05;
-    const r = (190 + p.orbit * 10) * flicker;
+    const r = (230 + p.orbit * 12) * flicker;
     const cut = ctx.createRadialGradient(ps.x, ps.y, 20, ps.x, ps.y, r);
     cut.addColorStop(0, "rgba(0,0,0,1)");
     cut.addColorStop(0.55, "rgba(0,0,0,0.75)");
@@ -1801,9 +1847,8 @@
     }
 
     const ps = worldToScreen(p.x, p.y);
-    drawLantern(ps, p);
 
-    // particles
+    // particles under the lantern
     for (const part of state.particles) {
       const s = worldToScreen(part.x, part.y);
       ctx.globalAlpha = clamp(part.life / part.max, 0, 1);
@@ -1814,7 +1859,12 @@
       ctx.globalAlpha = 1;
     }
 
-    // floats
+    // night wash first...
+    drawDarkness(w, h, ps, p);
+    // ...then lantern on TOP so you can always see yourself
+    drawLantern(ps, p);
+
+    // floats above everything
     ctx.textAlign = "center";
     for (const f of state.floats) {
       const s = worldToScreen(f.x, f.y);
@@ -1825,8 +1875,6 @@
       ctx.fillText(f.text, s.x, s.y);
       ctx.globalAlpha = 1;
     }
-
-    drawDarkness(w, h, ps, p);
 
     if (input.focus) {
       ctx.strokeStyle = "rgba(224,122,47,0.95)";
