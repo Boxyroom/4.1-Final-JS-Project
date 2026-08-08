@@ -640,12 +640,14 @@ h2 {
         <div class="meta-chip">Runs <strong id="meta-runs">0</strong></div>
       </div>
       <div class="btn-row">
-        <button type="button" id="btn-tutorial" class="btn primary">How to play</button>
-        <button type="button" id="btn-start" class="btn">Play now</button>
+        <button type="button" id="btn-start" class="btn primary">PLAY</button>
+      </div>
+      <div class="btn-row" style="margin-top:10px">
+        <button type="button" id="btn-tutorial" class="btn">How to play</button>
         <button type="button" id="btn-upgrades" class="btn">Ember shop</button>
         <button type="button" id="btn-mute-title" class="btn">Sound on</button>
       </div>
-      <p class="footnote">New here? Start with <strong>How to play</strong>.</p>
+      <p class="footnote">Tap <strong>PLAY</strong> to start immediately. Use How to play if you want the tutorial first.</p>
     </section>
 
     <section id="tutorial" class="panel hidden">
@@ -1265,11 +1267,18 @@ h2 {
   }
 
   function show(el) {
-    el.classList.remove("hidden");
+    if (el) el.classList.remove("hidden");
   }
 
   function hide(el) {
-    el.classList.add("hidden");
+    if (el) el.classList.add("hidden");
+  }
+
+  function on(id, event, handler) {
+    const el = typeof id === "string" ? document.getElementById(id) : id;
+    if (!el) return null;
+    el.addEventListener(event, handler);
+    return el;
   }
 
   function setMode(next) {
@@ -2414,42 +2423,42 @@ h2 {
     ui.stickKnob.style.transform = `translate(${dx}px, ${dy}px)`;
   }
 
-  ui.stick.addEventListener("pointerdown", (e) => {
-    stickActive = e.pointerId;
-    ui.stick.setPointerCapture(e.pointerId);
-    stickHandler(e.clientX, e.clientY);
-  });
-  ui.stick.addEventListener("pointermove", (e) => {
-    if (stickActive === e.pointerId) stickHandler(e.clientX, e.clientY);
-  });
-  function endStick(e) {
-    if (stickActive === e.pointerId) {
-      stickActive = null;
-      input.ax = 0;
-      input.ay = 0;
-      ui.stickKnob.style.transform = "translate(0,0)";
+  if (ui.stick) {
+    ui.stick.addEventListener("pointerdown", (e) => {
+      stickActive = e.pointerId;
+      ui.stick.setPointerCapture(e.pointerId);
+      stickHandler(e.clientX, e.clientY);
+    });
+    ui.stick.addEventListener("pointermove", (e) => {
+      if (stickActive === e.pointerId) stickHandler(e.clientX, e.clientY);
+    });
+    function endStick(e) {
+      if (stickActive === e.pointerId) {
+        stickActive = null;
+        input.ax = 0;
+        input.ay = 0;
+        if (ui.stickKnob) ui.stickKnob.style.transform = "translate(0,0)";
+      }
     }
+    ui.stick.addEventListener("pointerup", endStick);
+    ui.stick.addEventListener("pointercancel", endStick);
   }
-  ui.stick.addEventListener("pointerup", endStick);
-  ui.stick.addEventListener("pointercancel", endStick);
 
-  ui.dashBtn.addEventListener("click", () => {
+  on(ui.dashBtn, "click", () => {
     input.dash = true;
   });
 
-  document.getElementById("btn-start").addEventListener("click", () => {
-    if (!meta.seenTutorial) {
-      openTutorial(true);
-      return;
-    }
+  // Play always starts the game. Tutorial is optional via How to play.
+  on("btn-start", "click", () => {
+    markTutorialSeen();
     startRun();
   });
-  document.getElementById("btn-tutorial").addEventListener("click", () => openTutorial(true));
-  document.getElementById("btn-pause-help").addEventListener("click", () => {
-    state._returnToPause = true;
+  on("btn-tutorial", "click", () => openTutorial(true));
+  on("btn-pause-help", "click", () => {
+    if (state) state._returnToPause = true;
     openTutorial(true);
   });
-  document.getElementById("btn-tut-next").addEventListener("click", () => {
+  on("btn-tut-next", "click", () => {
     if (tutorialIndex < TUTORIAL_STEPS.length - 1) {
       tutorialIndex += 1;
       renderTutorial();
@@ -2463,13 +2472,13 @@ h2 {
     }
     startRun();
   });
-  document.getElementById("btn-tut-back").addEventListener("click", () => {
+  on("btn-tut-back", "click", () => {
     if (tutorialIndex > 0) {
       tutorialIndex -= 1;
       renderTutorial();
     }
   });
-  document.getElementById("btn-tut-skip").addEventListener("click", () => {
+  on("btn-tut-skip", "click", () => {
     markTutorialSeen();
     if (state && state._returnToPause && !state.ended) {
       state._returnToPause = false;
@@ -2496,16 +2505,15 @@ h2 {
     }
   }
 
-  document.getElementById("btn-mute").addEventListener("click", toggleMute);
-  document.getElementById("btn-mute-title").addEventListener("click", toggleMute);
+  on("btn-mute", "click", toggleMute);
+  on("btn-mute-title", "click", toggleMute);
 
-  document.getElementById("btn-hud-pause").addEventListener("click", () => {
+  on("btn-hud-pause", "click", () => {
     if (mode === "play" && state && !state.ended && !state.pausedChoice) {
       setMode("pause");
     }
   });
 
-  // Unlock audio on first gesture
   window.addEventListener(
     "pointerdown",
     () => {
@@ -2513,25 +2521,30 @@ h2 {
     },
     { once: true },
   );
-  document.getElementById("btn-again").addEventListener("click", startRun);
-  document.getElementById("btn-menu").addEventListener("click", () => setMode("title"));
-  document.getElementById("btn-upgrades").addEventListener("click", () => setMode("shop"));
-  document.getElementById("btn-shop-back").addEventListener("click", () => setMode("title"));
-  document.getElementById("btn-resume").addEventListener("click", () => setMode("play"));
-  document.getElementById("btn-quit").addEventListener("click", () => endRun(true));
+  on("btn-again", "click", startRun);
+  on("btn-menu", "click", () => setMode("title"));
+  on("btn-upgrades", "click", () => setMode("shop"));
+  on("btn-shop-back", "click", () => setMode("title"));
+  on("btn-resume", "click", () => setMode("play"));
+  on("btn-quit", "click", () => endRun(true));
 
   window.addEventListener("resize", resize);
-  resize();
-  refreshMetaUi();
-  refreshMuteUi();
-  // First visit opens the tutorial automatically
-  if (!meta.seenTutorial) {
-    openTutorial(true);
-  } else {
+
+  try {
+    resize();
+    refreshMetaUi();
+    refreshMuteUi();
     setMode("title");
+    lastTs = performance.now();
+    animId = requestAnimationFrame(frame);
+  } catch (err) {
+    console.error(err);
+    const crash = document.createElement("div");
+    crash.style.cssText =
+      "position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:24px;background:#0b1210;color:#f4efe4;font:600 18px Outfit,sans-serif;text-align:center";
+    crash.textContent = "Game failed to start. Hard refresh (Ctrl+Shift+R) and try again.";
+    document.body.appendChild(crash);
   }
-  lastTs = performance.now();
-  animId = requestAnimationFrame(frame);
 })();
 
   </script>
