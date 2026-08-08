@@ -1111,7 +1111,10 @@
     const p = state.player;
     const kind = p.equippedWeapon;
     if (!kind) {
-      showBanner("No weapon loaded — drive through a crate", 1.2);
+      if (!state._emptyWeaponBanner || state.time - state._emptyWeaponBanner > 1.2) {
+        showBanner("No weapon loaded — drive through a crate", 1.2);
+        state._emptyWeaponBanner = state.time;
+      }
       return false;
     }
     if (kind === "nuke") {
