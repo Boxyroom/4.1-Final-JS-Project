@@ -247,16 +247,6 @@
       },
     },
     {
-      id: "dash",
-      name: "Warhead Stock",
-      desc: "+18% special weapon damage per rank.",
-      max: 4,
-      cost: (r) => 18 + r * 16,
-      apply: (p, r) => {
-        p.weaponDamage *= 1 + 0.18 * r;
-      },
-    },
-    {
       id: "fortune",
       name: "Lucky Moth",
       desc: "+10% embers earned per rank.",
