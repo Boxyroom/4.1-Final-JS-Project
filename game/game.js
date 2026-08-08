@@ -9,6 +9,7 @@
 
   const ui = {
     title: document.getElementById("title"),
+    tutorial: document.getElementById("tutorial"),
     shop: document.getElementById("shop"),
     levelup: document.getElementById("levelup"),
     pause: document.getElementById("pause"),
@@ -35,7 +36,95 @@
     overUnlocks: document.getElementById("over-unlocks"),
     stick: document.getElementById("stick"),
     stickKnob: document.getElementById("stick-knob"),
+    dashBtn: document.getElementById("dash-btn"),
+    tutStepLabel: document.getElementById("tut-step-label"),
+    tutTitle: document.getElementById("tut-title"),
+    tutBody: document.getElementById("tut-body"),
+    tutCard: document.getElementById("tut-card"),
+    tutBack: document.getElementById("btn-tut-back"),
+    tutNext: document.getElementById("btn-tut-next"),
   };
+
+  const TUTORIAL_STEPS = [
+    {
+      title: "You are the lantern",
+      body: "Your job is simple: stay alive as long as possible.",
+      card: `
+        <p>The glowing circle in the middle is <strong>you</strong>.</p>
+        <ul>
+          <li><strong>Light</strong> (top bar number) is your health.</li>
+          <li>If light hits <strong>0</strong>, the run ends.</li>
+          <li>You do <strong>not</strong> click to attack — your lantern shoots by itself.</li>
+        </ul>
+      `,
+    },
+    {
+      title: "Move",
+      body: "Steering is your main job.",
+      card: `
+        <p><strong>Keyboard:</strong> hold <span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span> or the arrow keys.</p>
+        <p><strong>Phone / tablet:</strong> drag the left <strong>Move</strong> stick.</p>
+        <ul>
+          <li>Keep moving so green enemies don’t pile on you.</li>
+          <li>There is no jump and no special move stick combo — just direction.</li>
+        </ul>
+      `,
+    },
+    {
+      title: "What Dash does",
+      body: "Dash is a short emergency escape — not an attack.",
+      card: `
+        <p><strong>Dash</strong> makes you surge forward quickly for a moment.</p>
+        <ul>
+          <li><strong>Keyboard:</strong> press <span class="key">Space</span> or <span class="key">Shift</span></li>
+          <li><strong>Phone:</strong> tap the orange <strong>Dash</strong> button (it says “speed burst”)</li>
+          <li>While dashing you are briefly safe from damage</li>
+          <li>It needs a short cooldown before you can dash again</li>
+        </ul>
+        <p>Use it when enemies surround you or a boss charges in.</p>
+      `,
+    },
+    {
+      title: "Enemies, XP, and upgrades",
+      body: "Green hurts. Gold helps.",
+      card: `
+        <ul>
+          <li><strong>Green blobs</strong> = enemies. Touching them drains your light.</li>
+          <li>When they die they drop <strong>gold orbs</strong> (XP).</li>
+          <li>Walk over gold orbs to fill the yellow bar at the top.</li>
+          <li>When the bar fills, you <strong>level up</strong> and pick 1 upgrade for this run.</li>
+        </ul>
+      `,
+    },
+    {
+      title: "Pause and Ember shop",
+      body: "Two more buttons you’ll use.",
+      card: `
+        <ul>
+          <li><strong>Pause</strong> (top-right button, or <span class="key">P</span> / <span class="key">Esc</span>) freezes the game and shows a control reminder.</li>
+          <li><strong>Ember shop</strong> (main menu) spends embers you earn after runs.</li>
+          <li>Shop upgrades are <strong>permanent</strong> on this device.</li>
+          <li>Level-up upgrades only last for the current run.</li>
+        </ul>
+      `,
+    },
+    {
+      title: "You’re ready",
+      body: "Start a run when you feel good about the controls.",
+      card: `
+        <ul>
+          <li>Move with WASD / stick</li>
+          <li>Dash with Space / orange button to escape</li>
+          <li>Let the lantern auto-attack</li>
+          <li>Collect gold XP and pick upgrades</li>
+          <li>Don’t let light hit 0</li>
+        </ul>
+        <p>Next screen: press <strong>Start run</strong>.</p>
+      `,
+    },
+  ];
+
+  let tutorialIndex = 0;
 
   const SHOP = [
     {
@@ -240,18 +329,20 @@
   };
 
   function loadMeta() {
+    const defaults = {
+      embers: 0,
+      bestTime: 0,
+      runs: 0,
+      shop: {},
+      achievements: {},
+      seenTutorial: false,
+    };
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) throw new Error("empty");
-      return JSON.parse(raw);
+      if (!raw) return { ...defaults };
+      return { ...defaults, ...JSON.parse(raw) };
     } catch {
-      return {
-        embers: 0,
-        bestTime: 0,
-        runs: 0,
-        shop: {},
-        achievements: {},
-      };
+      return { ...defaults };
     }
   }
 
@@ -306,6 +397,7 @@
   function setMode(next) {
     mode = next;
     hide(ui.title);
+    hide(ui.tutorial);
     hide(ui.shop);
     hide(ui.levelup);
     hide(ui.pause);
@@ -315,6 +407,11 @@
       hide(ui.hud);
       hide(ui.touch);
       refreshMetaUi();
+    } else if (next === "tutorial") {
+      show(ui.tutorial);
+      hide(ui.hud);
+      hide(ui.touch);
+      renderTutorial();
     } else if (next === "shop") {
       show(ui.shop);
       renderShop();
@@ -330,6 +427,27 @@
       hide(ui.hud);
       hide(ui.touch);
     }
+  }
+
+  function renderTutorial() {
+    const step = TUTORIAL_STEPS[tutorialIndex];
+    ui.tutStepLabel.textContent = `Step ${tutorialIndex + 1} of ${TUTORIAL_STEPS.length}`;
+    ui.tutTitle.textContent = step.title;
+    ui.tutBody.textContent = step.body;
+    ui.tutCard.innerHTML = step.card;
+    ui.tutBack.disabled = tutorialIndex === 0;
+    ui.tutNext.textContent =
+      tutorialIndex === TUTORIAL_STEPS.length - 1 ? "Start run" : "Next";
+  }
+
+  function openTutorial(fromStart = true) {
+    tutorialIndex = fromStart ? 0 : tutorialIndex;
+    setMode("tutorial");
+  }
+
+  function markTutorialSeen() {
+    meta.seenTutorial = true;
+    saveMeta();
   }
 
   function isTouchPrimary() {
@@ -402,13 +520,31 @@
       levelUpsQueued: 0,
       ended: false,
       camera: { x: 0, y: 0 },
+      coachStep: 0,
+      coachTimer: 0,
     };
     state.player.x = 0;
     state.player.y = 0;
     setMode("play");
+    showCoach(
+      isTouchPrimary()
+        ? "Drag the left stick to move. Orange Dash = speed burst escape!"
+        : "WASD to move · Space = Dash (speed burst escape) · attacks are automatic",
+    );
     lastTs = performance.now();
     cancelAnimationFrame(animId);
     animId = requestAnimationFrame(frame);
+  }
+
+  function showCoach(text) {
+    if (!ui.coach) return;
+    ui.coach.textContent = text;
+    ui.coach.classList.remove("hidden");
+  }
+
+  function hideCoach() {
+    if (!ui.coach) return;
+    ui.coach.classList.add("hidden");
   }
 
   function xpForLevel(level) {
@@ -823,6 +959,29 @@
     ui.hudKills.textContent = `${state.kills} kills`;
     ui.hudLevel.textContent = `Lv ${p.level}`;
     ui.xpFill.style.width = `${(p.xp / p.nextXp) * 100}%`;
+
+    if (ui.dashBtn) {
+      ui.dashBtn.classList.toggle("cooling", p.dashCd > 0);
+      ui.dashBtn.disabled = p.dashCd > 0;
+    }
+
+    // Short onboarding tips for the first half-minute
+    if (state.coachStep === 0 && state.time > 4) {
+      state.coachStep = 1;
+      showCoach("Green enemies hurt on touch. Dash away if they close in!");
+    } else if (state.coachStep === 1 && state.kills >= 1) {
+      state.coachStep = 2;
+      showCoach("Gold orbs = XP. Walk into them to fill the yellow bar.");
+    } else if (state.coachStep === 2 && state.player.level >= 2) {
+      state.coachStep = 3;
+      showCoach("Level up! Pick one upgrade — it lasts for this run.");
+    } else if (state.coachStep === 3 && state.time > 22) {
+      state.coachStep = 4;
+      hideCoach();
+    } else if (state.coachStep < 3 && state.time > 30) {
+      state.coachStep = 4;
+      hideCoach();
+    }
   }
 
   function worldToScreen(x, y) {
@@ -1118,11 +1277,42 @@
   ui.stick.addEventListener("pointerup", endStick);
   ui.stick.addEventListener("pointercancel", endStick);
 
-  document.getElementById("dash-btn").addEventListener("click", () => {
+  ui.dashBtn.addEventListener("click", () => {
     input.dash = true;
   });
 
-  document.getElementById("btn-start").addEventListener("click", startRun);
+  document.getElementById("btn-start").addEventListener("click", () => {
+    if (!meta.seenTutorial) {
+      openTutorial(true);
+      return;
+    }
+    startRun();
+  });
+  document.getElementById("btn-tutorial").addEventListener("click", () => openTutorial(true));
+  document.getElementById("btn-tut-next").addEventListener("click", () => {
+    if (tutorialIndex < TUTORIAL_STEPS.length - 1) {
+      tutorialIndex += 1;
+      renderTutorial();
+      return;
+    }
+    markTutorialSeen();
+    startRun();
+  });
+  document.getElementById("btn-tut-back").addEventListener("click", () => {
+    if (tutorialIndex > 0) {
+      tutorialIndex -= 1;
+      renderTutorial();
+    }
+  });
+  document.getElementById("btn-tut-skip").addEventListener("click", () => {
+    markTutorialSeen();
+    setMode("title");
+  });
+  document.getElementById("btn-hud-pause").addEventListener("click", () => {
+    if (mode === "play" && state && !state.ended && !state.pausedChoice) {
+      setMode("pause");
+    }
+  });
   document.getElementById("btn-again").addEventListener("click", startRun);
   document.getElementById("btn-menu").addEventListener("click", () => setMode("title"));
   document.getElementById("btn-upgrades").addEventListener("click", () => setMode("shop"));
@@ -1133,7 +1323,12 @@
   window.addEventListener("resize", resize);
   resize();
   refreshMetaUi();
-  setMode("title");
+  // First visit opens the tutorial automatically
+  if (!meta.seenTutorial) {
+    openTutorial(true);
+  } else {
+    setMode("title");
+  }
   lastTs = performance.now();
   animId = requestAnimationFrame(frame);
 })();

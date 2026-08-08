@@ -18,37 +18,37 @@
       <div class="hud-top">
         <div class="hud-brand">Lantern Hollow</div>
         <div class="hud-stats">
-          <span id="hud-time">0:00</span>
-          <span id="hud-hp">100 light</span>
+          <span id="hud-time" title="How long you have survived">0:00</span>
+          <span id="hud-hp" title="Your health. Reach 0 and the run ends.">100 light</span>
           <span id="hud-kills">0 kills</span>
           <span id="hud-level">Lv 1</span>
+          <button type="button" id="btn-hud-pause" class="hud-pause" title="Pause the game">Pause</button>
         </div>
       </div>
-      <div class="xp-track"><div id="xp-fill"></div></div>
-      <div class="hud-hint">Move to survive · Your lantern attacks automatically · Collect gold XP orbs</div>
+      <div class="xp-track" title="XP bar — fill it to level up">
+        <div id="xp-fill"></div>
+      </div>
+      <div class="hud-hint">Yellow bar = XP · Light = your health · Pause anytime</div>
       <div id="coach" class="coach hidden"></div>
     </div>
 
     <div id="touch-zone" class="hidden" aria-hidden="true">
-      <div id="stick" class="stick">
+      <div class="touch-label move-label">Move</div>
+      <div id="stick" class="stick" aria-label="Move stick">
         <div id="stick-knob" class="stick-knob"></div>
       </div>
-      <button type="button" id="dash-btn" class="dash-btn">Dash</button>
+      <div class="touch-label dash-label">Dash = quick burst of speed to escape</div>
+      <button type="button" id="dash-btn" class="dash-btn" title="Dash: short burst of speed. You also become briefly safe while dashing.">
+        Dash
+        <span class="dash-sub">speed burst</span>
+      </button>
     </div>
 
     <section id="title" class="panel">
       <div class="panel-glow"></div>
       <p class="eyebrow">A marsh of endless nights</p>
       <h1>Lantern Hollow</h1>
-      <p class="lede">You are the glowing lantern. Move around, stay alive, and get stronger each level.</p>
-
-      <ol class="how-to">
-        <li><strong>Click Play</strong> to start a run</li>
-        <li><strong>Move</strong> with WASD (or the stick on phones)</li>
-        <li><strong>Avoid green enemies</strong> — they drain your light</li>
-        <li><strong>Collect gold orbs</strong> for XP, then pick an upgrade</li>
-        <li>Survive longer to earn <strong>embers</strong> for the shop</li>
-      </ol>
+      <p class="lede">Survive as long as you can. Your lantern fights for you — you just steer and dash.</p>
 
       <div class="meta-row">
         <div class="meta-chip"><strong id="meta-embers">0</strong> embers</div>
@@ -56,15 +56,31 @@
         <div class="meta-chip">Runs <strong id="meta-runs">0</strong></div>
       </div>
       <div class="btn-row">
-        <button type="button" id="btn-start" class="btn primary">Play</button>
+        <button type="button" id="btn-tutorial" class="btn primary">How to play</button>
+        <button type="button" id="btn-start" class="btn">Play now</button>
         <button type="button" id="btn-upgrades" class="btn">Ember shop</button>
       </div>
-      <p class="footnote">Tip: Space = dash · P = pause</p>
+      <p class="footnote">New here? Start with <strong>How to play</strong>.</p>
+    </section>
+
+    <section id="tutorial" class="panel hidden">
+      <p class="eyebrow" id="tut-step-label">Step 1 of 6</p>
+      <h2 id="tut-title">Welcome</h2>
+      <p class="lede" id="tut-body">Learn the controls before your first night.</p>
+      <div class="tut-card" id="tut-card"></div>
+      <div class="btn-row">
+        <button type="button" id="btn-tut-back" class="btn">Back</button>
+        <button type="button" id="btn-tut-next" class="btn primary">Next</button>
+      </div>
+      <button type="button" id="btn-tut-skip" class="linkish">Skip tutorial</button>
     </section>
 
     <section id="shop" class="panel hidden">
       <h2>Ember shop</h2>
-      <p class="lede">Spend embers between runs. Bonuses stay on this device forever.</p>
+      <p class="lede">
+        <strong>Embers</strong> are the coins you earn after each run.
+        Spending them here makes every future run permanently stronger on this device.
+      </p>
       <p class="shop-balance">You have <strong id="shop-embers">0</strong> embers</p>
       <div id="shop-list" class="shop-list"></div>
       <button type="button" id="btn-shop-back" class="btn">Back</button>
@@ -72,13 +88,19 @@
 
     <section id="levelup" class="panel hidden">
       <h2>Level up!</h2>
-      <p class="lede">Tap one upgrade. It applies instantly.</p>
+      <p class="lede">Choose <strong>one</strong> upgrade. It helps for the rest of this run only.</p>
       <div id="upgrade-choices" class="choice-list"></div>
     </section>
 
     <section id="pause" class="panel hidden">
       <h2>Paused</h2>
-      <p class="lede">Take a breath. The marsh waits.</p>
+      <p class="lede">Game is frozen. Resume to continue, or end the run to bank embers.</p>
+      <div class="control-cheat">
+        <div><strong>Move</strong> — WASD / arrows / left stick</div>
+        <div><strong>Dash</strong> — Space / Shift / orange Dash button (short speed burst + brief safety)</div>
+        <div><strong>Attack</strong> — automatic (you do not tap to shoot)</div>
+        <div><strong>Pause</strong> — P / Escape / Pause button</div>
+      </div>
       <div class="btn-row">
         <button type="button" id="btn-resume" class="btn primary">Resume</button>
         <button type="button" id="btn-quit" class="btn">End run</button>

@@ -119,30 +119,10 @@ h2 {
   margin-bottom: 22px;
 }
 
-.how-to {
-  position: relative;
-  z-index: 1;
-  width: min(420px, 100%);
-  text-align: left;
-  margin: 0 auto 22px;
-  padding: 16px 18px 16px 36px;
-  border: 1px solid var(--line);
-  background: rgba(20, 32, 25, 0.78);
-  color: var(--mist);
-  line-height: 1.45;
-}
-
-.how-to li {
-  margin: 8px 0;
-}
-
-.how-to strong {
-  color: var(--amber);
-}
-
 .coach {
   margin-top: 10px;
   display: inline-block;
+  max-width: min(520px, 92vw);
   padding: 10px 14px;
   border: 1px solid var(--line);
   background: rgba(20, 32, 25, 0.88);
@@ -150,6 +130,105 @@ h2 {
   font-weight: 600;
   font-size: 0.95rem;
   animation: fade-in 280ms ease both;
+}
+
+.tut-card {
+  position: relative;
+  z-index: 1;
+  width: min(520px, 100%);
+  text-align: left;
+  margin: 0 auto 20px;
+  padding: 18px 18px;
+  border: 1px solid var(--line);
+  background: rgba(20, 32, 25, 0.88);
+  color: var(--mist);
+  line-height: 1.5;
+  box-shadow: var(--shadow);
+}
+
+.tut-card .key {
+  display: inline-block;
+  margin: 2px 2px;
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  background: rgba(240, 180, 41, 0.12);
+  color: var(--amber);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.tut-card ul {
+  margin: 10px 0 0 18px;
+}
+
+.tut-card li {
+  margin: 6px 0;
+}
+
+.control-cheat {
+  position: relative;
+  z-index: 1;
+  width: min(520px, 100%);
+  text-align: left;
+  margin: 0 auto 20px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  background: rgba(20, 32, 25, 0.8);
+  color: var(--mist);
+  display: grid;
+  gap: 8px;
+  font-size: 0.95rem;
+}
+
+.control-cheat strong {
+  color: var(--amber);
+}
+
+.linkish {
+  position: relative;
+  z-index: 1;
+  margin-top: 14px;
+  background: none;
+  border: none;
+  color: rgba(215, 228, 213, 0.75);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.hud-pause {
+  pointer-events: auto;
+  border: 1px solid var(--line);
+  background: rgba(20, 32, 25, 0.85);
+  color: var(--cream);
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.touch-label {
+  position: absolute;
+  color: var(--cream);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+  max-width: 140px;
+  line-height: 1.25;
+}
+
+.move-label {
+  left: 28px;
+  bottom: 148px;
+}
+
+.dash-label {
+  right: 18px;
+  bottom: 148px;
+  text-align: right;
+  max-width: 150px;
 }
 
 .footnote {
@@ -379,15 +458,33 @@ h2 {
   position: absolute;
   right: 28px;
   bottom: 40px;
-  width: 84px;
-  height: 84px;
+  width: 92px;
+  height: 92px;
   border-radius: 50%;
   border: 1px solid rgba(240, 180, 41, 0.45);
   background: rgba(224, 122, 47, 0.85);
   color: var(--ink);
   font-family: var(--font-body);
   font-weight: 700;
+  font-size: 1rem;
   pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.1;
+  gap: 2px;
+}
+
+.dash-btn .dash-sub {
+  font-size: 0.65rem;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.dash-btn:disabled,
+.dash-btn.cooling {
+  opacity: 0.45;
 }
 
 @keyframes fade-in {

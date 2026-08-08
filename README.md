@@ -4,17 +4,19 @@ Movie search site (OMDb) plus a browser game.
 
 ## Play Lantern Hollow
 
-**Click this link, wait 2 seconds, then press Play:**
+**https://htmlpreview.github.io/?https://raw.githubusercontent.com/Boxyroom/4.1-Final-JS-Project/cursor/lantern-hollow-game-c3be/game/play.html**
 
-https://htmlpreview.github.io/?https://raw.githubusercontent.com/Boxyroom/4.1-Final-JS-Project/cursor/lantern-hollow-game-c3be/game/play.html
+1. Hard refresh once (**Ctrl+Shift+R**)
+2. Walk through the **How to play** tutorial (opens automatically the first time)
+3. On the Dash step, read what the orange button / Space bar does
+4. Finish with **Start run**
 
-Hard refresh (Ctrl/Cmd+Shift+R) if you still see the old broken page.
+### Controls cheat sheet
+- **Move** — WASD / arrows / left stick
+- **Dash** — Space, Shift, or orange Dash button = short speed burst + brief safety (not an attack)
+- **Attack** — automatic
+- **Pause** — Pause button, P, or Esc
+- **Ember shop** — permanent upgrades between runs
 
-### Local play
+### Local
 Open `game/index.html` on branch `cursor/lantern-hollow-game-c3be`.
-
-### Controls
-- **WASD / arrows** — move
-- **Space** — dash
-- **P** — pause
-- Lantern attacks automatically

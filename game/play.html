@@ -130,30 +130,10 @@ h2 {
   margin-bottom: 22px;
 }
 
-.how-to {
-  position: relative;
-  z-index: 1;
-  width: min(420px, 100%);
-  text-align: left;
-  margin: 0 auto 22px;
-  padding: 16px 18px 16px 36px;
-  border: 1px solid var(--line);
-  background: rgba(20, 32, 25, 0.78);
-  color: var(--mist);
-  line-height: 1.45;
-}
-
-.how-to li {
-  margin: 8px 0;
-}
-
-.how-to strong {
-  color: var(--amber);
-}
-
 .coach {
   margin-top: 10px;
   display: inline-block;
+  max-width: min(520px, 92vw);
   padding: 10px 14px;
   border: 1px solid var(--line);
   background: rgba(20, 32, 25, 0.88);
@@ -161,6 +141,105 @@ h2 {
   font-weight: 600;
   font-size: 0.95rem;
   animation: fade-in 280ms ease both;
+}
+
+.tut-card {
+  position: relative;
+  z-index: 1;
+  width: min(520px, 100%);
+  text-align: left;
+  margin: 0 auto 20px;
+  padding: 18px 18px;
+  border: 1px solid var(--line);
+  background: rgba(20, 32, 25, 0.88);
+  color: var(--mist);
+  line-height: 1.5;
+  box-shadow: var(--shadow);
+}
+
+.tut-card .key {
+  display: inline-block;
+  margin: 2px 2px;
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  background: rgba(240, 180, 41, 0.12);
+  color: var(--amber);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.tut-card ul {
+  margin: 10px 0 0 18px;
+}
+
+.tut-card li {
+  margin: 6px 0;
+}
+
+.control-cheat {
+  position: relative;
+  z-index: 1;
+  width: min(520px, 100%);
+  text-align: left;
+  margin: 0 auto 20px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  background: rgba(20, 32, 25, 0.8);
+  color: var(--mist);
+  display: grid;
+  gap: 8px;
+  font-size: 0.95rem;
+}
+
+.control-cheat strong {
+  color: var(--amber);
+}
+
+.linkish {
+  position: relative;
+  z-index: 1;
+  margin-top: 14px;
+  background: none;
+  border: none;
+  color: rgba(215, 228, 213, 0.75);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.hud-pause {
+  pointer-events: auto;
+  border: 1px solid var(--line);
+  background: rgba(20, 32, 25, 0.85);
+  color: var(--cream);
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.touch-label {
+  position: absolute;
+  color: var(--cream);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+  max-width: 140px;
+  line-height: 1.25;
+}
+
+.move-label {
+  left: 28px;
+  bottom: 148px;
+}
+
+.dash-label {
+  right: 18px;
+  bottom: 148px;
+  text-align: right;
+  max-width: 150px;
 }
 
 .footnote {
@@ -390,15 +469,33 @@ h2 {
   position: absolute;
   right: 28px;
   bottom: 40px;
-  width: 84px;
-  height: 84px;
+  width: 92px;
+  height: 92px;
   border-radius: 50%;
   border: 1px solid rgba(240, 180, 41, 0.45);
   background: rgba(224, 122, 47, 0.85);
   color: var(--ink);
   font-family: var(--font-body);
   font-weight: 700;
+  font-size: 1rem;
   pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.1;
+  gap: 2px;
+}
+
+.dash-btn .dash-sub {
+  font-size: 0.65rem;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.dash-btn:disabled,
+.dash-btn.cooling {
+  opacity: 0.45;
 }
 
 @keyframes fade-in {
@@ -419,44 +516,44 @@ h2 {
   </style>
 </head>
 <body>
-  <div id="app">
+<div id="app">
     <canvas id="game" aria-label="Lantern Hollow game canvas"></canvas>
 
     <div id="hud" class="hidden">
       <div class="hud-top">
         <div class="hud-brand">Lantern Hollow</div>
         <div class="hud-stats">
-          <span id="hud-time">0:00</span>
-          <span id="hud-hp">100 light</span>
+          <span id="hud-time" title="How long you have survived">0:00</span>
+          <span id="hud-hp" title="Your health. Reach 0 and the run ends.">100 light</span>
           <span id="hud-kills">0 kills</span>
           <span id="hud-level">Lv 1</span>
+          <button type="button" id="btn-hud-pause" class="hud-pause" title="Pause the game">Pause</button>
         </div>
       </div>
-      <div class="xp-track"><div id="xp-fill"></div></div>
-      <div class="hud-hint">Move to survive · Your lantern attacks automatically · Collect gold XP orbs</div>
+      <div class="xp-track" title="XP bar — fill it to level up">
+        <div id="xp-fill"></div>
+      </div>
+      <div class="hud-hint">Yellow bar = XP · Light = your health · Pause anytime</div>
       <div id="coach" class="coach hidden"></div>
     </div>
 
     <div id="touch-zone" class="hidden" aria-hidden="true">
-      <div id="stick" class="stick">
+      <div class="touch-label move-label">Move</div>
+      <div id="stick" class="stick" aria-label="Move stick">
         <div id="stick-knob" class="stick-knob"></div>
       </div>
-      <button type="button" id="dash-btn" class="dash-btn">Dash</button>
+      <div class="touch-label dash-label">Dash = quick burst of speed to escape</div>
+      <button type="button" id="dash-btn" class="dash-btn" title="Dash: short burst of speed. You also become briefly safe while dashing.">
+        Dash
+        <span class="dash-sub">speed burst</span>
+      </button>
     </div>
 
     <section id="title" class="panel">
       <div class="panel-glow"></div>
       <p class="eyebrow">A marsh of endless nights</p>
       <h1>Lantern Hollow</h1>
-      <p class="lede">You are the glowing lantern. Move around, stay alive, and get stronger each level.</p>
-
-      <ol class="how-to">
-        <li><strong>Click Play</strong> to start a run</li>
-        <li><strong>Move</strong> with WASD (or the stick on phones)</li>
-        <li><strong>Avoid green enemies</strong> — they drain your light</li>
-        <li><strong>Collect gold orbs</strong> for XP, then pick an upgrade</li>
-        <li>Survive longer to earn <strong>embers</strong> for the shop</li>
-      </ol>
+      <p class="lede">Survive as long as you can. Your lantern fights for you — you just steer and dash.</p>
 
       <div class="meta-row">
         <div class="meta-chip"><strong id="meta-embers">0</strong> embers</div>
@@ -464,15 +561,31 @@ h2 {
         <div class="meta-chip">Runs <strong id="meta-runs">0</strong></div>
       </div>
       <div class="btn-row">
-        <button type="button" id="btn-start" class="btn primary">Play</button>
+        <button type="button" id="btn-tutorial" class="btn primary">How to play</button>
+        <button type="button" id="btn-start" class="btn">Play now</button>
         <button type="button" id="btn-upgrades" class="btn">Ember shop</button>
       </div>
-      <p class="footnote">Tip: Space = dash · P = pause</p>
+      <p class="footnote">New here? Start with <strong>How to play</strong>.</p>
+    </section>
+
+    <section id="tutorial" class="panel hidden">
+      <p class="eyebrow" id="tut-step-label">Step 1 of 6</p>
+      <h2 id="tut-title">Welcome</h2>
+      <p class="lede" id="tut-body">Learn the controls before your first night.</p>
+      <div class="tut-card" id="tut-card"></div>
+      <div class="btn-row">
+        <button type="button" id="btn-tut-back" class="btn">Back</button>
+        <button type="button" id="btn-tut-next" class="btn primary">Next</button>
+      </div>
+      <button type="button" id="btn-tut-skip" class="linkish">Skip tutorial</button>
     </section>
 
     <section id="shop" class="panel hidden">
       <h2>Ember shop</h2>
-      <p class="lede">Spend embers between runs. Bonuses stay on this device forever.</p>
+      <p class="lede">
+        <strong>Embers</strong> are the coins you earn after each run.
+        Spending them here makes every future run permanently stronger on this device.
+      </p>
       <p class="shop-balance">You have <strong id="shop-embers">0</strong> embers</p>
       <div id="shop-list" class="shop-list"></div>
       <button type="button" id="btn-shop-back" class="btn">Back</button>
@@ -480,13 +593,19 @@ h2 {
 
     <section id="levelup" class="panel hidden">
       <h2>Level up!</h2>
-      <p class="lede">Tap one upgrade. It applies instantly.</p>
+      <p class="lede">Choose <strong>one</strong> upgrade. It helps for the rest of this run only.</p>
       <div id="upgrade-choices" class="choice-list"></div>
     </section>
 
     <section id="pause" class="panel hidden">
       <h2>Paused</h2>
-      <p class="lede">Take a breath. The marsh waits.</p>
+      <p class="lede">Game is frozen. Resume to continue, or end the run to bank embers.</p>
+      <div class="control-cheat">
+        <div><strong>Move</strong> — WASD / arrows / left stick</div>
+        <div><strong>Dash</strong> — Space / Shift / orange Dash button (short speed burst + brief safety)</div>
+        <div><strong>Attack</strong> — automatic (you do not tap to shoot)</div>
+        <div><strong>Pause</strong> — P / Escape / Pause button</div>
+      </div>
       <div class="btn-row">
         <button type="button" id="btn-resume" class="btn primary">Resume</button>
         <button type="button" id="btn-quit" class="btn">End run</button>
@@ -520,6 +639,7 @@ h2 {
 
   const ui = {
     title: document.getElementById("title"),
+    tutorial: document.getElementById("tutorial"),
     shop: document.getElementById("shop"),
     levelup: document.getElementById("levelup"),
     pause: document.getElementById("pause"),
@@ -546,7 +666,95 @@ h2 {
     overUnlocks: document.getElementById("over-unlocks"),
     stick: document.getElementById("stick"),
     stickKnob: document.getElementById("stick-knob"),
+    dashBtn: document.getElementById("dash-btn"),
+    tutStepLabel: document.getElementById("tut-step-label"),
+    tutTitle: document.getElementById("tut-title"),
+    tutBody: document.getElementById("tut-body"),
+    tutCard: document.getElementById("tut-card"),
+    tutBack: document.getElementById("btn-tut-back"),
+    tutNext: document.getElementById("btn-tut-next"),
   };
+
+  const TUTORIAL_STEPS = [
+    {
+      title: "You are the lantern",
+      body: "Your job is simple: stay alive as long as possible.",
+      card: `
+        <p>The glowing circle in the middle is <strong>you</strong>.</p>
+        <ul>
+          <li><strong>Light</strong> (top bar number) is your health.</li>
+          <li>If light hits <strong>0</strong>, the run ends.</li>
+          <li>You do <strong>not</strong> click to attack — your lantern shoots by itself.</li>
+        </ul>
+      `,
+    },
+    {
+      title: "Move",
+      body: "Steering is your main job.",
+      card: `
+        <p><strong>Keyboard:</strong> hold <span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span> or the arrow keys.</p>
+        <p><strong>Phone / tablet:</strong> drag the left <strong>Move</strong> stick.</p>
+        <ul>
+          <li>Keep moving so green enemies don’t pile on you.</li>
+          <li>There is no jump and no special move stick combo — just direction.</li>
+        </ul>
+      `,
+    },
+    {
+      title: "What Dash does",
+      body: "Dash is a short emergency escape — not an attack.",
+      card: `
+        <p><strong>Dash</strong> makes you surge forward quickly for a moment.</p>
+        <ul>
+          <li><strong>Keyboard:</strong> press <span class="key">Space</span> or <span class="key">Shift</span></li>
+          <li><strong>Phone:</strong> tap the orange <strong>Dash</strong> button (it says “speed burst”)</li>
+          <li>While dashing you are briefly safe from damage</li>
+          <li>It needs a short cooldown before you can dash again</li>
+        </ul>
+        <p>Use it when enemies surround you or a boss charges in.</p>
+      `,
+    },
+    {
+      title: "Enemies, XP, and upgrades",
+      body: "Green hurts. Gold helps.",
+      card: `
+        <ul>
+          <li><strong>Green blobs</strong> = enemies. Touching them drains your light.</li>
+          <li>When they die they drop <strong>gold orbs</strong> (XP).</li>
+          <li>Walk over gold orbs to fill the yellow bar at the top.</li>
+          <li>When the bar fills, you <strong>level up</strong> and pick 1 upgrade for this run.</li>
+        </ul>
+      `,
+    },
+    {
+      title: "Pause and Ember shop",
+      body: "Two more buttons you’ll use.",
+      card: `
+        <ul>
+          <li><strong>Pause</strong> (top-right button, or <span class="key">P</span> / <span class="key">Esc</span>) freezes the game and shows a control reminder.</li>
+          <li><strong>Ember shop</strong> (main menu) spends embers you earn after runs.</li>
+          <li>Shop upgrades are <strong>permanent</strong> on this device.</li>
+          <li>Level-up upgrades only last for the current run.</li>
+        </ul>
+      `,
+    },
+    {
+      title: "You’re ready",
+      body: "Start a run when you feel good about the controls.",
+      card: `
+        <ul>
+          <li>Move with WASD / stick</li>
+          <li>Dash with Space / orange button to escape</li>
+          <li>Let the lantern auto-attack</li>
+          <li>Collect gold XP and pick upgrades</li>
+          <li>Don’t let light hit 0</li>
+        </ul>
+        <p>Next screen: press <strong>Start run</strong>.</p>
+      `,
+    },
+  ];
+
+  let tutorialIndex = 0;
 
   const SHOP = [
     {
@@ -751,18 +959,20 @@ h2 {
   };
 
   function loadMeta() {
+    const defaults = {
+      embers: 0,
+      bestTime: 0,
+      runs: 0,
+      shop: {},
+      achievements: {},
+      seenTutorial: false,
+    };
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) throw new Error("empty");
-      return JSON.parse(raw);
+      if (!raw) return { ...defaults };
+      return { ...defaults, ...JSON.parse(raw) };
     } catch {
-      return {
-        embers: 0,
-        bestTime: 0,
-        runs: 0,
-        shop: {},
-        achievements: {},
-      };
+      return { ...defaults };
     }
   }
 
@@ -817,6 +1027,7 @@ h2 {
   function setMode(next) {
     mode = next;
     hide(ui.title);
+    hide(ui.tutorial);
     hide(ui.shop);
     hide(ui.levelup);
     hide(ui.pause);
@@ -826,6 +1037,11 @@ h2 {
       hide(ui.hud);
       hide(ui.touch);
       refreshMetaUi();
+    } else if (next === "tutorial") {
+      show(ui.tutorial);
+      hide(ui.hud);
+      hide(ui.touch);
+      renderTutorial();
     } else if (next === "shop") {
       show(ui.shop);
       renderShop();
@@ -841,6 +1057,27 @@ h2 {
       hide(ui.hud);
       hide(ui.touch);
     }
+  }
+
+  function renderTutorial() {
+    const step = TUTORIAL_STEPS[tutorialIndex];
+    ui.tutStepLabel.textContent = `Step ${tutorialIndex + 1} of ${TUTORIAL_STEPS.length}`;
+    ui.tutTitle.textContent = step.title;
+    ui.tutBody.textContent = step.body;
+    ui.tutCard.innerHTML = step.card;
+    ui.tutBack.disabled = tutorialIndex === 0;
+    ui.tutNext.textContent =
+      tutorialIndex === TUTORIAL_STEPS.length - 1 ? "Start run" : "Next";
+  }
+
+  function openTutorial(fromStart = true) {
+    tutorialIndex = fromStart ? 0 : tutorialIndex;
+    setMode("tutorial");
+  }
+
+  function markTutorialSeen() {
+    meta.seenTutorial = true;
+    saveMeta();
   }
 
   function isTouchPrimary() {
@@ -919,7 +1156,11 @@ h2 {
     state.player.x = 0;
     state.player.y = 0;
     setMode("play");
-    showCoach("You are the bright lantern. Move with WASD!");
+    showCoach(
+      isTouchPrimary()
+        ? "Drag the left stick to move. Orange Dash = speed burst escape!"
+        : "WASD to move · Space = Dash (speed burst escape) · attacks are automatic",
+    );
     lastTs = performance.now();
     cancelAnimationFrame(animId);
     animId = requestAnimationFrame(frame);
@@ -1349,20 +1590,25 @@ h2 {
     ui.hudLevel.textContent = `Lv ${p.level}`;
     ui.xpFill.style.width = `${(p.xp / p.nextXp) * 100}%`;
 
+    if (ui.dashBtn) {
+      ui.dashBtn.classList.toggle("cooling", p.dashCd > 0);
+      ui.dashBtn.disabled = p.dashCd > 0;
+    }
+
     // Short onboarding tips for the first half-minute
-    if (state.coachStep === 0 && state.time > 3) {
+    if (state.coachStep === 0 && state.time > 4) {
       state.coachStep = 1;
-      showCoach("Green things hurt you. Keep moving!");
+      showCoach("Green enemies hurt on touch. Dash away if they close in!");
     } else if (state.coachStep === 1 && state.kills >= 1) {
       state.coachStep = 2;
-      showCoach("Gold orbs = XP. Scoop them up.");
+      showCoach("Gold orbs = XP. Walk into them to fill the yellow bar.");
     } else if (state.coachStep === 2 && state.player.level >= 2) {
       state.coachStep = 3;
-      showCoach("Nice! Upgrades stack — build your lantern.");
-    } else if (state.coachStep === 3 && state.time > 20) {
+      showCoach("Level up! Pick one upgrade — it lasts for this run.");
+    } else if (state.coachStep === 3 && state.time > 22) {
       state.coachStep = 4;
       hideCoach();
-    } else if (state.coachStep < 3 && state.time > 28) {
+    } else if (state.coachStep < 3 && state.time > 30) {
       state.coachStep = 4;
       hideCoach();
     }
@@ -1661,11 +1907,42 @@ h2 {
   ui.stick.addEventListener("pointerup", endStick);
   ui.stick.addEventListener("pointercancel", endStick);
 
-  document.getElementById("dash-btn").addEventListener("click", () => {
+  ui.dashBtn.addEventListener("click", () => {
     input.dash = true;
   });
 
-  document.getElementById("btn-start").addEventListener("click", startRun);
+  document.getElementById("btn-start").addEventListener("click", () => {
+    if (!meta.seenTutorial) {
+      openTutorial(true);
+      return;
+    }
+    startRun();
+  });
+  document.getElementById("btn-tutorial").addEventListener("click", () => openTutorial(true));
+  document.getElementById("btn-tut-next").addEventListener("click", () => {
+    if (tutorialIndex < TUTORIAL_STEPS.length - 1) {
+      tutorialIndex += 1;
+      renderTutorial();
+      return;
+    }
+    markTutorialSeen();
+    startRun();
+  });
+  document.getElementById("btn-tut-back").addEventListener("click", () => {
+    if (tutorialIndex > 0) {
+      tutorialIndex -= 1;
+      renderTutorial();
+    }
+  });
+  document.getElementById("btn-tut-skip").addEventListener("click", () => {
+    markTutorialSeen();
+    setMode("title");
+  });
+  document.getElementById("btn-hud-pause").addEventListener("click", () => {
+    if (mode === "play" && state && !state.ended && !state.pausedChoice) {
+      setMode("pause");
+    }
+  });
   document.getElementById("btn-again").addEventListener("click", startRun);
   document.getElementById("btn-menu").addEventListener("click", () => setMode("title"));
   document.getElementById("btn-upgrades").addEventListener("click", () => setMode("shop"));
@@ -1676,7 +1953,12 @@ h2 {
   window.addEventListener("resize", resize);
   resize();
   refreshMetaUi();
-  setMode("title");
+  // First visit opens the tutorial automatically
+  if (!meta.seenTutorial) {
+    openTutorial(true);
+  } else {
+    setMode("title");
+  }
   lastTs = performance.now();
   animId = requestAnimationFrame(frame);
 })();
