@@ -408,8 +408,9 @@
       coreY: 0.02,
       // Keeps the stone body hovering above the forest floor.
       hoverY: 1.72,
-      // CCW degrees — levels the art's inherent lean without editing the PNG.
-      levelRollDeg: 8.8,
+      // Texture roll (rad via loader). Negated because rotateY(π) flips screen X,
+      // so Three's +CCW UV rotation reads clockwise on screen.
+      levelRollDeg: -8.8,
     },
   };
 
