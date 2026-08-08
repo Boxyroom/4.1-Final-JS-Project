@@ -29,6 +29,7 @@
   const bulletPool = [];
   const pickupPool = [];
   const grenadePool = [];
+  const crateHintPool = [];
   const fireflies = [];
   const mistPuffs = [];
   const puddles = [];
@@ -353,6 +354,28 @@
     return mesh;
   }
 
+  function createCrateHint() {
+    const group = new THREE.Group();
+    const mat = new THREE.MeshBasicMaterial({
+      color: 0x22c55e,
+      transparent: true,
+      opacity: 0.95,
+      depthTest: true,
+    });
+    // tick on the lantern ring
+    const tick = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.07, 0.16), mat);
+    tick.position.set(1.22, 0.1, 0);
+    group.add(tick);
+    // arrow pointing outward toward the crate
+    const cone = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.34, 8), mat);
+    cone.rotation.z = -Math.PI / 2;
+    cone.position.set(1.58, 0.1, 0);
+    group.add(cone);
+    group.visible = false;
+    scene.add(group);
+    return { group, mat };
+  }
+
   function ensurePool(pool, need, factory) {
     while (pool.length < need) pool.push(factory());
   }
@@ -597,6 +620,7 @@
       bulletPool.forEach((m) => (m.visible = false));
       pickupPool.forEach((m) => (m.visible = false));
       grenadePool.forEach((m) => (m.visible = false));
+      crateHintPool.forEach((h) => (h.group.visible = false));
       renderer.render(scene, camera);
       return;
     }
@@ -748,6 +772,26 @@
       ringMesh.material.color.set(0xe07a2f);
     } else {
       ringMesh.material.color.set(0xf0b429);
+    }
+
+    // colored ring hints pointing at weapon crates
+    ensurePool(crateHintPool, pickups.length, createCrateHint);
+    const ringScale = 0.8 + hp * 0.5;
+    for (let i = 0; i < crateHintPool.length; i++) {
+      const hint = crateHintPool[i];
+      const w = pickups[i];
+      if (!w) {
+        hint.group.visible = false;
+        continue;
+      }
+      const ang = Math.atan2(w.y - p.y, w.x - p.x);
+      const color = w.kind === "nuke" ? 0x3b82f6 : 0x22c55e;
+      hint.mat.color.set(color);
+      hint.mat.opacity = 0.75 + Math.sin(state.time * 6 + i) * 0.2;
+      hint.group.visible = true;
+      hint.group.position.set(pp.x, 0.02, pp.z);
+      hint.group.rotation.y = -ang;
+      hint.group.scale.setScalar(ringScale);
     }
 
     renderer.render(scene, camera);

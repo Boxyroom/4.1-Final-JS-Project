@@ -1495,7 +1495,7 @@
       showCoach("Gold orbs = XP. Hold F to focus brutes/bosses.");
     } else if (state.coachStep === 2 && state.time >= 18) {
       state.coachStep = 3;
-      showCoach("Orange crate ≈ grenades (20s). Purple nuke is rare (60s). Drive through, then Fire.");
+      showCoach("Green ring mark → grenades. Blue mark → nuke. Drive through the crate, then Fire.");
     } else if (state.coachStep === 3 && state.player.level >= 2) {
       state.coachStep = 4;
       showCoach("Level up! Read the Strategy tip — stack one build path.");
@@ -1728,6 +1728,43 @@
     ctx.beginPath();
     ctx.arc(ps.x, ps.y, 34, -Math.PI / 2, -Math.PI / 2 + TAU * (p.hp / p.maxHp));
     ctx.stroke();
+
+    drawCrateDirectionHints(ps, p);
+  }
+
+  function drawCrateDirectionHints(ps, p) {
+    if (!state.weaponPickups || !state.weaponPickups.length) return;
+    const ringR = 38;
+    for (let i = 0; i < state.weaponPickups.length; i++) {
+      const w = state.weaponPickups[i];
+      const ang = Math.atan2(w.y - p.y, w.x - p.x);
+      const color = w.kind === "nuke" ? "#3b82f6" : "#22c55e";
+      const pulse = 0.7 + Math.sin(state.time * 6 + i) * 0.25;
+
+      ctx.save();
+      ctx.globalAlpha = pulse;
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+      ctx.lineWidth = 6;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.arc(ps.x, ps.y, ringR, ang - 0.28, ang + 0.28);
+      ctx.stroke();
+
+      // arrow tip outside the ring, pointing at the crate
+      const tip = ringR + 12;
+      const tx = ps.x + Math.cos(ang) * tip;
+      const ty = ps.y + Math.sin(ang) * tip;
+      const left = ang + 2.5;
+      const right = ang - 2.5;
+      ctx.beginPath();
+      ctx.moveTo(tx, ty);
+      ctx.lineTo(ps.x + Math.cos(left) * (ringR + 2), ps.y + Math.sin(left) * (ringR + 2));
+      ctx.lineTo(ps.x + Math.cos(right) * (ringR + 2), ps.y + Math.sin(right) * (ringR + 2));
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
   }
 
   function drawEnemy(e, s) {
