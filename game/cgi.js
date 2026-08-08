@@ -381,6 +381,58 @@
     return makeForestFloorTexture();
   }
 
+  /** Resolve forest-floor asset path for game/ vs root lantern.html. */
+  function forestFloorSrc() {
+    const path = (location.pathname || "").replace(/\\/g, "/");
+    if (/lantern\.html$/i.test(path) || path === "/" || path.endsWith("/4.1-Final-JS-Project/")) {
+      return "game/assets/forest-floor.webp";
+    }
+    // Served from /game/ (index.html, play.html)
+    if (path.includes("/game")) return "assets/forest-floor.webp";
+    return "game/assets/forest-floor.webp";
+  }
+
+  const GROUND_TILE_REPEAT = 8;
+  const GROUND_PLANE_SIZE = 90;
+
+  function configureGroundTexture(tex) {
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(GROUND_TILE_REPEAT, GROUND_TILE_REPEAT);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+    tex.needsUpdate = true;
+    return tex;
+  }
+
+  /** Load primary forest-floor image; fall back to procedural atlas. */
+  function loadForestFloorTexture(onReady) {
+    const loader = new THREE.TextureLoader();
+    const primary = forestFloorSrc();
+    const fallbackPng = primary.replace(/\.webp$/i, ".png");
+
+    function apply(tex) {
+      configureGroundTexture(tex);
+      onReady(tex);
+    }
+
+    loader.load(
+      primary,
+      apply,
+      undefined,
+      () => {
+        loader.load(
+          fallbackPng,
+          apply,
+          undefined,
+          () => {
+            console.warn("Forest floor asset missing; using procedural fallback");
+            apply(makeForestFloorTexture());
+          },
+        );
+      },
+    );
+  }
+
   function createLanternModel() {
     const group = new THREE.Group();
     group.userData.baseScale = 1.85;
@@ -1035,7 +1087,7 @@
     scene.add(rimLight);
 
     // Flat scrolling forest floor — subtle ripples only, no hill geometry
-    const groundGeo = new THREE.PlaneGeometry(90, 90, 24, 24);
+    const groundGeo = new THREE.PlaneGeometry(GROUND_PLANE_SIZE, GROUND_PLANE_SIZE, 24, 24);
     const pos = groundGeo.attributes.position;
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i);
@@ -1047,8 +1099,8 @@
     }
     groundGeo.computeVertexNormals();
 
-    groundTexture = makeForestFloorTexture();
-    groundTexture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+    // Start with procedural placeholder; swap to photo texture when loaded
+    groundTexture = configureGroundTexture(makeForestFloorTexture());
     const groundMat = new THREE.MeshLambertMaterial({
       map: groundTexture,
       color: 0xffffff,
@@ -1057,6 +1109,14 @@
     ground.rotation.x = -Math.PI / 2;
     ground.receiveShadow = true;
     scene.add(ground);
+
+    loadForestFloorTexture((tex) => {
+      groundTexture = tex;
+      if (ground && ground.material) {
+        ground.material.map = tex;
+        ground.material.needsUpdate = true;
+      }
+    });
 
     buildForestProps();
 
@@ -1217,8 +1277,9 @@
     if (!ground) return;
     ground.position.set(pp.x, 0, pp.z);
     if (groundTexture) {
-      // UV scroll so the floor pattern moves with the lantern
-      groundTexture.offset.set(pp.x * 0.045, pp.z * 0.045);
+      // Keep UVs world-locked while the plane follows the lantern
+      const k = GROUND_TILE_REPEAT / GROUND_PLANE_SIZE;
+      groundTexture.offset.set(pp.x * k, pp.z * k);
     }
     for (let i = 0; i < puddles.length; i++) {
       const puddle = puddles[i];

@@ -65,13 +65,25 @@
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d");
 
-  const GROUND_SRC = location.pathname.includes("/game")
-    ? "../theater.jpg"
-    : "theater.jpg";
+  // Shared forest-floor albedo (also used by CGI). Not a fullscreen background.
+  const GROUND_SRC = (() => {
+    const path = (location.pathname || "").replace(/\\/g, "/");
+    if (path.includes("/game")) return "assets/forest-floor.webp";
+    if (/lantern\.html$/i.test(path)) return "game/assets/forest-floor.webp";
+    return "game/assets/forest-floor.webp";
+  })();
   const groundImg = new Image();
   let groundReady = false;
   groundImg.onload = () => {
     groundReady = true;
+  };
+  groundImg.onerror = () => {
+    // Fallback to PNG, then legacy theater.jpg
+    if (groundImg.src.includes(".webp")) {
+      groundImg.src = GROUND_SRC.replace(/\.webp$/i, ".png");
+    } else if (groundImg.src.includes("forest-floor")) {
+      groundImg.src = location.pathname.includes("/game") ? "../theater.jpg" : "theater.jpg";
+    }
   };
   groundImg.src = GROUND_SRC;
 
