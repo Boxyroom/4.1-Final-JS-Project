@@ -405,38 +405,38 @@
   function createOrbitSparkMesh() {
     const group = new THREE.Group();
     const core = new THREE.Mesh(
-      new THREE.SphereGeometry(0.28, 14, 14),
+      new THREE.SphereGeometry(0.1, 10, 10),
       new THREE.MeshStandardMaterial({
         color: 0xfff6d0,
         emissive: 0xffc050,
-        emissiveIntensity: 5.5,
-        roughness: 0.15,
+        emissiveIntensity: 4.5,
+        roughness: 0.2,
       }),
     );
     group.add(core);
     const halo = new THREE.Mesh(
-      new THREE.SphereGeometry(0.62, 14, 14),
+      new THREE.SphereGeometry(0.22, 10, 10),
       new THREE.MeshBasicMaterial({
         color: 0xffb040,
         transparent: true,
-        opacity: 0.55,
+        opacity: 0.5,
         depthWrite: false,
         blending: THREE.AdditiveBlending,
       }),
     );
     group.add(halo);
     const streak = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.08, 0.05, 0.75, 8),
+      new THREE.CylinderGeometry(0.035, 0.02, 0.38, 6),
       new THREE.MeshBasicMaterial({
         color: 0xffe08a,
         transparent: true,
-        opacity: 0.7,
+        opacity: 0.65,
         depthWrite: false,
         blending: THREE.AdditiveBlending,
       }),
     );
     streak.rotation.z = Math.PI / 2;
-    streak.position.x = -0.45;
+    streak.position.x = -0.22;
     group.add(streak);
     group.visible = false;
     scene.add(group);
@@ -955,16 +955,16 @@
       hint.group.scale.setScalar(ringScale);
     }
 
-    // orbit sparks
+    // orbit sparks — small swirling embers
     const sparks = state.orbitSparks || [];
     ensurePool(orbitSparkPool, sparks.length, createOrbitSparkMesh);
     if (orbitRing) {
       if (sparks.length) {
-        const orbitR = (52 + (p.orbit || 1) * 10) * 0.04;
+        const orbitR = (44 + (p.orbit || 1) * 8) * 0.04;
         orbitRing.visible = true;
         orbitRing.position.set(pp.x, 0.14, pp.z);
         orbitRing.scale.setScalar(orbitR / 2.05);
-        orbitRing.material.opacity = 0.35 + Math.sin(state.time * 6) * 0.12;
+        orbitRing.material.opacity = 0.18 + Math.sin(state.time * 7) * 0.06;
       } else {
         orbitRing.visible = false;
       }
@@ -978,13 +978,12 @@
       }
       const sp3 = worldTo3D(sp.x, sp.y);
       m.visible = true;
-      m.position.set(sp3.x, 0.85 + Math.sin(state.time * 12 + i) * 0.1, sp3.z);
-      // aim streak opposite travel direction
+      m.position.set(sp3.x, 0.7 + Math.sin(state.time * 14 + i) * 0.12, sp3.z);
       m.rotation.y = -(sp.a || 0) + Math.PI / 2;
-      const pulse = 1.15 + Math.sin(state.time * 16 + i) * 0.25;
+      const pulse = (sp.pop ? 2.4 : 0.85) + Math.sin(state.time * 18 + i) * 0.12;
       m.scale.setScalar(pulse);
       if (m.children[0] && m.children[0].material) {
-        m.children[0].material.emissiveIntensity = 4.5 + pulse;
+        m.children[0].material.emissiveIntensity = 3.8 + pulse + (sp.pop ? 3 : 0);
       }
     }
 

@@ -301,7 +301,7 @@
       id: "orbit",
       name: "Orbit Sparks",
       tag: "Close-range",
-      desc: "Spinning sparks that hit nearby foes.",
+      desc: "Tiny swirling sparks that explode and kill on contact.",
       strategy: "Rewards staying close. Pair with armor/regen.",
       apply: (s) => {
         s.player.orbit += 1;
@@ -311,7 +311,7 @@
       id: "nova",
       name: "Burst Nova",
       tag: "Close-range",
-      desc: "Periodic shockwave around you.",
+      desc: "Periodic shockwave that kills enemies it hits.",
       strategy: "Anti-swarm. Strong if you kite in circles through packs.",
       apply: (s) => {
         s.player.nova += 1;
@@ -911,23 +911,38 @@
     }
 
     if (p.orbit > 0) {
-      const orbitR = 52 + p.orbit * 10;
       const sparks = p.orbit + 3;
       state.orbitSparks = [];
       for (let i = 0; i < sparks; i++) {
-        const a = state.time * (2.4 + p.orbit * 0.2) + (TAU * i) / sparks;
-        const ox = p.x + Math.cos(a) * orbitR;
-        const oy = p.y + Math.sin(a) * orbitR;
-        state.orbitSparks.push({ x: ox, y: oy, a, i });
-        let hit = false;
+        // tight swirling path — radius breathes and angle wobbles
+        const baseR = 44 + p.orbit * 8;
+        const swirlR =
+          baseR +
+          Math.sin(state.time * 7 + i * 2.3) * (12 + p.orbit * 2) +
+          Math.cos(state.time * 3.1 + i) * 6;
+        const a =
+          state.time * (3.8 + p.orbit * 0.35) +
+          (TAU * i) / sparks +
+          Math.sin(state.time * 2.4 + i * 1.1) * 0.4;
+        const ox = p.x + Math.cos(a) * swirlR;
+        const oy = p.y + Math.sin(a) * swirlR;
+        const spark = { x: ox, y: oy, a, i, r: swirlR, pop: 0 };
+        state.orbitSparks.push(spark);
         for (const e of state.enemies) {
-          if (dist({ x: ox, y: oy }, e) < e.r + 14) {
-            hurtEnemy(e, p.damage * 0.4 * dt * 8, { sfx: false });
-            hit = true;
+          if (e.hp <= 0) continue;
+          if (dist({ x: ox, y: oy }, e) < e.r + 11) {
+            // contact kill with a little spark explosion
+            if (!e._sparkHit || state.time - e._sparkHit > 0.12) {
+              hurtEnemy(e, 9999, { sfx: false });
+              e._sparkHit = state.time;
+              spark.pop = 1;
+              addParticles(ox, oy, "#ffe08a", 16, 220);
+              addParticles(e.x, e.y, "#ff8a2a", 12, 180);
+              floatText(e.x, e.y - 12, "POP", "#ffe08a", 0.75);
+              sfx.spark();
+              state.shake = Math.max(state.shake, 4);
+            }
           }
-        }
-        if (hit && Math.random() < 0.08) {
-          addParticles(ox, oy, "#ffe08a", 3, 90);
         }
       }
     } else {
@@ -938,17 +953,15 @@
       p.novaTimer -= dt;
       if (p.novaTimer <= 0) {
         p.novaTimer = Math.max(1.8, 4.2 - p.nova * 0.35);
-        const radius = 90 + p.nova * 22;
-        for (const e of state.enemies) {
-          if (dist(p, e) < radius + e.r) hurtEnemy(e, p.damage * (1.25 + p.nova * 0.3));
-        }
+        const radius = 100 + p.nova * 24;
         state.shockwaves.push({
           x: p.x,
           y: p.y,
           r: 12,
           maxR: radius,
-          life: 0.65,
-          maxLife: 0.65,
+          life: 0.7,
+          maxLife: 0.7,
+          lethal: true,
         });
         addParticles(p.x, p.y, "#fff2c0", 36, 280);
         addParticles(p.x, p.y, "#f0b429", 28, 220);
@@ -1210,6 +1223,7 @@
       life: 0.55,
       maxLife: 0.55,
       tint: "grenade",
+      lethal: true,
     });
     state.shake = Math.max(state.shake, 16);
     sfx.boom();
@@ -1469,12 +1483,19 @@
     }
     state.grenades = state.grenades.filter((g) => !g._boom);
 
-    // nova shockwave rings (visual + leftover push)
+    // nova / blast shockwave rings — lethal waves kill as they expand
     for (const sw of state.shockwaves) {
       sw.life -= dt;
       const t = 1 - Math.max(0, sw.life) / sw.maxLife;
       const ease = 1 - (1 - t) * (1 - t);
       sw.r = 12 + (sw.maxR - 12) * ease;
+      if (sw.lethal) {
+        for (const e of state.enemies) {
+          if (e.hp > 0 && dist(sw, e) < sw.r + e.r) {
+            hurtEnemy(e, 9999, { sfx: false });
+          }
+        }
+      }
     }
     state.shockwaves = state.shockwaves.filter((sw) => sw.life > 0);
 
@@ -2152,44 +2173,46 @@
       ctx.stroke();
     }
 
-    // orbit sparks — bright cores + trails + path ring
+    // orbit sparks — small swirling embers with contact pops
     if (p.orbit > 0 && state.orbitSparks.length) {
-      const orbitR = 52 + p.orbit * 10;
       const center = worldToScreen(p.x, p.y);
-      ctx.strokeStyle = "rgba(255, 200, 80, 0.22)";
-      ctx.lineWidth = 2;
-      ctx.setLineDash([6, 10]);
+      ctx.strokeStyle = "rgba(255, 200, 80, 0.14)";
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 8]);
       ctx.beginPath();
-      ctx.arc(center.x, center.y, orbitR, 0, TAU);
+      ctx.arc(center.x, center.y, 44 + p.orbit * 8, 0, TAU);
       ctx.stroke();
       ctx.setLineDash([]);
       for (const sp of state.orbitSparks) {
         const s = worldToScreen(sp.x, sp.y);
-        const trailA = sp.a - 0.45;
+        const trailA = sp.a - 0.55;
+        const trailR = sp.r || 44 + p.orbit * 8;
         const tx = worldToScreen(
-          p.x + Math.cos(trailA) * orbitR,
-          p.y + Math.sin(trailA) * orbitR,
+          p.x + Math.cos(trailA) * trailR,
+          p.y + Math.sin(trailA) * trailR,
         );
         const streak = ctx.createLinearGradient(tx.x, tx.y, s.x, s.y);
         streak.addColorStop(0, "rgba(255,160,40,0)");
-        streak.addColorStop(1, "rgba(255,220,120,0.85)");
+        streak.addColorStop(1, "rgba(255,220,120,0.75)");
         ctx.strokeStyle = streak;
-        ctx.lineWidth = 4;
+        ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(tx.x, tx.y);
         ctx.lineTo(s.x, s.y);
         ctx.stroke();
-        const og = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, 16);
+        const pop = sp.pop ? 1.8 : 1;
+        const glowR = 7 * pop;
+        const og = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, glowR);
         og.addColorStop(0, "#fffce8");
-        og.addColorStop(0.35, "#ffd056");
+        og.addColorStop(0.4, "#ffd056");
         og.addColorStop(1, "rgba(255,140,40,0)");
         ctx.fillStyle = og;
         ctx.beginPath();
-        ctx.arc(s.x, s.y, 16, 0, TAU);
+        ctx.arc(s.x, s.y, glowR, 0, TAU);
         ctx.fill();
         ctx.fillStyle = "#fff6d0";
         ctx.beginPath();
-        ctx.arc(s.x, s.y, 4.5, 0, TAU);
+        ctx.arc(s.x, s.y, 2.2 * pop, 0, TAU);
         ctx.fill();
       }
     }
