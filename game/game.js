@@ -1842,10 +1842,10 @@
 
     const bob = Math.sin(state.time * 6) * 3;
     if (playerVisualReady) {
-      const drawH = 86;
+      const drawH = 104;
       const drawW = drawH * (playerVisualImg.naturalWidth / playerVisualImg.naturalHeight || 1024 / 1536);
       // Center on hitbox; slight upward bias so the relic reads as hovering.
-      ctx.drawImage(playerVisualImg, ps.x - drawW / 2, ps.y - drawH / 2 + bob - 8, drawW, drawH);
+      ctx.drawImage(playerVisualImg, ps.x - drawW / 2, ps.y - drawH / 2 + bob - 10, drawW, drawH);
     } else {
       // Tiny fallback while the exact asset loads
       const flame = ctx.createRadialGradient(ps.x, ps.y + bob, 1, ps.x, ps.y + bob, 16);

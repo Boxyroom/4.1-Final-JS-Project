@@ -402,12 +402,12 @@
     0: {
       id: 0,
       file: "ancient-relic.png",
-      // Tall floating billboard; readable on mobile from the chase camera.
-      height: 2.55,
+      // Sized for the chase camera (~20u) so the stone silhouette stays readable.
+      height: 3.6,
       // Glowing orange core is at image center.
       coreY: 0.02,
       // Keeps the stone body hovering above the forest floor.
-      hoverY: 1.18,
+      hoverY: 1.55,
     },
   };
 
@@ -507,10 +507,15 @@
     const mat = new THREE.SpriteMaterial({
       transparent: true,
       depthWrite: false,
+      depthTest: true,
       opacity: 1,
+      // Keep the exact PNG readable against dark forest + ACES tonemap.
+      fog: false,
     });
+    if ("toneMapped" in mat) mat.toneMapped = false;
     const sprite = new THREE.Sprite(mat);
     sprite.name = "playerSprite";
+    sprite.renderOrder = 2;
     const aspect = 1024 / 1536;
     sprite.scale.set(form.height * aspect, form.height, 1);
     group.add(sprite);
@@ -1322,7 +1327,7 @@
       applyLanternEvolution(1, false);
       const origin = { x: 0, y: 0, z: 0 };
       followGround(origin);
-      const hover = lanternGroup.userData.hoverY || 1.18;
+      const hover = lanternGroup.userData.hoverY || 1.55;
       const bob = Math.sin(now * 0.0025) * 0.05;
       const coreY = lanternGroup.userData.coreY || 0.02;
       lanternGroup.position.set(0, hover + bob, 0);
@@ -1356,7 +1361,7 @@
     const pp = worldTo3D(p.x, p.y);
     followGround(pp);
     const bob = Math.sin(state.time * 6) * 0.04;
-    const hover = (lanternGroup.userData.hoverY || 1.18) + bob;
+    const hover = (lanternGroup.userData.hoverY || 1.55) + bob;
     const coreY = lanternGroup.userData.coreY || 0.02;
     lanternGroup.position.set(pp.x, hover, pp.z);
     lanternGroup.rotation.set(0, 0, 0);
@@ -1370,9 +1375,10 @@
     lanternLight.distance = 30 + (evo.stage || 0) * 1.8;
     flameLight.position.set(pp.x, coreWorldY, pp.z);
     flameLight.intensity = 20 * flick * lightMul;
+    // Soft core bloom only — keep the relic PNG readable (no heavy wash).
     glowSprite.position.set(pp.x, coreWorldY, pp.z);
-    glowSprite.material.opacity = (0.28 + flick * 0.22) * lightMul;
-    glowSprite.scale.setScalar(2.6 + flick * 0.5);
+    glowSprite.material.opacity = (0.16 + flick * 0.1) * lightMul;
+    glowSprite.scale.setScalar(1.8 + flick * 0.35);
 
     ringMesh.position.set(pp.x, 0.06, pp.z);
     const hp = Math.max(0.05, p.hp / p.maxHp);
