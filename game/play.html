@@ -463,6 +463,34 @@ h2 {
   font-weight: 700;
 }
 
+.card .strategy {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(240, 180, 41, 0.25);
+  color: #ffd39a;
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.card .tag {
+  display: inline-block;
+  margin-bottom: 6px;
+  color: var(--amber);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.build-chip {
+  display: inline-block;
+  margin: 3px 4px 0 0;
+  padding: 3px 8px;
+  border: 1px solid var(--line);
+  color: var(--cream);
+  font-size: 0.82rem;
+}
+
 .unlock-list {
   list-style: none;
   margin-bottom: 18px;
@@ -635,18 +663,29 @@ h2 {
 
     <section id="levelup" class="panel hidden">
       <h2>Level up!</h2>
-      <p class="lede">Choose <strong>one</strong> upgrade. It helps for the rest of this run only.</p>
+      <p class="lede">Pick a <strong>strategy</strong> for this run. Read the tip under each option.</p>
       <div id="upgrade-choices" class="choice-list"></div>
+    </section>
+
+    <section id="tactic" class="panel hidden">
+      <h2 id="tactic-title">Tactical choice</h2>
+      <p class="lede" id="tactic-body">A fork in the marsh. Only one path.</p>
+      <div id="tactic-choices" class="choice-list"></div>
     </section>
 
     <section id="pause" class="panel hidden">
       <h2>Paused</h2>
-      <p class="lede">Game is frozen. Resume to continue, or end the run to bank embers.</p>
+      <p class="lede">Game is frozen. Check your build, then resume.</p>
       <div class="control-cheat">
         <div><strong>Move</strong> — WASD / arrows / left stick</div>
-        <div><strong>Dash</strong> — Space / Shift / orange Dash button (short speed burst + brief safety)</div>
-        <div><strong>Attack</strong> — automatic (you do not tap to shoot)</div>
+        <div><strong>Dash</strong> — Space / Shift / orange button: escape <em>and</em> damage enemies you rush through</div>
+        <div><strong>Focus</strong> — hold <span class="key">F</span> to prioritize brutes/bosses</div>
+        <div><strong>Attack</strong> — automatic</div>
         <div><strong>Pause</strong> — P / Escape / Pause button</div>
+      </div>
+      <div class="control-cheat">
+        <div><strong>Your build this run</strong></div>
+        <div id="pause-build">No upgrades yet.</div>
       </div>
       <div class="btn-row">
         <button type="button" id="btn-resume" class="btn primary">Resume</button>
@@ -764,6 +803,11 @@ h2 {
     tutCard: document.getElementById("tut-card"),
     tutBack: document.getElementById("btn-tut-back"),
     tutNext: document.getElementById("btn-tut-next"),
+    tactic: document.getElementById("tactic"),
+    tacticTitle: document.getElementById("tactic-title"),
+    tacticBody: document.getElementById("tactic-body"),
+    tacticChoices: document.getElementById("tactic-choices"),
+    pauseBuild: document.getElementById("pause-build"),
   };
 
   const TUTORIAL_STEPS = [
@@ -793,54 +837,53 @@ h2 {
     },
     {
       title: "What Dash does",
-      body: "Dash is a short emergency escape — not an attack.",
+      body: "Dash is both escape and a tactical weapon.",
       card: `
-        <p><strong>Dash</strong> makes you surge forward quickly for a moment.</p>
+        <p><strong>Dash</strong> surges you forward for a moment.</p>
         <ul>
-          <li><strong>Keyboard:</strong> press <span class="key">Space</span> or <span class="key">Shift</span></li>
-          <li><strong>Phone:</strong> tap the orange <strong>Dash</strong> button (it says “speed burst”)</li>
-          <li>While dashing you are briefly safe from damage</li>
-          <li>It needs a short cooldown before you can dash again</li>
-        </ul>
-        <p>Use it when enemies surround you or a boss charges in.</p>
-      `,
-    },
-    {
-      title: "Enemies, XP, and upgrades",
-      body: "Green hurts. Gold helps.",
-      card: `
-        <ul>
-          <li><strong>Green blobs</strong> = enemies. Touching them drains your light.</li>
-          <li>When they die they drop <strong>gold orbs</strong> (XP).</li>
-          <li>Walk over gold orbs to fill the yellow bar at the top.</li>
-          <li>When the bar fills, you <strong>level up</strong> and pick 1 upgrade for this run.</li>
+          <li><strong>Keyboard:</strong> <span class="key">Space</span> or <span class="key">Shift</span></li>
+          <li><strong>Phone:</strong> orange <strong>Dash</strong> button</li>
+          <li>You are briefly safe while dashing</li>
+          <li><strong>Strategy:</strong> dash <em>through</em> a pack to damage them, or dash <em>away</em> when surrounded</li>
         </ul>
       `,
     },
     {
-      title: "Pause and Ember shop",
-      body: "Two more buttons you’ll use.",
+      title: "Think in builds",
+      body: "Upgrades are choices, not just power-ups.",
       card: `
         <ul>
-          <li><strong>Pause</strong> (top-right button, or <span class="key">P</span> / <span class="key">Esc</span>) freezes the game and shows a control reminder.</li>
-          <li><strong>Ember shop</strong> (main menu) spends embers you earn after runs.</li>
-          <li>Shop upgrades are <strong>permanent</strong> on this device.</li>
-          <li>Level-up upgrades only last for the current run.</li>
+          <li><strong>Offense</strong> (Lash Beam, Quick Flash, Split Wick): clear packs faster, but you must stay aggressive for XP.</li>
+          <li><strong>Close-range</strong> (Orbit Sparks, Burst Nova, Bramble): strong if you dare to stay near enemies.</li>
+          <li><strong>Survival</strong> (Warm Core, Glass Shade, Reed Boots): live longer, usually slower clears.</li>
+          <li><strong>Pickup</strong> (Moth Charm): safer XP collection so you can kite farther away.</li>
+        </ul>
+        <p>Pick a lane and stack it. Mixing randomly feels weaker.</p>
+      `,
+    },
+    {
+      title: "Focus fire & tactics",
+      body: "You get real decisions mid-run.",
+      card: `
+        <ul>
+          <li>Hold <span class="key">F</span> to <strong>focus</strong> brutes and bosses instead of the nearest weak wisp.</li>
+          <li>Every so often you’ll get a <strong>Tactical choice</strong>: risk vs reward (heal, damage amp, magnet, etc.).</li>
+          <li>Pause anytime to review <strong>your build this run</strong>.</li>
         </ul>
       `,
     },
     {
       title: "You’re ready",
-      body: "Start a run when you feel good about the controls.",
+      body: "Survive with a plan.",
       card: `
         <ul>
           <li>Move with WASD / stick</li>
-          <li>Dash with Space / orange button to escape</li>
-          <li>Let the lantern auto-attack</li>
-          <li>Collect gold XP and pick upgrades</li>
-          <li>Don’t let light hit 0</li>
+          <li>Dash through OR away — choose intentionally</li>
+          <li>Hold F to focus big threats</li>
+          <li>Stack upgrades toward one strategy</li>
+          <li>Take tactical choices when they appear</li>
         </ul>
-        <p>Next screen: press <strong>Start run</strong>.</p>
+        <p>Next: <strong>Start run</strong>.</p>
       `,
     },
   ];
@@ -914,7 +957,9 @@ h2 {
     {
       id: "beam",
       name: "Lash Beam",
+      tag: "Offense",
       desc: "Stronger lantern bolts.",
+      strategy: "Take when packs feel spongy. Best with Quick Flash.",
       apply: (s) => {
         s.player.damage *= 1.22;
       },
@@ -922,7 +967,9 @@ h2 {
     {
       id: "rate",
       name: "Quick Flash",
+      tag: "Offense",
       desc: "Fire more often.",
+      strategy: "Great early. Helps delete wisps before they touch you.",
       apply: (s) => {
         s.player.fireCooldown *= 0.84;
       },
@@ -930,7 +977,9 @@ h2 {
     {
       id: "multi",
       name: "Split Wick",
+      tag: "Offense",
       desc: "Extra projectile.",
+      strategy: "Pick when surrounded from many angles.",
       apply: (s) => {
         s.player.projectiles += 1;
       },
@@ -938,7 +987,9 @@ h2 {
     {
       id: "orbit",
       name: "Orbit Sparks",
+      tag: "Close-range",
       desc: "Spinning sparks that hit nearby foes.",
+      strategy: "Rewards staying close. Pair with armor/regen.",
       apply: (s) => {
         s.player.orbit += 1;
       },
@@ -946,7 +997,9 @@ h2 {
     {
       id: "nova",
       name: "Burst Nova",
+      tag: "Close-range",
       desc: "Periodic shockwave around you.",
+      strategy: "Anti-swarm. Strong if you kite in circles through packs.",
       apply: (s) => {
         s.player.nova += 1;
       },
@@ -954,23 +1007,29 @@ h2 {
     {
       id: "regen",
       name: "Warm Core",
+      tag: "Survival",
       desc: "Slowly restore light.",
+      strategy: "Take after a rough fight or if you get hit often.",
       apply: (s) => {
-        s.player.regen += 0.35;
+        s.player.regen += 0.45;
       },
     },
     {
       id: "armor",
       name: "Glass Shade",
+      tag: "Survival",
       desc: "Take less damage.",
+      strategy: "Enables aggressive dash-through play.",
       apply: (s) => {
-        s.player.armor += 0.1;
+        s.player.armor += 0.12;
       },
     },
     {
       id: "boots",
       name: "Reed Boots",
+      tag: "Survival",
       desc: "Move faster.",
+      strategy: "Kiting build. Pair with magnet and keep distance.",
       apply: (s) => {
         s.player.speed *= 1.12;
       },
@@ -978,7 +1037,9 @@ h2 {
     {
       id: "magnet",
       name: "Moth Charm",
+      tag: "Pickup",
       desc: "Pull XP from farther away.",
+      strategy: "Lets you farm XP safely without walking into danger.",
       apply: (s) => {
         s.player.magnet *= 1.35;
       },
@@ -986,9 +1047,83 @@ h2 {
     {
       id: "thorn",
       name: "Bramble Retort",
+      tag: "Close-range",
       desc: "Attackers take damage on hit.",
+      strategy: "Only good if you expect contact. Skip for pure kiting.",
       apply: (s) => {
-        s.player.thorns += 4;
+        s.player.thorns += 5;
+      },
+    },
+    {
+      id: "dashpower",
+      name: "Cinder Rush",
+      tag: "Dash",
+      desc: "Dash hits harder and cools down faster.",
+      strategy: "Commit to dash-through tactics. Skip if you only flee.",
+      apply: (s) => {
+        s.player.dashDamage *= 1.45;
+        s.player.dashCooldown *= 0.85;
+      },
+    },
+  ];
+
+  const TACTICS = [
+    {
+      id: "mend",
+      name: "Drink the spring",
+      tag: "Safe",
+      desc: "Restore 35 light now.",
+      strategy: "Pick if you're below half light.",
+      apply: (s) => {
+        s.player.hp = Math.min(s.player.maxHp, s.player.hp + 35);
+      },
+    },
+    {
+      id: "overburn",
+      name: "Overburn",
+      tag: "Risky",
+      desc: "+30% damage for 25s, but -10 max light.",
+      strategy: "Take to burst a boss. Avoid if already fragile.",
+      apply: (s) => {
+        s.player.damage *= 1.3;
+        s.player.maxHp = Math.max(40, s.player.maxHp - 10);
+        s.player.hp = Math.min(s.player.hp, s.player.maxHp);
+        s.buffTimer = 25;
+        s.buffLabel = "Overburn";
+      },
+    },
+    {
+      id: "harvest",
+      name: "Wide harvest",
+      tag: "Farm",
+      desc: "Huge XP magnet for 20s.",
+      strategy: "Best right after a big fight with lots of orbs on the ground.",
+      apply: (s) => {
+        s.player.magnet *= 2.2;
+        s.magnetBuffTimer = 20;
+      },
+    },
+    {
+      id: "fortify",
+      name: "Fortify wick",
+      tag: "Safe",
+      desc: "+18 max light and a little armor.",
+      strategy: "Steady value when you want fewer deaths later.",
+      apply: (s) => {
+        s.player.maxHp += 18;
+        s.player.hp += 18;
+        s.player.armor += 0.06;
+      },
+    },
+    {
+      id: "bloodrush",
+      name: "Bloodrush",
+      tag: "Risky",
+      desc: "Next 40 kills grant bonus XP. Take 12 damage now.",
+      strategy: "High reward if you can stay alive and keep clearing.",
+      apply: (s) => {
+        s.player.hp = Math.max(1, s.player.hp - 12);
+        s.bloodrushKills = 40;
       },
     },
   ];
@@ -1045,6 +1180,7 @@ h2 {
     right: false,
     dash: false,
     pause: false,
+    focus: false,
     ax: 0,
     ay: 0,
   };
@@ -1122,6 +1258,7 @@ h2 {
     hide(ui.tutorial);
     hide(ui.shop);
     hide(ui.levelup);
+    hide(ui.tactic);
     hide(ui.pause);
     hide(ui.gameover);
     if (next === "title") {
@@ -1142,8 +1279,11 @@ h2 {
       if (isTouchPrimary()) show(ui.touch);
     } else if (next === "levelup") {
       show(ui.levelup);
+    } else if (next === "tactic") {
+      show(ui.tactic);
     } else if (next === "pause") {
       show(ui.pause);
+      renderPauseBuild();
     } else if (next === "gameover") {
       show(ui.gameover);
       hide(ui.hud);
@@ -1202,6 +1342,7 @@ h2 {
       dashTimer: 0,
       dashCooldown: 1.5,
       dashCd: 0,
+      dashDamage: 16,
       orbit: 0,
       nova: 0,
       novaTimer: 3.5,
@@ -1247,14 +1388,22 @@ h2 {
       camera: { x: 0, y: 0 },
       coachStep: 0,
       coachTimer: 0,
+      buildLog: [],
+      nextTacticAt: 45,
+      buffTimer: 0,
+      buffLabel: "",
+      magnetBuffTimer: 0,
+      bloodrushKills: 0,
+      baseMagnet: 0,
     };
+    state.baseMagnet = state.player.magnet;
     state.player.x = 0;
     state.player.y = 0;
     setMode("play");
     showCoach(
       isTouchPrimary()
-        ? "Drag the left stick to move. Orange Dash = speed burst escape!"
-        : "WASD to move · Space = Dash (speed burst escape) · attacks are automatic",
+        ? "Move with the stick. Dash through packs to hurt them — or dash away to live."
+        : "WASD move · Space dash through/away · Hold F to focus big foes",
     );
     lastTs = performance.now();
     cancelAnimationFrame(animId);
@@ -1390,7 +1539,16 @@ h2 {
     if (p.fireTimer <= 0 && state.enemies.length) {
       p.fireTimer = p.fireCooldown;
       sfx.shoot();
-      const sorted = [...state.enemies].sort((a, b) => dist(p, a) - dist(p, b));
+      const rank = (e) => {
+        if (!input.focus) return 0;
+        if (e.kind === "boss") return 3000;
+        if (e.kind === "brute") return 1500;
+        if (e.kind === "dart") return 200;
+        return 0;
+      };
+      const sorted = [...state.enemies].sort(
+        (a, b) => dist(p, a) - rank(a) - (dist(p, b) - rank(b)),
+      );
       const targets = sorted.slice(0, p.projectiles);
       for (const target of targets) {
         const ang = Math.atan2(target.y - p.y, target.x - p.x);
@@ -1462,12 +1620,18 @@ h2 {
     if (e.kind === "boss") {
       state.bossesDown += 1;
       showBanner("Bog crown fallen");
+      state._pendingBossTactic = true;
+    }
+    let xpVal = e.xp;
+    if (state.bloodrushKills > 0) {
+      state.bloodrushKills -= 1;
+      xpVal += 2;
     }
     state.gems.push({
       x: e.x,
       y: e.y,
       r: e.kind === "boss" ? 8 : 4,
-      value: e.xp,
+      value: xpVal,
       vx: rand(-30, 30),
       vy: rand(-30, 30),
     });
@@ -1503,9 +1667,16 @@ h2 {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "card";
-      btn.innerHTML = `<h3>${choice.name}</h3><p>${choice.desc}</p>`;
+      btn.innerHTML = `
+        <div class="tag">${choice.tag || "Upgrade"}</div>
+        <h3>${choice.name}</h3>
+        <p>${choice.desc}</p>
+        <div class="strategy">Strategy: ${choice.strategy || "Solid general pick."}</div>
+      `;
       btn.addEventListener("click", () => {
         choice.apply(state);
+        state.buildLog.push(choice.name);
+        showBanner(`${choice.name} — ${choice.tag}`);
         state.levelUpsQueued -= 1;
         if (state.levelUpsQueued > 0) {
           offerLevelUp();
@@ -1519,6 +1690,49 @@ h2 {
     }
     state.pausedChoice = true;
     setMode("levelup");
+  }
+
+  function offerTactic(reason) {
+    if (state.ended || state.pausedChoice) return;
+    const choices = shuffle([...TACTICS]).slice(0, 3);
+    ui.tacticTitle.textContent = "Tactical choice";
+    ui.tacticBody.textContent = reason;
+    ui.tacticChoices.innerHTML = "";
+    for (const choice of choices) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "card";
+      btn.innerHTML = `
+        <div class="tag">${choice.tag}</div>
+        <h3>${choice.name}</h3>
+        <p>${choice.desc}</p>
+        <div class="strategy">Strategy: ${choice.strategy}</div>
+      `;
+      btn.addEventListener("click", () => {
+        // revert temporary magnet buff bookkeeping before apply if needed
+        choice.apply(state);
+        state.buildLog.push(`Tactic: ${choice.name}`);
+        showBanner(choice.name);
+        state.pausedChoice = false;
+        hide(ui.tactic);
+        setMode("play");
+        sfx.level();
+      });
+      ui.tacticChoices.appendChild(btn);
+    }
+    state.pausedChoice = true;
+    setMode("tactic");
+  }
+
+  function renderPauseBuild() {
+    if (!ui.pauseBuild || !state) return;
+    if (!state.buildLog.length) {
+      ui.pauseBuild.textContent = "No upgrades yet — level up by collecting gold XP orbs.";
+      return;
+    }
+    ui.pauseBuild.innerHTML = state.buildLog
+      .map((n) => `<span class="build-chip">${n}</span>`)
+      .join(" ");
   }
 
   function shuffle(arr) {
@@ -1625,6 +1839,18 @@ h2 {
     p.x += moveX * p.speed * speedMul * dt;
     p.y += moveY * p.speed * speedMul * dt;
 
+    if (p.dashTimer > 0) {
+      for (const e of state.enemies) {
+        if (e.hp > 0 && dist(p, e) < p.r + e.r + 10) {
+          if (!e._dashHit || state.time - e._dashHit > 0.25) {
+            hurtEnemy(e, p.dashDamage);
+            e._dashHit = state.time;
+            floatText(e.x, e.y - 12, "Dash!", "#ffd39a");
+          }
+        }
+      }
+    }
+
     p.dashTimer = Math.max(0, p.dashTimer - dt);
     p.dashCd = Math.max(0, p.dashCd - dt);
     p.invuln = Math.max(0, p.invuln - dt);
@@ -1661,6 +1887,27 @@ h2 {
       if (state.bannerTimer <= 0 && ui.banner) ui.banner.classList.add("hidden");
     }
     state.killFlash = Math.max(0, state.killFlash - dt);
+
+    if (state.buffTimer > 0) {
+      state.buffTimer -= dt;
+      if (state.buffTimer <= 0) {
+        state.buffLabel = "";
+      }
+    }
+    if (state.magnetBuffTimer > 0) {
+      state.magnetBuffTimer -= dt;
+      if (state.magnetBuffTimer <= 0) {
+        state.player.magnet = Math.max(state.baseMagnet, state.player.magnet / 2.2);
+      }
+    }
+
+    if (state.time >= state.nextTacticAt && !state.pausedChoice) {
+      state.nextTacticAt += 50;
+      offerTactic("A fork in the marsh — choose a short-term plan.");
+    } else if (state._pendingBossTactic && !state.pausedChoice) {
+      state._pendingBossTactic = false;
+      offerTactic("Boss down. Claim a tactical reward.");
+    }
 
     fireWeapons(dt);
 
@@ -1754,13 +2001,13 @@ h2 {
     // Short onboarding tips for the first half-minute
     if (state.coachStep === 0 && state.time > 4) {
       state.coachStep = 1;
-      showCoach("Green enemies hurt on touch. Dash away if they close in!");
+      showCoach("Green hurts on touch. Dash through a pack to smash it, or dash out.");
     } else if (state.coachStep === 1 && state.kills >= 1) {
       state.coachStep = 2;
-      showCoach("Gold orbs = XP. Walk into them to fill the yellow bar.");
+      showCoach("Gold orbs = XP. Hold F to focus brutes/bosses.");
     } else if (state.coachStep === 2 && state.player.level >= 2) {
       state.coachStep = 3;
-      showCoach("Level up! Pick one upgrade — it lasts for this run.");
+      showCoach("Level up! Read the Strategy tip — stack one build path.");
     } else if (state.coachStep === 3 && state.time > 22) {
       state.coachStep = 4;
       hideCoach();
@@ -1955,6 +2202,19 @@ h2 {
     ctx.arc(ps.x, ps.y, p.r + 8, -Math.PI / 2, -Math.PI / 2 + TAU * (p.hp / p.maxHp));
     ctx.stroke();
 
+    if (input.focus) {
+      ctx.strokeStyle = "rgba(224,122,47,0.85)";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.arc(ps.x, ps.y, p.r + 16, 0, TAU);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.font = "700 12px Outfit, sans-serif";
+      ctx.fillStyle = "#ffd39a";
+      ctx.fillText("FOCUS", ps.x, ps.y - p.r - 22);
+    }
+
     // particles / floats
     for (const part of state.particles) {
       const s = worldToScreen(part.x, part.y);
@@ -2050,6 +2310,7 @@ h2 {
     if (k === "a" || k === "arrowleft") input.left = true;
     if (k === "d" || k === "arrowright") input.right = true;
     if (k === " " || k === "shift") input.dash = true;
+    if (k === "f") input.focus = true;
     if ((k === "p" || k === "escape") && state && !state.ended && !state.pausedChoice) {
       if (mode === "play") setMode("pause");
       else if (mode === "pause") setMode("play");
@@ -2062,6 +2323,7 @@ h2 {
     if (k === "s" || k === "arrowdown") input.down = false;
     if (k === "a" || k === "arrowleft") input.left = false;
     if (k === "d" || k === "arrowright") input.right = false;
+    if (k === "f") input.focus = false;
   });
 
   // touch stick

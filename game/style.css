@@ -452,6 +452,34 @@ h2 {
   font-weight: 700;
 }
 
+.card .strategy {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(240, 180, 41, 0.25);
+  color: #ffd39a;
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.card .tag {
+  display: inline-block;
+  margin-bottom: 6px;
+  color: var(--amber);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.build-chip {
+  display: inline-block;
+  margin: 3px 4px 0 0;
+  padding: 3px 8px;
+  border: 1px solid var(--line);
+  color: var(--cream);
+  font-size: 0.82rem;
+}
+
 .unlock-list {
   list-style: none;
   margin-bottom: 18px;

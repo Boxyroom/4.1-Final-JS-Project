@@ -95,18 +95,29 @@
 
     <section id="levelup" class="panel hidden">
       <h2>Level up!</h2>
-      <p class="lede">Choose <strong>one</strong> upgrade. It helps for the rest of this run only.</p>
+      <p class="lede">Pick a <strong>strategy</strong> for this run. Read the tip under each option.</p>
       <div id="upgrade-choices" class="choice-list"></div>
+    </section>
+
+    <section id="tactic" class="panel hidden">
+      <h2 id="tactic-title">Tactical choice</h2>
+      <p class="lede" id="tactic-body">A fork in the marsh. Only one path.</p>
+      <div id="tactic-choices" class="choice-list"></div>
     </section>
 
     <section id="pause" class="panel hidden">
       <h2>Paused</h2>
-      <p class="lede">Game is frozen. Resume to continue, or end the run to bank embers.</p>
+      <p class="lede">Game is frozen. Check your build, then resume.</p>
       <div class="control-cheat">
         <div><strong>Move</strong> — WASD / arrows / left stick</div>
-        <div><strong>Dash</strong> — Space / Shift / orange Dash button (short speed burst + brief safety)</div>
-        <div><strong>Attack</strong> — automatic (you do not tap to shoot)</div>
+        <div><strong>Dash</strong> — Space / Shift / orange button: escape <em>and</em> damage enemies you rush through</div>
+        <div><strong>Focus</strong> — hold <span class="key">F</span> to prioritize brutes/bosses</div>
+        <div><strong>Attack</strong> — automatic</div>
         <div><strong>Pause</strong> — P / Escape / Pause button</div>
+      </div>
+      <div class="control-cheat">
+        <div><strong>Your build this run</strong></div>
+        <div id="pause-build">No upgrades yet.</div>
       </div>
       <div class="btn-row">
         <button type="button" id="btn-resume" class="btn primary">Resume</button>
