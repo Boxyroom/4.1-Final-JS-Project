@@ -169,7 +169,7 @@
       card: `
         <ul>
           <li><strong>Offense</strong> (Lash Beam, Quick Flash, Split Wick): clear packs faster, but you must stay aggressive for XP.</li>
-          <li><strong>Close-range</strong> (Orbit Sparks, Burst Nova, Bramble): strong if you dare to stay near enemies.</li>
+          <li><strong>Close-range</strong> (Orbit Sparks / Burst Nova once each, Bramble): strong if you stay near enemies.</li>
           <li><strong>Survival</strong> (Warm Core, Glass Shade, Reed Boots): live longer, usually slower clears.</li>
           <li><strong>Pickup</strong> (Moth Charm): safer XP collection so you can kite farther away.</li>
         </ul>
@@ -294,9 +294,11 @@
       name: "Orbit Sparks",
       tag: "Close-range",
       desc: "Tiny swirling sparks that explode and kill on contact.",
-      strategy: "Rewards staying close. Pair with armor/regen.",
+      strategy: "One-time unlock. Rewards staying close.",
+      once: true,
+      owned: (s) => s.player.orbit > 0,
       apply: (s) => {
-        s.player.orbit += 1;
+        s.player.orbit = 1;
       },
     },
     {
@@ -304,9 +306,11 @@
       name: "Burst Nova",
       tag: "Close-range",
       desc: "Periodic shockwave that kills enemies it hits.",
-      strategy: "Anti-swarm. Strong if you kite in circles through packs.",
+      strategy: "One-time unlock. Anti-swarm when packs close in.",
+      once: true,
+      owned: (s) => s.player.nova > 0,
       apply: (s) => {
-        s.player.nova += 1;
+        s.player.nova = 1;
       },
     },
     {
@@ -357,17 +361,6 @@
       strategy: "Only good if you expect contact. Skip for pure kiting.",
       apply: (s) => {
         s.player.thorns += 5;
-      },
-    },
-    {
-      id: "dashpower",
-      name: "Cluster Star",
-      tag: "Weapon",
-      desc: "Special weapons hit harder. Grenades explode wider.",
-      strategy: "Great if you grab grenade crates often.",
-      apply: (s) => {
-        s.player.weaponDamage *= 1.4;
-        s.player.grenadeRadius *= 1.25;
       },
     },
   ];
@@ -1029,9 +1022,21 @@
     }
   }
 
+  function availableRunUpgrades() {
+    return RUN_UPGRADES.filter((u) => !(u.once && u.owned && u.owned(state)));
+  }
+
   function offerLevelUp() {
     if (!state.levelUpsQueued) return;
-    const choices = shuffle([...RUN_UPGRADES]).slice(0, 3);
+    const pool = availableRunUpgrades();
+    const choices = shuffle([...pool]).slice(0, Math.min(3, pool.length));
+    if (!choices.length) {
+      state.levelUpsQueued = 0;
+      state.pausedChoice = false;
+      hide(ui.levelup);
+      setMode("play");
+      return;
+    }
     ui.upgradeChoices.innerHTML = "";
     for (const choice of choices) {
       const btn = document.createElement("button");
