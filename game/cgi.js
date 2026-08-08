@@ -769,49 +769,116 @@
     return group;
   }
 
+  /** Weapon-crate tint colors — green grenades / red swarm / blue nuke. */
+  const CRATE_TINT = {
+    grenades: 0xb6f5c0,
+    swarm: 0xff9aa8,
+    nuke: 0xa8c4ff,
+  };
+  const CRATE_GLOW = {
+    grenades: 0x22c55e,
+    swarm: 0xe11d48,
+    nuke: 0x3b82f6,
+  };
+
+  let crateTexture = null;
+  let crateTextureLoading = false;
+
+  function ensureCrateTexture(onReady) {
+    if (crateTexture) {
+      if (onReady) onReady(crateTexture);
+      return crateTexture;
+    }
+    if (crateTextureLoading) return null;
+    crateTextureLoading = true;
+    const loader = new THREE.TextureLoader();
+    loader.load(
+      gameAssetSrc("weapon-crate.png"),
+      (tex) => {
+        if ("colorSpace" in tex && THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
+        else if ("encoding" in tex && THREE.sRGBEncoding) tex.encoding = THREE.sRGBEncoding;
+        tex.needsUpdate = true;
+        crateTexture = tex;
+        crateTextureLoading = false;
+        if (onReady) onReady(tex);
+        // Apply to any crates waiting for the map
+        for (let i = 0; i < pickupPool.length; i++) {
+          const bill = pickupPool[i] && pickupPool[i].userData && pickupPool[i].userData.billboard;
+          if (bill && bill.material && !bill.material.map) {
+            bill.material.map = tex;
+            bill.material.needsUpdate = true;
+          }
+        }
+      },
+      undefined,
+      (err) => {
+        crateTextureLoading = false;
+        console.error("Failed to load weapon-crate.png", err);
+      },
+    );
+    return null;
+  }
+
+  function applyCrateKind(group, kind) {
+    const tint = CRATE_TINT[kind] || CRATE_TINT.grenades;
+    const glowCol = CRATE_GLOW[kind] || CRATE_GLOW.grenades;
+    group.userData.kind = kind;
+    const bill = group.userData.billboard;
+    if (bill && bill.material) {
+      bill.material.color.setHex(tint);
+      bill.material.needsUpdate = true;
+    }
+    const glow = group.userData.glow;
+    if (glow && glow.material) {
+      glow.material.color.setHex(glowCol);
+      glow.material.needsUpdate = true;
+    }
+  }
+
   function createPickupMesh(kind) {
-    const nuke = kind === "nuke";
-    const swarm = kind === "swarm";
     const group = new THREE.Group();
-    const crate = new THREE.Mesh(
-      new THREE.BoxGeometry(0.55, 0.42, 0.55),
-      new THREE.MeshStandardMaterial({
-        color: nuke ? 0x3a2a55 : swarm ? 0x4a1820 : 0x4a2e14,
-        emissive: nuke ? 0x5b21b6 : swarm ? 0x9f1239 : 0x9a4a12,
-        emissiveIntensity: swarm ? 1.1 : 0.85,
-        metalness: 0.25,
-        roughness: 0.55,
-      }),
-    );
-    crate.castShadow = true;
-    group.add(crate);
-    const band = new THREE.Mesh(
-      new THREE.BoxGeometry(0.58, 0.08, 0.58),
-      new THREE.MeshStandardMaterial({
-        color: nuke ? 0xc084fc : swarm ? 0xe11d48 : 0xe07a2f,
-        emissive: nuke ? 0x7c3aed : swarm ? 0xff2244 : 0xff8a2a,
-        emissiveIntensity: 1.6,
-        metalness: 0.4,
-        roughness: 0.35,
-      }),
-    );
-    band.position.y = 0.05;
-    group.add(band);
+    const mat = new THREE.MeshBasicMaterial({
+      transparent: true,
+      depthWrite: false,
+      depthTest: true,
+      opacity: 1,
+      side: THREE.DoubleSide,
+      fog: false,
+      alphaTest: 0.05,
+      color: CRATE_TINT[kind] || CRATE_TINT.grenades,
+    });
+    if ("toneMapped" in mat) mat.toneMapped = false;
+    const billboard = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
+    billboard.name = "crateSprite";
+    billboard.renderOrder = 2;
+    billboard.scale.set(1.35, 1.35, 1);
+    group.add(billboard);
+
     const glow = new THREE.Sprite(
       new THREE.SpriteMaterial({
         map: makeGlowTexture(),
         transparent: true,
         depthWrite: false,
         blending: THREE.AdditiveBlending,
-        opacity: 0.4,
-        color: nuke ? 0xa78bfa : swarm ? 0xfb7185 : 0xffb040,
+        opacity: 0.55,
+        color: CRATE_GLOW[kind] || CRATE_GLOW.grenades,
       }),
     );
-    glow.scale.set(1.6, 1.6, 1);
-    glow.position.y = 0.35;
+    glow.scale.set(2.1, 2.1, 1);
+    glow.position.y = 0.05;
     group.add(glow);
+
     group.visible = false;
     group.userData.kind = kind;
+    group.userData.billboard = billboard;
+    group.userData.glow = glow;
+    group.userData.isCrateSprite = true;
+
+    ensureCrateTexture((tex) => {
+      billboard.material.map = tex;
+      billboard.material.needsUpdate = true;
+    });
+
     scene.add(group);
     return group;
   }
@@ -1509,15 +1576,19 @@
         continue;
       }
       if (m.userData.kind !== w.kind) {
-        scene.remove(m);
-        m = createPickupMesh(w.kind);
-        pickupPool[i] = m;
+        applyCrateKind(m, w.kind);
       }
       const wp = worldTo3D(w.x, w.y);
+      const bob = Math.sin((w.pulse || state.time) * 4) * 0.1;
       m.visible = true;
-      m.position.set(wp.x, 0.45 + Math.sin((w.pulse || state.time) * 4) * 0.12, wp.z);
-      m.rotation.y += 0.04;
-      m.rotation.x = Math.sin(state.time * 2 + i) * 0.15;
+      m.position.set(wp.x, 0.72 + bob, wp.z);
+      m.rotation.set(0, 0, 0);
+      // Face camera like other billboards; Y-flip so the isometric art reads upright.
+      const bill = m.userData.billboard;
+      if (bill && camera) {
+        bill.quaternion.copy(camera.quaternion);
+        bill.rotateY(Math.PI);
+      }
     }
 
     const grenades = state.grenades || [];
