@@ -2056,8 +2056,10 @@ h2 {
       const drift = Math.sin(time * 0.25 + m.userData.phase) * 0.6;
       m.position.x = pp.x + m.userData.ox + drift;
       m.position.z = pp.z + m.userData.oz + Math.cos(time * 0.2 + i) * 0.5;
-      m.position.y = 0.65 + Math.sin(time * 0.4 + i) * 0.12;
-      m.material.opacity = titleMode ? 0.055 : 0.035 + Math.sin(time + i) * 0.008;
+      m.position.y = 0.28 + Math.sin(time * 0.4 + i) * 0.06;
+      if (m.material) {
+        m.material.opacity = titleMode ? 0.12 : 0.06 + Math.sin(time + i) * 0.02;
+      }
     }
     for (let i = 0; i < emberPool.length; i++) {
       const e = emberPool[i];
