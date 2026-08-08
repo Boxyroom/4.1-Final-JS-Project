@@ -2745,6 +2745,13 @@
       spawnWeaponPickup(k);
       return true;
     },
+    equipWeapon: (kind) => {
+      if (!state) return false;
+      const k =
+        kind === "nuke" ? "nuke" : kind === "swarm" ? "swarm" : "grenades";
+      equipWeapon(k);
+      return true;
+    },
     fire: () => fireEquippedWeapon(),
   };
 })();
