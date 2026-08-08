@@ -129,7 +129,7 @@
       body: "Steering is your main job.",
       card: `
         <p><strong>Keyboard:</strong> hold <span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span> or the arrow keys.</p>
-        <p><strong>Phone / tablet:</strong> drag the left <strong>Move</strong> stick.</p>
+        <p><strong>Phone / tablet:</strong> drag the right <strong>Move</strong> stick.</p>
         <ul>
           <li>Keep moving so green enemies don’t pile on you.</li>
           <li>There is no jump and no special move stick combo — just direction.</li>
