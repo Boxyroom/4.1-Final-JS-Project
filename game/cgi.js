@@ -327,12 +327,13 @@
 
   function createPickupMesh(kind) {
     const nuke = kind === "nuke";
+    const swarm = kind === "swarm";
     const mesh = new THREE.Mesh(
       new THREE.BoxGeometry(0.45, 0.45, 0.45),
       new THREE.MeshStandardMaterial({
-        color: nuke ? 0xc084fc : 0xe07a2f,
-        emissive: nuke ? 0x7c3aed : 0xff8a2a,
-        emissiveIntensity: 1.4,
+        color: nuke ? 0xc084fc : swarm ? 0xe11d48 : 0xe07a2f,
+        emissive: nuke ? 0x7c3aed : swarm ? 0xff2244 : 0xff8a2a,
+        emissiveIntensity: swarm ? 1.8 : 1.4,
         metalness: 0.35,
         roughness: 0.35,
       }),
@@ -863,6 +864,19 @@
       const bp = worldTo3D(b.x, b.y);
       m.visible = true;
       m.position.set(bp.x, 0.7, bp.z);
+      if (m.material) {
+        if (b.swirl) {
+          m.material.color.set(0xff6b81);
+          m.material.emissive.set(0xe11d48);
+          m.material.emissiveIntensity = 3.8;
+          m.scale.setScalar(1.25);
+        } else {
+          m.material.color.set(0xfff2c0);
+          m.material.emissive.set(0xffc050);
+          m.material.emissiveIntensity = 3.2;
+          m.scale.setScalar(1);
+        }
+      }
     }
 
     const pickups = state.weaponPickups || [];
@@ -946,7 +960,8 @@
         continue;
       }
       const ang = Math.atan2(w.y - p.y, w.x - p.x);
-      const color = w.kind === "nuke" ? 0x3b82f6 : 0x22c55e;
+      const color =
+        w.kind === "nuke" ? 0x3b82f6 : w.kind === "swarm" ? 0xe11d48 : 0x22c55e;
       hint.mat.color.set(color);
       hint.mat.opacity = 0.75 + Math.sin(state.time * 6 + i) * 0.2;
       hint.group.visible = true;

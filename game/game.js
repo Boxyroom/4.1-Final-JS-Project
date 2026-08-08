@@ -156,9 +156,10 @@
       card: `
         <p>Colored crates on the marsh are <strong>special weapons</strong>.</p>
         <ul>
-          <li><strong>Star Grenades</strong> (orange) — spawn about every 20s. Fire 5 bombs that arc out and explode on landing.</li>
-          <li><strong>Nuke</strong> (purple, rare) — spawn about every 60s. Clears the field and sucks in all XP.</li>
-          <li>Drive through a crate to equip it. The left button shows what is loaded.</li>
+          <li><strong>Star Grenades</strong> (orange) — every ~20s. Equip, then fire 5 arcing bombs.</li>
+          <li><strong>Swarm Fire</strong> (red) — every ~30s. Drive through to rapid-fire a swirl for 8s.</li>
+          <li><strong>Nuke</strong> (purple, rare) — every ~60s. Equip, then clear the field and suck in XP.</li>
+          <li>Orange/purple crates equip first (left button). Red crates start instantly.</li>
           <li><strong>Keyboard:</strong> <span class="key">Space</span> or <span class="key">Shift</span> to fire</li>
         </ul>
       `,
@@ -666,6 +667,8 @@
       orbit: 0,
       nova: 0,
       novaTimer: 3.5,
+      swarmTimer: 0,
+      swarmFireTimer: 0,
       regen: 0,
       armor: 0,
       thorns: 0,
@@ -701,6 +704,7 @@
       kills: 0,
       spawnTimer: 1.2,
       nextGrenadePickupAt: 20,
+      nextSwarmPickupAt: 30,
       nextNukeAt: 60,
       bossesDown: 0,
       nextBossAt: 100,
@@ -864,6 +868,34 @@
   function fireWeapons(dt) {
     const p = state.player;
     p.fireTimer -= dt;
+    // red swarm crate: rapid swirling barrage
+    if (p.swarmTimer > 0) {
+      p.swarmTimer -= dt;
+      p.swarmFireTimer -= dt;
+      if (p.swarmFireTimer <= 0) {
+        p.swarmFireTimer = 0.065;
+        const spiral = state.time * 11;
+        for (let k = 0; k < 2; k++) {
+          const a = spiral + k * Math.PI;
+          state.bullets.push({
+            x: p.x,
+            y: p.y,
+            vx: Math.cos(a) * 480,
+            vy: Math.sin(a) * 480,
+            r: 5,
+            damage: p.damage * 0.95,
+            life: 1.05,
+            swirl: true,
+          });
+        }
+        if (Math.floor(state.time * 20) % 2 === 0) sfx.shoot();
+      }
+      if (p.swarmTimer <= 0) {
+        p.swarmTimer = 0;
+        showBanner("Swarm fire ended", 1.0);
+      }
+    }
+
     if (p.fireTimer <= 0 && state.enemies.length) {
       p.fireTimer = p.fireCooldown;
       sfx.shoot();
@@ -1121,7 +1153,14 @@
   function weaponLabel(kind) {
     if (kind === "nuke") return "NUKE";
     if (kind === "grenades") return "GRENADES";
+    if (kind === "swarm") return "SWARM";
     return "Empty";
+  }
+
+  function crateHintColor(kind) {
+    if (kind === "nuke") return "#3b82f6";
+    if (kind === "swarm") return "#e11d48";
+    return "#22c55e"; // grenades
   }
 
   function spawnWeaponPickup(kind) {
@@ -1135,10 +1174,26 @@
       pulse: rand(0, TAU),
     });
     if (kind === "nuke") showBanner("Rare nuke crate appeared!", 1.6);
+    else if (kind === "swarm") showBanner("Red swarm crate nearby!", 1.3);
     else showBanner("Grenade crate nearby", 1.2);
   }
 
+  function startSwarmFire() {
+    const p = state.player;
+    p.swarmTimer = 8;
+    p.swarmFireTimer = 0;
+    sfx.pickup();
+    showBanner("SWARM FIRE — 8 seconds!", 1.7);
+    floatText(p.x, p.y - 30, "SWARM", "#ff6b6b", 1.25, true);
+    addParticles(p.x, p.y, "#e11d48", 22, 220);
+    addParticles(p.x, p.y, "#ffb040", 14, 160);
+  }
+
   function equipWeapon(kind) {
+    if (kind === "swarm") {
+      startSwarmFire();
+      return;
+    }
     state.player.equippedWeapon = kind;
     sfx.pickup();
     showBanner(`${weaponLabel(kind)} equipped!`, 1.4);
@@ -1234,36 +1289,51 @@
   }
 
   function refreshWeaponUi() {
-    const kind = state && state.player ? state.player.equippedWeapon : null;
+    const p = state && state.player;
+    const kind = p ? p.equippedWeapon : null;
+    const swarming = !!(p && p.swarmTimer > 0);
     const loaded = !!kind;
     const label = weaponLabel(kind);
     if (ui.hudDash) {
-      ui.hudDash.textContent = loaded ? label : "No weapon";
-      ui.hudDash.classList.toggle("ready", loaded);
-      ui.hudDash.title = loaded
-        ? `${label} loaded — press Space / Fire to use`
-        : "Drive through a weapon crate to equip one";
+      if (swarming) {
+        ui.hudDash.textContent = `SWARM ${p.swarmTimer.toFixed(1)}s`;
+        ui.hudDash.classList.add("ready");
+        ui.hudDash.title = "Red crate swarm fire is active";
+      } else {
+        ui.hudDash.textContent = loaded ? label : "No weapon";
+        ui.hudDash.classList.toggle("ready", loaded);
+        ui.hudDash.title = loaded
+          ? `${label} loaded — press Space / Fire to use`
+          : "Drive through a weapon crate to equip one";
+      }
     }
     if (ui.dashFill) {
-      ui.dashFill.style.width = loaded ? "100%" : "0%";
-      ui.dashFill.classList.toggle("nuke", kind === "nuke");
-      ui.dashFill.classList.toggle("grenades", kind === "grenades");
+      const fillPct = swarming ? (p.swarmTimer / 8) * 100 : loaded ? 100 : 0;
+      ui.dashFill.style.width = `${fillPct}%`;
+      ui.dashFill.classList.toggle("nuke", kind === "nuke" && !swarming);
+      ui.dashFill.classList.toggle("grenades", kind === "grenades" && !swarming);
+      ui.dashFill.classList.toggle("swarm", swarming);
     }
     if (ui.dashBtn) {
       ui.dashBtn.disabled = !loaded;
       ui.dashBtn.classList.toggle("cooling", !loaded);
       ui.dashBtn.classList.toggle("loaded-nuke", kind === "nuke");
       ui.dashBtn.classList.toggle("loaded-grenades", kind === "grenades");
-      const sub =
-        kind === "nuke"
+      ui.dashBtn.classList.toggle("loaded-swarm", swarming);
+      const sub = swarming
+        ? `${p.swarmTimer.toFixed(1)}s left`
+        : kind === "nuke"
           ? "clear field"
           : kind === "grenades"
             ? "star blast"
             : "pick up crate";
-      ui.dashBtn.innerHTML = `${label}<span class="dash-sub">${sub}</span>`;
-      ui.dashBtn.title = loaded
-        ? `Fire ${label}`
-        : "No weapon loaded — drive through a crate first";
+      const main = swarming ? "SWARM" : label;
+      ui.dashBtn.innerHTML = `${main}<span class="dash-sub">${sub}</span>`;
+      ui.dashBtn.title = swarming
+        ? "Swarm fire active"
+        : loaded
+          ? `Fire ${label}`
+          : "No weapon loaded — drive through a crate first";
     }
   }
 
@@ -1397,6 +1467,10 @@
     if (state.time >= state.nextGrenadePickupAt) {
       state.nextGrenadePickupAt += 20;
       spawnWeaponPickup("grenades");
+    }
+    if (state.time >= state.nextSwarmPickupAt) {
+      state.nextSwarmPickupAt += 30;
+      spawnWeaponPickup("swarm");
     }
     if (state.time >= state.nextNukeAt) {
       state.nextNukeAt += 60;
@@ -1572,7 +1646,7 @@
       showCoach("Gold orbs = XP. Hold F to focus brutes/bosses.");
     } else if (state.coachStep === 2 && state.time >= 18) {
       state.coachStep = 3;
-      showCoach("Green ring mark → grenades. Blue mark → nuke. Drive through the crate, then Fire.");
+      showCoach("Green → grenades · Red → swarm fire · Blue → nuke. Drive through crates.");
     } else if (state.coachStep === 3 && state.player.level >= 2) {
       state.coachStep = 4;
       showCoach("Level up! Read the Strategy tip — stack one build path.");
@@ -1815,7 +1889,7 @@
     for (let i = 0; i < state.weaponPickups.length; i++) {
       const w = state.weaponPickups[i];
       const ang = Math.atan2(w.y - p.y, w.x - p.x);
-      const color = w.kind === "nuke" ? "#3b82f6" : "#22c55e";
+      const color = crateHintColor(w.kind);
       const pulse = 0.7 + Math.sin(state.time * 6 + i) * 0.25;
 
       ctx.save();
@@ -1998,11 +2072,17 @@
     ctx.translate(s.x, s.y);
     ctx.rotate(ang);
     const streak = ctx.createLinearGradient(-10, 0, 8, 0);
-    streak.addColorStop(0, "rgba(255,200,80,0)");
-    streak.addColorStop(0.6, "rgba(255,220,120,0.85)");
-    streak.addColorStop(1, "#fff6d0");
+    if (b.swirl) {
+      streak.addColorStop(0, "rgba(225,29,72,0)");
+      streak.addColorStop(0.55, "rgba(255,80,100,0.9)");
+      streak.addColorStop(1, "#ffe0e6");
+    } else {
+      streak.addColorStop(0, "rgba(255,200,80,0)");
+      streak.addColorStop(0.6, "rgba(255,220,120,0.85)");
+      streak.addColorStop(1, "#fff6d0");
+    }
     ctx.fillStyle = streak;
-    safeEllipse(0, 0, 10, 3.2, 0);
+    safeEllipse(0, 0, b.swirl ? 12 : 10, b.swirl ? 3.6 : 3.2, 0);
     ctx.fill();
     ctx.restore();
   }
@@ -2010,10 +2090,16 @@
   function drawWeaponPickup(wpn, s) {
     const bob = Math.sin(wpn.pulse) * 4;
     const nuke = wpn.kind === "nuke";
-    const col = nuke ? "#c084fc" : "#e07a2f";
+    const swarm = wpn.kind === "swarm";
+    const col = nuke ? "#c084fc" : swarm ? "#e11d48" : "#e07a2f";
+    const glowCol = nuke
+      ? "rgba(220,180,255,0.85)"
+      : swarm
+        ? "rgba(255,80,100,0.9)"
+        : "rgba(255,180,90,0.85)";
     drawShadow(s.x, s.y + 6, wpn.r + 4, 5, 0.3);
     const glow = ctx.createRadialGradient(s.x, s.y + bob, 2, s.x, s.y + bob, wpn.r * 3.2);
-    glow.addColorStop(0, nuke ? "rgba(220,180,255,0.85)" : "rgba(255,180,90,0.85)");
+    glow.addColorStop(0, glowCol);
     glow.addColorStop(1, "rgba(0,0,0,0)");
     ctx.fillStyle = glow;
     ctx.beginPath();
@@ -2030,11 +2116,11 @@
     ctx.strokeStyle = "rgba(255,255,240,0.7)";
     ctx.lineWidth = 2;
     ctx.stroke();
-    ctx.fillStyle = "#142019";
-    ctx.font = `800 ${nuke ? 10 : 9}px Outfit, sans-serif`;
+    ctx.fillStyle = nuke || swarm ? "#fff5f5" : "#142019";
+    ctx.font = `800 ${nuke || swarm ? 9 : 9}px Outfit, sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(nuke ? "NUKE" : "★5", s.x, s.y + bob);
+    ctx.fillText(nuke ? "NUKE" : swarm ? "SWIRL" : "★5", s.x, s.y + bob);
   }
 
   function drawGrenade(g, s) {
@@ -2557,7 +2643,9 @@
     getState: () => state,
     spawnWeapon: (kind) => {
       if (!state) return false;
-      spawnWeaponPickup(kind === "nuke" ? "nuke" : "grenades");
+      const k =
+        kind === "nuke" ? "nuke" : kind === "swarm" ? "swarm" : "grenades";
+      spawnWeaponPickup(k);
       return true;
     },
     fire: () => fireEquippedWeapon(),
