@@ -17,6 +17,7 @@
     touch: document.getElementById("touch-zone"),
     xpFill: document.getElementById("xp-fill"),
     hudTime: document.getElementById("hud-time"),
+    hudHp: document.getElementById("hud-hp"),
     hudKills: document.getElementById("hud-kills"),
     hudLevel: document.getElementById("hud-level"),
     metaEmbers: document.getElementById("meta-embers"),
@@ -395,6 +396,7 @@
       bossesDown: 0,
       nextBossAt: 90,
       shake: 0,
+      hurtFlash: 0,
       pausedChoice: false,
       levelUpsQueued: 0,
       ended: false,
@@ -642,7 +644,9 @@
     p.hp -= dmg;
     p.invuln = 0.55;
     state.shake = 8;
-    addParticles(p.x, p.y, "#f0b429", 8, 90);
+    state.hurtFlash = 0.22;
+    floatText(p.x, p.y - 18, `-${Math.ceil(dmg)}`, "#e07a2f");
+    addParticles(p.x, p.y, "#e07a2f", 8, 90);
     if (p.thorns > 0 && source) {
       hurtEnemy(source, p.thorns);
     }
@@ -690,6 +694,7 @@
     const p = state.player;
     state.time += dt;
     state.shake = Math.max(0, state.shake - dt * 20);
+    state.hurtFlash = Math.max(0, state.hurtFlash - dt);
 
     let mx = 0;
     let my = 0;
@@ -813,6 +818,7 @@
     state.floats = state.floats.filter((f) => f.life > 0);
 
     ui.hudTime.textContent = formatTime(state.time);
+    ui.hudHp.textContent = `${Math.ceil(p.hp)} light`;
     ui.hudKills.textContent = `${state.kills} kills`;
     ui.hudLevel.textContent = `Lv ${p.level}`;
     ui.xpFill.style.width = `${(p.xp / p.nextXp) * 100}%`;
@@ -994,6 +1000,11 @@
     vig.addColorStop(1, "rgba(0,0,0,0.45)");
     ctx.fillStyle = vig;
     ctx.fillRect(0, 0, w, h);
+
+    if (state.hurtFlash > 0) {
+      ctx.fillStyle = `rgba(224, 122, 47, ${state.hurtFlash * 0.45})`;
+      ctx.fillRect(0, 0, w, h);
+    }
   }
 
   function drawIdleDecor(w, h) {
