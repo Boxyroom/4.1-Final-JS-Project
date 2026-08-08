@@ -611,6 +611,8 @@ h2 {
 }
 
 .dash-btn {
+  -webkit-appearance: none;
+  appearance: none;
   position: absolute;
   left: 28px;
   bottom: 40px;
@@ -619,6 +621,7 @@ h2 {
   border-radius: 50%;
   border: 1px solid rgba(240, 180, 41, 0.45);
   background: rgba(224, 122, 47, 0.85);
+  background-color: rgba(224, 122, 47, 0.85);
   color: var(--ink);
   font-family: var(--font-body);
   font-weight: 700;
@@ -649,14 +652,21 @@ h2 {
   color: #f5f3ff;
 }
 
-.dash-btn.loaded-grenades {
-  background: radial-gradient(circle at 40% 35%, rgba(187, 247, 208, 0.95), rgba(34, 197, 94, 0.95) 55%, rgba(21, 128, 61, 0.98));
-  border-color: rgba(187, 247, 208, 0.95);
-  color: #052e16;
+.dash-btn.loaded-grenades,
+button.dash-btn.loaded-grenades {
+  background-color: #22c55e !important;
+  background-image: radial-gradient(
+    circle at 40% 35%,
+    #bbf7d0 0%,
+    #22c55e 55%,
+    #15803d 100%
+  ) !important;
+  border-color: #bbf7d0 !important;
+  color: #052e16 !important;
   box-shadow:
     0 0 14px rgba(74, 222, 128, 0.85),
     0 0 28px rgba(34, 197, 94, 0.55),
-    inset 0 0 12px rgba(220, 252, 231, 0.35);
+    inset 0 0 12px rgba(220, 252, 231, 0.35) !important;
   animation: grenade-armed-glow 1.4s ease-in-out infinite;
 }
 
@@ -4106,9 +4116,37 @@ h2 {
     if (ui.dashBtn) {
       ui.dashBtn.disabled = !loaded;
       ui.dashBtn.classList.toggle("cooling", !loaded);
-      ui.dashBtn.classList.toggle("loaded-nuke", kind === "nuke");
-      ui.dashBtn.classList.toggle("loaded-grenades", kind === "grenades");
+      ui.dashBtn.classList.toggle("loaded-nuke", kind === "nuke" && !swarming);
+      ui.dashBtn.classList.toggle("loaded-grenades", kind === "grenades" && !swarming);
       ui.dashBtn.classList.toggle("loaded-swarm", swarming);
+      // Mobile WebKit often ignores button background gradients — set inline too.
+      if (kind === "grenades" && !swarming) {
+        ui.dashBtn.style.backgroundColor = "#22c55e";
+        ui.dashBtn.style.backgroundImage =
+          "radial-gradient(circle at 40% 35%, #bbf7d0 0%, #22c55e 55%, #15803d 100%)";
+        ui.dashBtn.style.borderColor = "#bbf7d0";
+        ui.dashBtn.style.color = "#052e16";
+        ui.dashBtn.style.boxShadow =
+          "0 0 16px rgba(74,222,128,0.95), 0 0 32px rgba(34,197,94,0.65), inset 0 0 12px rgba(220,252,231,0.4)";
+      } else if (swarming) {
+        ui.dashBtn.style.backgroundColor = "#e11d48";
+        ui.dashBtn.style.backgroundImage = "none";
+        ui.dashBtn.style.borderColor = "#fb7185";
+        ui.dashBtn.style.color = "#fff5f5";
+        ui.dashBtn.style.boxShadow = "0 0 16px rgba(225,29,72,0.75)";
+      } else if (kind === "nuke") {
+        ui.dashBtn.style.backgroundColor = "#7c3aed";
+        ui.dashBtn.style.backgroundImage = "none";
+        ui.dashBtn.style.borderColor = "#d8b4fe";
+        ui.dashBtn.style.color = "#f5f3ff";
+        ui.dashBtn.style.boxShadow = "0 0 16px rgba(168,85,247,0.7)";
+      } else {
+        ui.dashBtn.style.backgroundColor = "";
+        ui.dashBtn.style.backgroundImage = "";
+        ui.dashBtn.style.borderColor = "";
+        ui.dashBtn.style.color = "";
+        ui.dashBtn.style.boxShadow = "";
+      }
       const sub = swarming
         ? `${p.swarmTimer.toFixed(1)}s left`
         : kind === "nuke"
