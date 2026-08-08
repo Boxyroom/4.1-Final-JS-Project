@@ -19,7 +19,6 @@
   let rimLight;
   let hemi;
   let ambient;
-  let labelSprite;
   let ringMesh;
   let glowSprite;
   let ready = false;
@@ -84,23 +83,6 @@
       emissiveIntensity: 0.75,
     });
   };
-
-  function makeLabelTexture(text) {
-    const c = document.createElement("canvas");
-    c.width = 256;
-    c.height = 64;
-    const g = c.getContext("2d");
-    g.fillStyle = "rgba(0,0,0,0.55)";
-    g.fillRect(12, 10, 232, 44);
-    g.font = "700 26px Outfit, sans-serif";
-    g.fillStyle = "#ffe08a";
-    g.textAlign = "center";
-    g.textBaseline = "middle";
-    g.fillText(text, 128, 34);
-    const tex = new THREE.CanvasTexture(c);
-    tex.needsUpdate = true;
-    return tex;
-  }
 
   function makeGlowTexture() {
     const c = document.createElement("canvas");
@@ -503,15 +485,6 @@
     glowSprite.scale.set(4.5, 4.5, 1);
     scene.add(glowSprite);
 
-    const labelMat = new THREE.SpriteMaterial({
-      map: makeLabelTexture("YOUR LANTERN"),
-      transparent: true,
-      depthTest: false,
-    });
-    labelSprite = new THREE.Sprite(labelMat);
-    labelSprite.scale.set(3.2, 0.8, 1);
-    scene.add(labelSprite);
-
     ringMesh = new THREE.Mesh(
       new THREE.RingGeometry(1.1, 1.25, 56),
       new THREE.MeshBasicMaterial({
@@ -571,8 +544,6 @@
       flameLight.position.set(0, 1.1, 0);
       glowSprite.position.set(0, 1.1, 0);
       glowSprite.scale.setScalar(6.2);
-      labelSprite.position.set(0, 2.4, 0);
-      labelSprite.visible = true;
       ringMesh.position.set(0, 0.05, 0);
       const flame = lanternGroup.getObjectByName("flame");
       if (flame) {
@@ -625,8 +596,6 @@
     glowSprite.material.opacity = 0.55 + flick * 0.35;
     glowSprite.scale.setScalar(4.2 + flick * 0.8);
 
-    labelSprite.position.set(pp.x, 2.35 + bob, pp.z);
-    labelSprite.visible = state.time < 20 || state.time % 8 < 3;
     ringMesh.position.set(pp.x, 0.06, pp.z);
     const hp = Math.max(0.05, p.hp / p.maxHp);
     ringMesh.scale.setScalar(0.8 + hp * 0.5);

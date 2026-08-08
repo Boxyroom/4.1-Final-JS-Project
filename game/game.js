@@ -727,8 +727,8 @@
     setMode("play");
     showCoach(
       isTouchPrimary()
-        ? "You are the big lantern in the center (label: YOUR LANTERN). Drag Move to steer."
-        : "You are the big lantern in the center (YOUR LANTERN). WASD move · Space dash",
+        ? "You are the glowing lantern in the center. Drag Move to steer."
+        : "You are the glowing lantern in the center. WASD move · Space dash",
     );
     lastTs = performance.now();
     cancelAnimationFrame(animId);
@@ -1585,14 +1585,6 @@
     }
 
     ctx.restore();
-
-    // always-readable identity marker
-    ctx.textAlign = "center";
-    ctx.font = "800 14px Outfit, sans-serif";
-    ctx.fillStyle = "rgba(0,0,0,0.55)";
-    ctx.fillRect(ps.x - 34, ps.y - 52, 68, 18);
-    ctx.fillStyle = "#ffe08a";
-    ctx.fillText("YOUR LANTERN", ps.x, ps.y - 39);
 
     // hp ring
     ctx.strokeStyle = "rgba(215,228,213,0.25)";
