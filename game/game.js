@@ -746,7 +746,7 @@
         const oy = p.y + Math.sin(a) * orbitR;
         for (const e of state.enemies) {
           if (dist({ x: ox, y: oy }, e) < e.r + 8) {
-            hurtEnemy(e, p.damage * 0.35 * dt * 8);
+            hurtEnemy(e, p.damage * 0.35 * dt * 8, { sfx: false });
           }
         }
       }
@@ -766,11 +766,17 @@
     }
   }
 
-  function hurtEnemy(e, amount) {
+  function hurtEnemy(e, amount, opts = {}) {
     if (e.hp <= 0) return;
     e.hp -= amount;
     e.hitFlash = 0.08;
-    sfx.hit();
+    if (opts.sfx !== false) {
+      const now = state.time;
+      if (!e._lastHitSfx || now - e._lastHitSfx > 0.08) {
+        sfx.hit();
+        e._lastHitSfx = now;
+      }
+    }
     if (e.hp <= 0) {
       killEnemy(e);
     }

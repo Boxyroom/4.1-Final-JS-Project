@@ -334,8 +334,7 @@ h2 {
   font-weight: 600;
 }
 
-.xp-track,
-.dash-track {
+.xp-track {
   margin-top: 8px;
   height: 8px;
   background: rgba(255, 255, 255, 0.08);
@@ -343,8 +342,11 @@ h2 {
 }
 
 .dash-track {
+  margin-top: 6px;
   height: 5px;
   max-width: 220px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
 }
 
 #xp-fill {
