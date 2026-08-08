@@ -132,8 +132,8 @@
       card: `
         <p>The glowing circle in the middle is <strong>you</strong>.</p>
         <ul>
-          <li><strong>Light</strong> (top bar number) is your health.</li>
-          <li>If light hits <strong>0</strong>, the run ends.</li>
+          <li>The green <strong>LIFE</strong> bar at the top is your health.</li>
+          <li>If life hits <strong>0</strong>, the run ends.</li>
           <li>You do <strong>not</strong> click to attack — your lantern shoots by itself.</li>
         </ul>
       `,
@@ -1555,8 +1555,11 @@
     state.floats = state.floats.filter((f) => f.life > 0);
 
     ui.hudTime.textContent = formatTime(state.time);
-    ui.hudHp.textContent = `${Math.ceil(p.hp)} / ${Math.ceil(p.maxHp)} light`;
-    ui.hudHp.classList.toggle("danger", p.hp / p.maxHp < 0.3);
+    const hpPct = clamp(p.hp / p.maxHp, 0, 1);
+    ui.hudHp.textContent = `${Math.ceil(p.hp)} / ${Math.ceil(p.maxHp)}`;
+    if (ui.lifeFill) ui.lifeFill.style.width = `${hpPct * 100}%`;
+    if (ui.lifeRow) ui.lifeRow.classList.toggle("danger", hpPct < 0.3);
+    ui.hudHp.classList.toggle("danger", hpPct < 0.3);
     ui.hudKills.textContent = `${state.kills} kills`;
     ui.hudLevel.textContent = `Lv ${p.level}`;
     ui.xpFill.style.width = `${(p.xp / p.nextXp) * 100}%`;
