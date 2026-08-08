@@ -1135,58 +1135,107 @@ h2 {
   function createOrbitSparkMesh() {
     const group = new THREE.Group();
     const core = new THREE.Mesh(
-      new THREE.SphereGeometry(0.18, 12, 12),
+      new THREE.SphereGeometry(0.28, 14, 14),
       new THREE.MeshStandardMaterial({
         color: 0xfff6d0,
         emissive: 0xffc050,
-        emissiveIntensity: 3.5,
-        roughness: 0.2,
+        emissiveIntensity: 5.5,
+        roughness: 0.15,
       }),
     );
     group.add(core);
     const halo = new THREE.Mesh(
-      new THREE.SphereGeometry(0.38, 12, 12),
+      new THREE.SphereGeometry(0.62, 14, 14),
       new THREE.MeshBasicMaterial({
         color: 0xffb040,
         transparent: true,
-        opacity: 0.35,
+        opacity: 0.55,
         depthWrite: false,
+        blending: THREE.AdditiveBlending,
       }),
     );
     group.add(halo);
+    const streak = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.08, 0.05, 0.75, 8),
+      new THREE.MeshBasicMaterial({
+        color: 0xffe08a,
+        transparent: true,
+        opacity: 0.7,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      }),
+    );
+    streak.rotation.z = Math.PI / 2;
+    streak.position.x = -0.45;
+    group.add(streak);
     group.visible = false;
     scene.add(group);
     return group;
   }
 
   function createShockwaveMesh() {
+    const group = new THREE.Group();
+    const disc = new THREE.Mesh(
+      new THREE.CircleGeometry(1, 64),
+      new THREE.MeshBasicMaterial({
+        color: 0xffc050,
+        transparent: true,
+        opacity: 0.35,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      }),
+    );
+    disc.rotation.x = -Math.PI / 2;
+    group.add(disc);
+
     const mat = new THREE.MeshBasicMaterial({
-      color: 0xffd56a,
+      color: 0xffe08a,
       transparent: true,
-      opacity: 0.85,
+      opacity: 0.95,
       side: THREE.DoubleSide,
       depthWrite: false,
+      blending: THREE.AdditiveBlending,
     });
-    const mesh = new THREE.Mesh(new THREE.RingGeometry(0.85, 1.05, 64), mat);
+    const mesh = new THREE.Mesh(new THREE.RingGeometry(0.78, 1.05, 72), mat);
     mesh.rotation.x = -Math.PI / 2;
-    mesh.visible = false;
-    scene.add(mesh);
-    // inner bright ring
+    mesh.position.y = 0.04;
+    group.add(mesh);
+
+    const outer = new THREE.Mesh(
+      new THREE.RingGeometry(0.95, 1.2, 72),
+      new THREE.MeshBasicMaterial({
+        color: 0xe07a2f,
+        transparent: true,
+        opacity: 0.7,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      }),
+    );
+    outer.rotation.x = -Math.PI / 2;
+    outer.position.y = 0.06;
+    group.add(outer);
+
     const inner = new THREE.Mesh(
-      new THREE.RingGeometry(0.7, 0.82, 64),
+      new THREE.RingGeometry(0.55, 0.72, 64),
       new THREE.MeshBasicMaterial({
         color: 0xfff6d0,
         transparent: true,
-        opacity: 0.55,
+        opacity: 0.8,
         side: THREE.DoubleSide,
         depthWrite: false,
+        blending: THREE.AdditiveBlending,
       }),
     );
     inner.rotation.x = -Math.PI / 2;
-    inner.position.y = 0.02;
-    mesh.add(inner);
-    mesh.userData.inner = inner;
-    return mesh;
+    inner.position.y = 0.08;
+    group.add(inner);
+
+    group.visible = false;
+    scene.add(group);
+    group.userData = { disc, mesh, outer, inner };
+    return group;
   }
 
   function ensurePool(pool, need, factory) {
@@ -1368,13 +1417,14 @@ h2 {
     scene.add(ringMesh);
 
     orbitRing = new THREE.Mesh(
-      new THREE.RingGeometry(1.95, 2.05, 64),
+      new THREE.RingGeometry(1.9, 2.15, 72),
       new THREE.MeshBasicMaterial({
         color: 0xffc050,
         transparent: true,
-        opacity: 0.28,
+        opacity: 0.45,
         side: THREE.DoubleSide,
         depthWrite: false,
+        blending: THREE.AdditiveBlending,
       }),
     );
     orbitRing.rotation.x = -Math.PI / 2;
@@ -1631,9 +1681,9 @@ h2 {
       if (sparks.length) {
         const orbitR = (52 + (p.orbit || 1) * 10) * 0.04;
         orbitRing.visible = true;
-        orbitRing.position.set(pp.x, 0.12, pp.z);
-        orbitRing.scale.setScalar(orbitR / 2);
-        orbitRing.material.opacity = 0.22 + Math.sin(state.time * 5) * 0.08;
+        orbitRing.position.set(pp.x, 0.14, pp.z);
+        orbitRing.scale.setScalar(orbitR / 2.05);
+        orbitRing.material.opacity = 0.35 + Math.sin(state.time * 6) * 0.12;
       } else {
         orbitRing.visible = false;
       }
@@ -1647,10 +1697,14 @@ h2 {
       }
       const sp3 = worldTo3D(sp.x, sp.y);
       m.visible = true;
-      m.position.set(sp3.x, 0.75 + Math.sin(state.time * 10 + i) * 0.08, sp3.z);
-      const pulse = 0.9 + Math.sin(state.time * 14 + i) * 0.2;
+      m.position.set(sp3.x, 0.85 + Math.sin(state.time * 12 + i) * 0.1, sp3.z);
+      // aim streak opposite travel direction
+      m.rotation.y = -(sp.a || 0) + Math.PI / 2;
+      const pulse = 1.15 + Math.sin(state.time * 16 + i) * 0.25;
       m.scale.setScalar(pulse);
-      m.children[0].material.emissiveIntensity = 3.2 + pulse;
+      if (m.children[0] && m.children[0].material) {
+        m.children[0].material.emissiveIntensity = 4.5 + pulse;
+      }
     }
 
     // nova shockwaves
@@ -1665,14 +1719,15 @@ h2 {
       }
       const sw3 = worldTo3D(sw.x, sw.y);
       const alpha = Math.max(0, sw.life / sw.maxLife);
-      const scale = Math.max(0.15, sw.r * 0.04);
+      const scale = Math.max(0.2, sw.r * 0.04);
       m.visible = true;
-      m.position.set(sw3.x, 0.1, sw3.z);
+      m.position.set(sw3.x, 0.12, sw3.z);
       m.scale.set(scale, 1, scale);
-      m.material.opacity = 0.15 + 0.75 * alpha;
-      if (m.userData.inner) {
-        m.userData.inner.material.opacity = 0.2 + 0.5 * alpha;
-      }
+      const ud = m.userData || {};
+      if (ud.disc) ud.disc.material.opacity = 0.12 + 0.4 * alpha;
+      if (ud.mesh) ud.mesh.material.opacity = 0.35 + 0.6 * alpha;
+      if (ud.outer) ud.outer.material.opacity = 0.25 + 0.55 * alpha;
+      if (ud.inner) ud.inner.material.opacity = 0.3 + 0.55 * alpha;
     }
 
     renderer.render(scene, camera);
