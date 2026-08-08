@@ -775,15 +775,15 @@
       return { stage: 4, name: "Hollow Lantern", scale: 1, r: 14, light: 1, minLevel: 10 };
     }
     if (lv >= 7) {
-      return { stage: 3, name: "Brass Cage", scale: 0.82, r: 13, light: 0.9, minLevel: 7 };
+      return { stage: 3, name: "Brass Cage", scale: 0.88, r: 13, light: 0.9, minLevel: 7 };
     }
     if (lv >= 5) {
-      return { stage: 2, name: "Glass Ember", scale: 0.64, r: 12, light: 0.78, minLevel: 5 };
+      return { stage: 2, name: "Glass Ember", scale: 0.72, r: 12, light: 0.78, minLevel: 5 };
     }
     if (lv >= 3) {
-      return { stage: 1, name: "Kindled Flame", scale: 0.45, r: 11, light: 0.62, minLevel: 3 };
+      return { stage: 1, name: "Kindled Flame", scale: 0.52, r: 11, light: 0.62, minLevel: 3 };
     }
-    return { stage: 0, name: "Tiny Light", scale: 0.3, r: 10, light: 0.5, minLevel: 1 };
+    return { stage: 0, name: "Tiny Light", scale: 0.32, r: 10, light: 0.5, minLevel: 1 };
   }
 
   window.LanternForm = { of: lanternEvolution };
@@ -1875,10 +1875,23 @@
       ctx.stroke();
     }
 
-    if (evo.stage >= 1) {
-      // wick under the flame
+    if (evo.stage >= 1 && evo.stage < 2) {
+      // small brass foot under a free flame (reads from top-down)
+      const foot = ctx.createLinearGradient(-6, 8, 6, 14);
+      foot.addColorStop(0, "#5a3612");
+      foot.addColorStop(0.5, "#c48932");
+      foot.addColorStop(1, "#4a2c10");
+      ctx.fillStyle = foot;
+      safeEllipse(0, 10, 7, 3.2, 0);
+      ctx.fill();
       ctx.fillStyle = "#2a1a10";
-      ctx.fillRect(-1.2, evo.stage >= 2 ? 6 : 4, 2.4, 5);
+      ctx.fillRect(-1.2, 4, 2.4, 5);
+    }
+
+    if (evo.stage >= 1 && evo.stage >= 2) {
+      // wick under the flame inside glass
+      ctx.fillStyle = "#2a1a10";
+      ctx.fillRect(-1.2, 6, 2.4, 5);
     }
 
     // bright flame core (always — this is you at stage 0)
@@ -1911,7 +1924,7 @@
     }
 
     if (evo.stage >= 2) {
-      // base
+      // base + foot
       const base = ctx.createLinearGradient(-8, 13, 8, 20);
       base.addColorStop(0, "#5a3612");
       base.addColorStop(0.5, "#c48932");

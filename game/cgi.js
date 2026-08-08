@@ -243,12 +243,13 @@
     const baseScale = lanternGroup.userData.baseScale || 1.85;
     lanternGroup.scale.setScalar(baseScale * scale);
 
+    // Kindled Flame also gets a brass foot so it reads from the top-down camera.
     const vis = {
       flame: true,
       wick: stage >= 1,
+      foot: stage >= 1,
       glass: stage >= 2,
       base: stage >= 2,
-      foot: stage >= 2,
       bar: stage >= 3,
       cap: stage >= 3,
       vent: stage >= 4,
