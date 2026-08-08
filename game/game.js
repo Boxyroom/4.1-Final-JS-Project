@@ -1708,7 +1708,7 @@
   }
 
   function drawGround(w, h) {
-    // photographic marsh floor
+    // dark forest floor (scrolls with camera)
     if (groundReady) {
       const tile = 420;
       const camX = state.camera.x;
@@ -1721,19 +1721,18 @@
         for (let tx = minTX; tx <= maxTX; tx++) {
           const s = worldToScreen(tx * tile, ty * tile);
           ctx.save();
-          ctx.globalAlpha = 0.55;
+          ctx.globalAlpha = 0.42;
           ctx.drawImage(groundImg, s.x, s.y, tile + 2, tile + 2);
           ctx.restore();
         }
       }
-      // cool green grade over photo
-      ctx.fillStyle = "rgba(10, 28, 18, 0.55)";
+      ctx.fillStyle = "rgba(6, 12, 9, 0.72)";
       ctx.fillRect(0, 0, w, h);
     } else {
       const base = ctx.createLinearGradient(0, 0, w, h);
-      base.addColorStop(0, "#0e1a14");
-      base.addColorStop(0.45, "#15261c");
-      base.addColorStop(1, "#0a120e");
+      base.addColorStop(0, "#080c0a");
+      base.addColorStop(0.45, "#101812");
+      base.addColorStop(1, "#060908");
       ctx.fillStyle = base;
       ctx.fillRect(0, 0, w, h);
     }
@@ -1752,29 +1751,41 @@
         const wx = tx * tile + n * 36;
         const wy = ty * tile + hash2(ty, tx) * 36;
         const s = worldToScreen(wx, wy);
-        if (s.x < -90 || s.y < -90 || s.x > w + 90 || s.y > h + 90) continue;
+        if (s.x < -120 || s.y < -140 || s.x > w + 120 || s.y > h + 120) continue;
 
-        if (n > 0.5) {
-          ctx.fillStyle = n > 0.8 ? "rgba(40, 70, 78, 0.55)" : "rgba(70, 52, 28, 0.4)";
-          safeEllipse(s.x, s.y, 22 + n * 30, 12 + n * 14, n * 2);
+        // stone / soil patches
+        if (n > 0.52) {
+          ctx.fillStyle = n > 0.82 ? "rgba(48, 48, 42, 0.45)" : "rgba(52, 40, 24, 0.38)";
+          safeEllipse(s.x, s.y, 18 + n * 28, 10 + n * 12, n * 2);
           ctx.fill();
         }
 
-        if (n < 0.4 || n > 0.86) {
-          const blades = 5 + ((n * 10) | 0) % 4;
+        // tree silhouettes (far props in 2D fallback)
+        if (n > 0.9 && Math.hypot(wx - camX, wy - camY) > 140) {
+          const th = 48 + n * 40;
+          ctx.fillStyle = "rgba(12, 18, 14, 0.75)";
+          ctx.fillRect(s.x - 4, s.y - th, 8, th);
+          ctx.beginPath();
+          ctx.moveTo(s.x, s.y - th - 28);
+          ctx.lineTo(s.x + 22, s.y - th + 10);
+          ctx.lineTo(s.x - 22, s.y - th + 10);
+          ctx.closePath();
+          ctx.fill();
+        }
+
+        // low brush / reeds
+        if (n < 0.38 || n > 0.88) {
+          const blades = 4 + ((n * 10) | 0) % 3;
           for (let b = 0; b < blades; b++) {
-            const sway = Math.sin(state.time * 1.4 + tx + b) * 5;
-            const bx = s.x - 12 + b * 6;
-            const by = s.y + 10;
-            ctx.strokeStyle = `rgba(${40 + b * 12}, ${110 + b * 14}, ${55 + b * 8}, 0.88)`;
-            ctx.lineWidth = 2.2;
+            const sway = Math.sin(state.time * 1.2 + tx + b) * 4;
+            const bx = s.x - 10 + b * 5;
+            const by = s.y + 8;
+            ctx.strokeStyle = `rgba(${30 + b * 8}, ${70 + b * 10}, ${40 + b * 6}, 0.7)`;
+            ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.moveTo(bx, by);
-            ctx.quadraticCurveTo(bx + sway, by - 20, bx + sway * 1.6, by - 40 - (b % 3) * 6);
+            ctx.quadraticCurveTo(bx + sway, by - 16, bx + sway * 1.4, by - 30 - (b % 3) * 5);
             ctx.stroke();
-            ctx.fillStyle = "rgba(150, 110, 45, 0.85)";
-            safeEllipse(bx + sway * 1.6, by - 40 - (b % 3) * 6, 2, 4, 0);
-            ctx.fill();
           }
         }
       }
@@ -2117,22 +2128,24 @@
   }
 
   function drawGem(g, s) {
-    drawShadow(s.x, s.y + 2, g.r + 2, 3, 0.25);
-    const glow = ctx.createRadialGradient(s.x, s.y, 1, s.x, s.y, g.r * 3);
-    glow.addColorStop(0, "rgba(255,220,120,0.8)");
-    glow.addColorStop(1, "rgba(255,180,40,0)");
+    drawShadow(s.x, s.y + 2, g.r + 3, 3, 0.28);
+    const glow = ctx.createRadialGradient(s.x, s.y, 1, s.x, s.y, g.r * 4.2);
+    glow.addColorStop(0, "rgba(255,230,140,0.9)");
+    glow.addColorStop(0.4, "rgba(255,180,60,0.35)");
+    glow.addColorStop(1, "rgba(255,140,40,0)");
     ctx.fillStyle = glow;
     ctx.beginPath();
-    ctx.arc(s.x, s.y, g.r * 3, 0, TAU);
+    ctx.arc(s.x, s.y, g.r * 4.2, 0, TAU);
     ctx.fill();
-    ctx.save();
-    ctx.translate(s.x, s.y);
-    ctx.rotate(Math.PI / 4);
-    ctx.fillStyle = "#ffd76a";
-    ctx.fillRect(-g.r, -g.r, g.r * 2, g.r * 2);
-    ctx.fillStyle = "rgba(255,255,240,0.55)";
-    ctx.fillRect(-g.r * 0.4, -g.r, g.r * 0.45, g.r * 2);
-    ctx.restore();
+    // warm ember orb (matches CGI)
+    const orb = ctx.createRadialGradient(s.x - 1, s.y - 1, 0.5, s.x, s.y, g.r * 1.35);
+    orb.addColorStop(0, "#fff6d0");
+    orb.addColorStop(0.45, "#ffd056");
+    orb.addColorStop(1, "#e07a2f");
+    ctx.fillStyle = orb;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, g.r * 1.25, 0, TAU);
+    ctx.fill();
   }
 
   function drawBullet(b, s) {
@@ -2234,14 +2247,14 @@
   }
 
   function drawDarkness(w, h, ps, p) {
-    // Soft night veil without destination-out (more reliable on iOS)
+    // Soft night veil — lantern reveals a warm pocket of forest
     const flicker = 0.92 + Math.sin(state.time * 19) * 0.04;
-    const r = (240 + p.orbit * 12) * flicker;
-    const veil = ctx.createRadialGradient(ps.x, ps.y, r * 0.15, ps.x, ps.y, r);
-    veil.addColorStop(0, "rgba(4, 8, 6, 0)");
-    veil.addColorStop(0.45, "rgba(4, 8, 6, 0.08)");
-    veil.addColorStop(0.75, "rgba(4, 8, 6, 0.34)");
-    veil.addColorStop(1, "rgba(4, 8, 6, 0.58)");
+    const r = (230 + p.orbit * 12) * flicker;
+    const veil = ctx.createRadialGradient(ps.x, ps.y, r * 0.12, ps.x, ps.y, r * 1.15);
+    veil.addColorStop(0, "rgba(3, 6, 4, 0)");
+    veil.addColorStop(0.35, "rgba(3, 6, 4, 0.12)");
+    veil.addColorStop(0.65, "rgba(3, 6, 4, 0.48)");
+    veil.addColorStop(1, "rgba(2, 4, 3, 0.78)");
     ctx.fillStyle = veil;
     ctx.fillRect(0, 0, w, h);
   }

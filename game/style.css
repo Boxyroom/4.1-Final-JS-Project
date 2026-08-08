@@ -6,9 +6,9 @@
   --amber: #f0b429;
   --ember: #e07a2f;
   --cream: #f4efe4;
-  --panel: rgba(18, 32, 24, 0.86);
-  --line: rgba(240, 180, 41, 0.35);
-  --shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  --panel: rgba(10, 18, 14, 0.9);
+  --line: rgba(240, 180, 41, 0.38);
+  --shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
   --font-display: "Fraunces", Georgia, serif;
   --font-body: "Outfit", sans-serif;
 }
@@ -44,7 +44,7 @@ body {
   width: 100%;
   height: 100%;
   touch-action: none;
-  background: #0b1210;
+  background: #030504;
 }
 
 #app > canvas#game {
