@@ -237,9 +237,10 @@ h2 {
 }
 
 .move-label {
-  right: 28px;
+  left: 50%;
   bottom: 148px;
-  text-align: right;
+  transform: translateX(-50%);
+  text-align: center;
 }
 
 .dash-label {
@@ -531,8 +532,9 @@ h2 {
 
 .stick {
   position: absolute;
-  right: 28px;
+  left: 50%;
   bottom: 28px;
+  transform: translateX(-50%);
   width: 110px;
   height: 110px;
   border-radius: 50%;
@@ -716,7 +718,7 @@ h2 {
       <h2>Paused</h2>
       <p class="lede">Game is frozen. Check your build, then resume.</p>
       <div class="control-cheat">
-        <div><strong>Move</strong> — WASD / arrows / right stick</div>
+        <div><strong>Move</strong> — WASD / arrows / center stick</div>
         <div><strong>Weapons</strong> — drive through crates to equip; Space / Shift / Fire button to shoot</div>
         <div><strong>Grenades</strong> — orange crates ~every 20s · <strong>Nuke</strong> — purple crate ~every 60s</div>
         <div><strong>Focus</strong> — hold <span class="key">F</span> to prioritize brutes/bosses</div>
@@ -1950,7 +1952,7 @@ h2 {
       body: "Steering is your main job.",
       card: `
         <p><strong>Keyboard:</strong> hold <span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span> or the arrow keys.</p>
-        <p><strong>Phone / tablet:</strong> drag the right <strong>Move</strong> stick.</p>
+        <p><strong>Phone / tablet:</strong> drag the center <strong>Move</strong> stick.</p>
         <ul>
           <li>Keep moving so green enemies don’t pile on you.</li>
           <li>There is no jump and no special move stick combo — just direction.</li>

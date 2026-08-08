@@ -227,9 +227,10 @@ h2 {
 }
 
 .move-label {
-  right: 28px;
+  left: 50%;
   bottom: 148px;
-  text-align: right;
+  transform: translateX(-50%);
+  text-align: center;
 }
 
 .dash-label {
@@ -521,8 +522,9 @@ h2 {
 
 .stick {
   position: absolute;
-  right: 28px;
+  left: 50%;
   bottom: 28px;
+  transform: translateX(-50%);
   width: 110px;
   height: 110px;
   border-radius: 50%;
