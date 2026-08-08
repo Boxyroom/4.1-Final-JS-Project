@@ -1284,13 +1284,23 @@
 
     if (mag > 0.1) p.facing = Math.atan2(my, mx);
 
+    p.x += mx * p.speed * dt;
+    p.y += my * p.speed * dt;
+
+    // pick up crates before firing so drive-through + Fire can land same frame
+    for (const w of state.weaponPickups) {
+      w.pulse += dt * 4;
+      if (dist(p, w) < p.r + w.r + 8) {
+        w._taken = true;
+        equipWeapon(w.kind);
+      }
+    }
+    state.weaponPickups = state.weaponPickups.filter((w) => !w._taken);
+
     if (input.dash) {
       fireEquippedWeapon();
       input.dash = false;
     }
-
-    p.x += mx * p.speed * dt;
-    p.y += my * p.speed * dt;
 
     p.invuln = Math.max(0, p.invuln - dt);
     if (state.nukeSuckTimer > 0) state.nukeSuckTimer = Math.max(0, state.nukeSuckTimer - dt);
@@ -2360,4 +2370,14 @@
     crash.textContent = "Game failed to start. Hard refresh (Ctrl+Shift+R) and try again.";
     document.body.appendChild(crash);
   }
+
+  window.__lanternDebug = {
+    getState: () => state,
+    spawnWeapon: (kind) => {
+      if (!state) return false;
+      spawnWeaponPickup(kind === "nuke" ? "nuke" : "grenades");
+      return true;
+    },
+    fire: () => fireEquippedWeapon(),
+  };
 })();
