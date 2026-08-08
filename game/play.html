@@ -1604,7 +1604,14 @@ h2 {
       my /= mag;
     }
 
-    if (input.dash && p.dashCd <= 0 && mag > 0.1) {
+    if (mag > 0.1) p.facing = Math.atan2(my, mx);
+
+    if (input.dash && p.dashCd <= 0) {
+      // If standing still, dash in the last facing direction
+      if (mag <= 0.1) {
+        mx = Math.cos(p.facing || 0);
+        my = Math.sin(p.facing || 0);
+      }
       p.dashTimer = 0.2;
       p.dashCd = p.dashCooldown;
       addParticles(p.x, p.y, "#f0b429", 14, 160);
@@ -1613,9 +1620,10 @@ h2 {
     }
 
     const speedMul = p.dashTimer > 0 ? 2.6 : 1;
-    p.x += mx * p.speed * speedMul * dt;
-    p.y += my * p.speed * speedMul * dt;
-    if (mag > 0.1) p.facing = Math.atan2(my, mx);
+    const moveX = p.dashTimer > 0 && mag <= 0.1 ? Math.cos(p.facing || 0) : mx;
+    const moveY = p.dashTimer > 0 && mag <= 0.1 ? Math.sin(p.facing || 0) : my;
+    p.x += moveX * p.speed * speedMul * dt;
+    p.y += moveY * p.speed * speedMul * dt;
 
     p.dashTimer = Math.max(0, p.dashTimer - dt);
     p.dashCd = Math.max(0, p.dashCd - dt);
