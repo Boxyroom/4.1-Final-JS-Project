@@ -828,15 +828,18 @@
       bill.material.color.setHex(tint);
       bill.material.needsUpdate = true;
     }
-    const glow = group.userData.glow;
-    if (glow && glow.material) {
-      glow.material.color.setHex(glowCol);
-      glow.material.needsUpdate = true;
+    for (const key of ["glow", "glowOuter"]) {
+      const g = group.userData[key];
+      if (g && g.material) {
+        g.material.color.setHex(glowCol);
+        g.material.needsUpdate = true;
+      }
     }
   }
 
   function createPickupMesh(kind) {
     const group = new THREE.Group();
+    const glowCol = CRATE_GLOW[kind] || CRATE_GLOW.grenades;
     const mat = new THREE.MeshBasicMaterial({
       transparent: true,
       depthWrite: false,
@@ -850,28 +853,47 @@
     if ("toneMapped" in mat) mat.toneMapped = false;
     const billboard = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
     billboard.name = "crateSprite";
-    billboard.renderOrder = 2;
+    billboard.renderOrder = 3;
     billboard.scale.set(1.35, 1.35, 1);
     group.add(billboard);
 
+    // Soft outer power aura
+    const glowOuter = new THREE.Sprite(
+      new THREE.SpriteMaterial({
+        map: makeGlowTexture(),
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        opacity: 0.42,
+        color: glowCol,
+      }),
+    );
+    glowOuter.scale.set(3.6, 3.6, 1);
+    glowOuter.position.y = 0.08;
+    glowOuter.renderOrder = 1;
+    group.add(glowOuter);
+
+    // Bright inner core glow
     const glow = new THREE.Sprite(
       new THREE.SpriteMaterial({
         map: makeGlowTexture(),
         transparent: true,
         depthWrite: false,
         blending: THREE.AdditiveBlending,
-        opacity: 0.55,
-        color: CRATE_GLOW[kind] || CRATE_GLOW.grenades,
+        opacity: 0.85,
+        color: glowCol,
       }),
     );
-    glow.scale.set(2.1, 2.1, 1);
-    glow.position.y = 0.05;
+    glow.scale.set(2.4, 2.4, 1);
+    glow.position.y = 0.12;
+    glow.renderOrder = 2;
     group.add(glow);
 
     group.visible = false;
     group.userData.kind = kind;
     group.userData.billboard = billboard;
     group.userData.glow = glow;
+    group.userData.glowOuter = glowOuter;
     group.userData.isCrateSprite = true;
 
     ensureCrateTexture((tex) => {
@@ -1580,6 +1602,7 @@
       }
       const wp = worldTo3D(w.x, w.y);
       const bob = Math.sin((w.pulse || state.time) * 4) * 0.1;
+      const pulse = 0.72 + Math.sin(state.time * 5 + (w.pulse || 0)) * 0.28;
       m.visible = true;
       m.position.set(wp.x, 0.72 + bob, wp.z);
       m.rotation.set(0, 0, 0);
@@ -1588,6 +1611,14 @@
       if (bill && camera) {
         bill.quaternion.copy(camera.quaternion);
         bill.rotateY(Math.PI);
+      }
+      if (m.userData.glow && m.userData.glow.material) {
+        m.userData.glow.material.opacity = 0.7 + pulse * 0.3;
+        m.userData.glow.scale.setScalar(2.2 + pulse * 0.55);
+      }
+      if (m.userData.glowOuter && m.userData.glowOuter.material) {
+        m.userData.glowOuter.material.opacity = 0.28 + pulse * 0.28;
+        m.userData.glowOuter.scale.setScalar(3.2 + pulse * 0.9);
       }
     }
 
