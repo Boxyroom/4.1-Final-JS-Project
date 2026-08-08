@@ -118,6 +118,50 @@
     return tex;
   }
 
+  function makeMarshTexture() {
+    const size = 512;
+    const c = document.createElement("canvas");
+    c.width = size;
+    c.height = size;
+    const g = c.getContext("2d");
+    g.fillStyle = "#1a2a1f";
+    g.fillRect(0, 0, size, size);
+    for (let i = 0; i < 4200; i++) {
+      const x = Math.random() * size;
+      const y = Math.random() * size;
+      const r = 4 + Math.random() * 18;
+      const shade = 18 + Math.floor(Math.random() * 40);
+      const green = 30 + Math.floor(Math.random() * 55);
+      g.fillStyle = `rgba(${shade}, ${green}, ${shade + 4}, ${0.18 + Math.random() * 0.35})`;
+      g.beginPath();
+      g.ellipse(x, y, r, r * (0.55 + Math.random() * 0.6), Math.random() * Math.PI, 0, Math.PI * 2);
+      g.fill();
+    }
+    for (let i = 0; i < 90; i++) {
+      const x = Math.random() * size;
+      const y = Math.random() * size;
+      const r = 10 + Math.random() * 40;
+      const puddle = g.createRadialGradient(x, y, 2, x, y, r);
+      puddle.addColorStop(0, "rgba(8,18,14,0.75)");
+      puddle.addColorStop(0.55, "rgba(14,28,20,0.35)");
+      puddle.addColorStop(1, "rgba(20,36,26,0)");
+      g.fillStyle = puddle;
+      g.beginPath();
+      g.ellipse(x, y, r, r * 0.65, Math.random() * Math.PI, 0, Math.PI * 2);
+      g.fill();
+    }
+    for (let i = 0; i < 700; i++) {
+      g.fillStyle = `rgba(${40 + Math.random() * 50}, ${70 + Math.random() * 60}, ${35 + Math.random() * 40}, 0.28)`;
+      g.fillRect(Math.random() * size, Math.random() * size, 1 + Math.random() * 2, 2 + Math.random() * 5);
+    }
+    const tex = new THREE.CanvasTexture(c);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(10, 10);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.needsUpdate = true;
+    return tex;
+  }
+
   function createLanternModel() {
     const group = new THREE.Group();
 
@@ -363,36 +407,18 @@
     }
     groundGeo.computeVertexNormals();
 
+    groundTexture = makeMarshTexture();
+    groundTexture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
     const groundMat = new THREE.MeshStandardMaterial({
-      color: 0x1c2c22,
-      roughness: 0.92,
-      metalness: 0.04,
+      map: groundTexture,
+      color: 0xd5e0d4,
+      roughness: 0.9,
+      metalness: 0.06,
     });
     ground = new THREE.Mesh(groundGeo, groundMat);
     ground.rotation.x = -Math.PI / 2;
     ground.receiveShadow = true;
     scene.add(ground);
-
-    const src =
-      document.body.dataset.ground ||
-      document.getElementById("app")?.dataset?.ground ||
-      (location.pathname.includes("/game") ? "../theater.jpg" : "theater.jpg");
-    new THREE.TextureLoader().load(
-      src,
-      (tex) => {
-        tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-        tex.repeat.set(7, 7);
-        tex.colorSpace = THREE.SRGBColorSpace;
-        tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
-        ground.material.map = tex;
-        ground.material.color.set(0xc8d2c4);
-        ground.material.roughness = 0.88;
-        ground.material.needsUpdate = true;
-        groundTexture = tex;
-      },
-      undefined,
-      () => {},
-    );
 
     // wet marsh puddles
     const puddleMat = new THREE.MeshStandardMaterial({
@@ -536,14 +562,17 @@
 
     if (!state || mode === "title" || mode === "tutorial" || mode === "shop") {
       const t = now * 0.00022;
-      camera.position.set(Math.sin(t) * 9, 13.5, 11.5 + Math.cos(t) * 3.5);
-      camera.lookAt(0, 0.55, 0);
-      lanternGroup.position.set(0, 0.15, 0);
+      // lower heroic angle so the brass lantern reads behind the title UI
+      camera.position.set(Math.sin(t) * 4.5, 7.2, 8.8 + Math.cos(t) * 1.8);
+      camera.lookAt(0, 0.85, 0);
+      lanternGroup.position.set(0, 0.2, 0);
       lanternGroup.rotation.y = t * 0.6;
-      lanternLight.position.set(0, 1.25, 0);
-      flameLight.position.set(0, 1.05, 0);
-      glowSprite.position.set(0, 1.05, 0);
-      labelSprite.position.set(0, 2.25, 0);
+      lanternLight.position.set(0, 1.35, 0);
+      flameLight.position.set(0, 1.1, 0);
+      glowSprite.position.set(0, 1.1, 0);
+      glowSprite.scale.setScalar(6.2);
+      labelSprite.position.set(0, 2.4, 0);
+      labelSprite.visible = true;
       ringMesh.position.set(0, 0.05, 0);
       const flame = lanternGroup.getObjectByName("flame");
       if (flame) {

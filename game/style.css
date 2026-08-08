@@ -68,9 +68,9 @@ body {
   padding: 28px 20px;
   text-align: center;
   background:
-    radial-gradient(circle at 50% 20%, rgba(240, 180, 41, 0.16), transparent 42%),
-    linear-gradient(180deg, rgba(10, 16, 13, 0.55), rgba(10, 16, 13, 0.82));
-  backdrop-filter: blur(4px);
+    radial-gradient(circle at 50% 42%, rgba(10, 16, 13, 0.18), rgba(10, 16, 13, 0.62) 55%, rgba(10, 16, 13, 0.78)),
+    radial-gradient(circle at 50% 20%, rgba(240, 180, 41, 0.14), transparent 42%);
+  backdrop-filter: blur(1.5px);
   animation: fade-in 420ms ease both;
 }
 
