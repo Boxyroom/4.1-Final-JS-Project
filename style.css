@@ -464,6 +464,14 @@ input {
     font-weight: 900;
 }
 
+.empty-state {
+    grid-column: 1 / -1;
+    color: #1E3A8A;
+    font-weight: 700;
+    font-size: 18px;
+    padding: 24px 0;
+}
+
 /*FOOTER*/
 
 footer {
@@ -604,7 +612,6 @@ footer {
         width: 100%;
         display: flex;
         justify-content: center;
-        display: none;
     }
 
     .header .row {
@@ -620,7 +627,3 @@ footer {
 
 }
 
-@media (max-width: 500px) {
-    
-}
-/* test */
