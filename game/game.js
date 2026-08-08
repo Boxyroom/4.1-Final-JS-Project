@@ -87,6 +87,18 @@
   };
   groundImg.src = GROUND_SRC;
 
+  // Level 0 Ancient Relic player sprite (exact PNG). Future forms can swap this source.
+  const PLAYER_VISUAL_SRC = (() => {
+    const path = (location.pathname || "").replace(/\\/g, "/");
+    if (path.includes("/game") && !/lantern\.html$/i.test(path)) return "assets/ancient-relic.png";
+    return "game/assets/ancient-relic.png";
+  })();
+  const playerVisualImg = new Image();
+  let playerVisualReady = false;
+  playerVisualImg.onload = () => {
+    playerVisualReady = true;
+  };
+  playerVisualImg.src = PLAYER_VISUAL_SRC;
 
   const ui = {
     title: document.getElementById("title"),
@@ -1818,138 +1830,36 @@
     const lightMul = evo.light;
     const poolR = (90 + evo.stage * 30) * flicker;
 
-    // warm ground pool — grows with evolution
-    const pool = ctx.createRadialGradient(ps.x, ps.y + 18, 4, ps.x, ps.y + 18, poolR);
-    pool.addColorStop(0, `rgba(255, 210, 110, ${0.55 * flicker * lightMul})`);
-    pool.addColorStop(0.25, `rgba(255, 170, 60, ${0.22 * flicker * lightMul})`);
-    pool.addColorStop(0.65, `rgba(255, 140, 40, ${0.08 * lightMul})`);
+    // Soft warm fill under the floating relic (not a fixture)
+    const pool = ctx.createRadialGradient(ps.x, ps.y + 10, 4, ps.x, ps.y + 10, poolR);
+    pool.addColorStop(0, `rgba(255, 210, 110, ${0.35 * flicker * lightMul})`);
+    pool.addColorStop(0.35, `rgba(255, 170, 60, ${0.14 * flicker * lightMul})`);
     pool.addColorStop(1, "rgba(255,140,40,0)");
     ctx.fillStyle = pool;
     ctx.beginPath();
-    ctx.arc(ps.x, ps.y + 18, poolR, 0, TAU);
+    ctx.arc(ps.x, ps.y + 10, poolR, 0, TAU);
     ctx.fill();
 
-    const shadowScale = 0.55 + evo.scale * 0.45;
-    drawShadow(ps.x, ps.y + 22 * shadowScale, 28 * shadowScale, 14 * shadowScale, 0.35 + evo.stage * 0.025);
-
-    ctx.save();
-    ctx.translate(ps.x, ps.y);
-    ctx.scale(2.1 * evo.scale, 2.1 * evo.scale);
-
-    if (evo.stage >= 2) {
-      ctx.fillStyle = "rgba(255, 200, 90, 0.2)";
-      safeEllipse(0, 16, 14, 5, 0);
+    const bob = Math.sin(state.time * 6) * 3;
+    if (playerVisualReady) {
+      const drawH = 86;
+      const drawW = drawH * (playerVisualImg.naturalWidth / playerVisualImg.naturalHeight || 1024 / 1536);
+      // Center on hitbox; slight upward bias so the relic reads as hovering.
+      ctx.drawImage(playerVisualImg, ps.x - drawW / 2, ps.y - drawH / 2 + bob - 8, drawW, drawH);
+    } else {
+      // Tiny fallback while the exact asset loads
+      const flame = ctx.createRadialGradient(ps.x, ps.y + bob, 1, ps.x, ps.y + bob, 16);
+      flame.addColorStop(0, "#fff6d0");
+      flame.addColorStop(0.45, "#ffb040");
+      flame.addColorStop(1, "rgba(255,120,30,0)");
+      ctx.fillStyle = flame;
+      ctx.beginPath();
+      ctx.arc(ps.x, ps.y + bob, 16, 0, TAU);
       ctx.fill();
     }
 
-    if (evo.stage >= 4) {
-      // handle
-      ctx.strokeStyle = "#5a3a16";
-      ctx.lineWidth = 2.8;
-      ctx.beginPath();
-      ctx.arc(0, -13, 8, Math.PI * 1.05, Math.PI * 1.95);
-      ctx.stroke();
-    }
-
-    if (evo.stage >= 3) {
-      // top cap
-      const cap = ctx.createLinearGradient(-9, -10, 9, 0);
-      cap.addColorStop(0, "#6e4518");
-      cap.addColorStop(0.5, "#e0a84a");
-      cap.addColorStop(1, "#7a4a1a");
-      ctx.fillStyle = cap;
-      ctx.beginPath();
-      ctx.moveTo(-9, -9);
-      ctx.lineTo(9, -9);
-      ctx.lineTo(7, -2);
-      ctx.lineTo(-7, -2);
-      ctx.closePath();
-      ctx.fill();
-    }
-
-    if (evo.stage >= 2) {
-      // glass
-      const glass = ctx.createLinearGradient(-8, -1, 9, 14);
-      glass.addColorStop(0, "rgba(255,245,200,0.75)");
-      glass.addColorStop(0.45, "rgba(255,190,80,0.45)");
-      glass.addColorStop(1, "rgba(160,90,30,0.55)");
-      ctx.fillStyle = glass;
-      ctx.beginPath();
-      ctx.moveTo(-8, -1);
-      ctx.lineTo(8, -1);
-      ctx.lineTo(7, 13);
-      ctx.lineTo(-7, 13);
-      ctx.closePath();
-      ctx.fill();
-      ctx.strokeStyle = "rgba(255,255,230,0.55)";
-      ctx.lineWidth = 1.2;
-      ctx.stroke();
-    }
-
-    if (evo.stage >= 1 && evo.stage < 2) {
-      // small brass foot under a free flame (reads from top-down)
-      const foot = ctx.createLinearGradient(-6, 8, 6, 14);
-      foot.addColorStop(0, "#5a3612");
-      foot.addColorStop(0.5, "#c48932");
-      foot.addColorStop(1, "#4a2c10");
-      ctx.fillStyle = foot;
-      safeEllipse(0, 10, 7, 3.2, 0);
-      ctx.fill();
-      ctx.fillStyle = "#2a1a10";
-      ctx.fillRect(-1.2, 4, 2.4, 5);
-    }
-
-    if (evo.stage >= 2) {
-      // wick under the flame inside glass
-      ctx.fillStyle = "#2a1a10";
-      ctx.fillRect(-1.2, 6, 2.4, 5);
-    }
-
-    // bright flame core (always — this is you at stage 0)
-    const flameY = evo.stage >= 2 ? 3 : evo.stage === 1 ? 2 : 0;
-    const flameH = (evo.stage === 0 ? 12 : 9) + flicker * 5;
-    const flame = ctx.createRadialGradient(0, flameY, 0.4, 0, flameY, flameH);
-    flame.addColorStop(0, "#fffce8");
-    flame.addColorStop(0.35, "#ffd056");
-    flame.addColorStop(0.75, "#ff8a2a");
-    flame.addColorStop(1, "rgba(255,80,0,0)");
-    ctx.fillStyle = flame;
-    ctx.beginPath();
-    ctx.moveTo(0, flameY - flameH);
-    ctx.quadraticCurveTo(5 + (evo.stage === 0 ? 2 : 0), flameY, 0, flameY + 5);
-    ctx.quadraticCurveTo(-(5 + (evo.stage === 0 ? 2 : 0)), flameY, 0, flameY - flameH);
-    ctx.fill();
-
-    if (evo.stage >= 3) {
-      // brass cage lines
-      ctx.strokeStyle = "rgba(90, 55, 20, 0.65)";
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(0, -1);
-      ctx.lineTo(0, 13);
-      ctx.moveTo(-4, -1);
-      ctx.lineTo(-3.5, 13);
-      ctx.moveTo(4, -1);
-      ctx.lineTo(3.5, 13);
-      ctx.stroke();
-    }
-
-    if (evo.stage >= 2) {
-      // base + foot
-      const base = ctx.createLinearGradient(-8, 13, 8, 20);
-      base.addColorStop(0, "#5a3612");
-      base.addColorStop(0.5, "#c48932");
-      base.addColorStop(1, "#4a2c10");
-      ctx.fillStyle = base;
-      ctx.fillRect(-8, 13, 16, 5);
-      ctx.fillStyle = "#3a220c";
-      ctx.fillRect(-6, 18, 12, 3);
-    }
-
-    ctx.restore();
-
-    // hp ring — slightly tighter when tiny
-    const ringR = 22 + evo.stage * 3;
+    // hp ring
+    const ringR = 34;
     ctx.strokeStyle = "rgba(215,228,213,0.25)";
     ctx.lineWidth = 4;
     ctx.beginPath();

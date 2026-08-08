@@ -381,15 +381,39 @@
     return makeForestFloorTexture();
   }
 
-  /** Resolve forest-floor asset path for game/ vs root lantern.html. */
-  function forestFloorSrc() {
+  /** Resolve game asset path for game/ vs root lantern.html. */
+  function gameAssetSrc(filename) {
     const path = (location.pathname || "").replace(/\\/g, "/");
-    if (/lantern\.html$/i.test(path) || path === "/" || path.endsWith("/4.1-Final-JS-Project/")) {
-      return "game/assets/forest-floor.webp";
+    if (path.includes("/game") && !/lantern\.html$/i.test(path)) {
+      return "assets/" + filename;
     }
-    // Served from /game/ (index.html, play.html)
-    if (path.includes("/game")) return "assets/forest-floor.webp";
-    return "game/assets/forest-floor.webp";
+    return "game/assets/" + filename;
+  }
+
+  function forestFloorSrc() {
+    return gameAssetSrc("forest-floor.webp");
+  }
+
+  /**
+   * Player visual forms — Level 0 base is the Ancient Relic PNG.
+   * Later levels can add new form entries + assets without rewriting the player system.
+   */
+  const PLAYER_VISUAL_FORMS = {
+    0: {
+      id: 0,
+      file: "ancient-relic.png",
+      // Tall floating billboard; readable on mobile from the chase camera.
+      height: 2.55,
+      // Glowing orange core is at image center.
+      coreY: 0.02,
+      // Keeps the stone body hovering above the forest floor.
+      hoverY: 1.18,
+    },
+  };
+
+  function playerVisualFormForLevel(_level) {
+    // Always base form for now. Future: map level bands → form ids.
+    return PLAYER_VISUAL_FORMS[0];
   }
 
   const GROUND_TILE_REPEAT = 8;
@@ -433,122 +457,94 @@
     );
   }
 
-  function createLanternModel() {
+  function loadPlayerFormTexture(group, form) {
+    const sprite = group.getObjectByName("playerSprite");
+    if (!sprite || !sprite.material) return;
+    const loader = new THREE.TextureLoader();
+    loader.load(
+      gameAssetSrc(form.file),
+      (tex) => {
+        if ("colorSpace" in tex && THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
+        else if ("encoding" in tex && THREE.sRGBEncoding) tex.encoding = THREE.sRGBEncoding;
+        tex.needsUpdate = true;
+        if (sprite.material.map && sprite.material.map.dispose) {
+          try {
+            sprite.material.map.dispose();
+          } catch (_) {
+            /* ignore */
+          }
+        }
+        sprite.material.map = tex;
+        sprite.material.needsUpdate = true;
+        const img = tex.image;
+        if (img && img.width && img.height) {
+          const h = form.height;
+          sprite.scale.set(h * (img.width / img.height), h, 1);
+        }
+        group.userData.formId = form.id;
+        group.userData.hoverY = form.hoverY;
+        group.userData.coreY = form.coreY;
+        const core = group.getObjectByName("flame");
+        if (core) core.position.y = form.coreY;
+      },
+      undefined,
+      (err) => {
+        console.error("Failed to load player visual", form.file, err);
+      },
+    );
+  }
+
+  /** Floating Ancient Relic sprite — Level 0 base player visual. */
+  function createPlayerVisual() {
+    const form = PLAYER_VISUAL_FORMS[0];
     const group = new THREE.Group();
-    group.userData.baseScale = 1.85;
+    group.userData.baseScale = 1;
+    group.userData.useSprite = true;
+    group.userData.formId = form.id;
+    group.userData.hoverY = form.hoverY;
+    group.userData.coreY = form.coreY;
 
-    const handle = new THREE.Mesh(
-      new THREE.TorusGeometry(0.18, 0.028, 12, 28, Math.PI),
-      brassMat(),
-    );
-    handle.name = "handle";
-    handle.position.y = 0.72;
-    handle.rotation.x = Math.PI;
-    group.add(handle);
+    const mat = new THREE.SpriteMaterial({
+      transparent: true,
+      depthWrite: false,
+      opacity: 1,
+    });
+    const sprite = new THREE.Sprite(mat);
+    sprite.name = "playerSprite";
+    const aspect = 1024 / 1536;
+    sprite.scale.set(form.height * aspect, form.height, 1);
+    group.add(sprite);
 
-    const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.26, 0.14, 24), brassMat());
-    cap.name = "cap";
-    cap.position.y = 0.55;
-    group.add(cap);
+    // Light anchor at the glowing orange core (near image center)
+    const core = new THREE.Object3D();
+    core.name = "flame";
+    core.position.y = form.coreY;
+    group.add(core);
 
-    const vent = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.08, 0.12, 0.08, 12),
-      brassMat(),
-    );
-    vent.name = "vent";
-    vent.position.y = 0.64;
-    group.add(vent);
-
-    const glass = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.22, 0.42, 24), glassMat());
-    glass.position.y = 0.28;
-    glass.name = "glass";
-    group.add(glass);
-
-    const flame = new THREE.Mesh(
-      new THREE.SphereGeometry(0.09, 16, 16),
-      new THREE.MeshStandardMaterial({
-        color: 0xfff4d0,
-        emissive: 0xffb040,
-        emissiveIntensity: 4.2,
-        roughness: 0.35,
-      }),
-    );
-    flame.position.y = 0.3;
-    flame.name = "flame";
-    group.add(flame);
-
-    const wick = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.015, 0.02, 0.08, 8),
-      new THREE.MeshStandardMaterial({ color: 0x2a1a10, roughness: 1 }),
-    );
-    wick.name = "wick";
-    wick.position.y = 0.2;
-    group.add(wick);
-
-    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.28, 0.14, 24), brassMat());
-    base.name = "base";
-    base.position.y = 0.02;
-    group.add(base);
-
-    const foot = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.18, 0.22, 0.08, 18),
-      new THREE.MeshStandardMaterial({
-        color: 0x4a2c10,
-        metalness: 0.75,
-        roughness: 0.42,
-      }),
-    );
-    foot.name = "foot";
-    foot.position.y = -0.08;
-    group.add(foot);
-
-    for (let i = 0; i < 6; i++) {
-      const bar = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.42, 0.025), brassMat());
-      bar.name = "bar";
-      const a = (i / 6) * Math.PI * 2;
-      bar.position.set(Math.cos(a) * 0.205, 0.28, Math.sin(a) * 0.205);
-      group.add(bar);
-    }
-
-    group.scale.setScalar(group.userData.baseScale);
+    loadPlayerFormTexture(group, form);
     return group;
   }
 
-  /** Show/hide lantern parts and scale by evolution stage (title always full). */
+  // Back-compat alias used by init
+  function createLanternModel() {
+    return createPlayerVisual();
+  }
+
+  /** Apply visual form for level. Currently always Level 0 Ancient Relic. */
   function applyLanternEvolution(level, full = false) {
-    if (!lanternGroup) return { stage: 4, scale: 1, light: 1 };
     const evo =
       window.LanternForm && typeof window.LanternForm.of === "function"
         ? window.LanternForm.of(full ? 99 : level || 1)
-        : { stage: 4, scale: 1, light: 1, name: "Hollow Lantern" };
-    const stage = full ? 4 : evo.stage;
-    const scale = full ? 1 : evo.scale;
-    const baseScale = lanternGroup.userData.baseScale || 1.85;
-    lanternGroup.scale.setScalar(baseScale * scale);
+        : { stage: 0, scale: 1, light: 1, name: "Ancient Relic" };
+    if (!lanternGroup) return evo;
 
-    // Kindled Flame also gets a brass foot so it reads from the top-down camera.
-    const vis = {
-      flame: true,
-      wick: stage >= 1,
-      foot: stage >= 1,
-      glass: stage >= 2,
-      base: stage >= 2,
-      bar: stage >= 3,
-      cap: stage >= 3,
-      vent: stage >= 4,
-      handle: stage >= 4,
-    };
-    lanternGroup.traverse((o) => {
-      if (o.name && Object.prototype.hasOwnProperty.call(vis, o.name)) {
-        o.visible = vis[o.name];
+    if (lanternGroup.userData.useSprite) {
+      const form = playerVisualFormForLevel(full ? 99 : level);
+      if (lanternGroup.userData.formId !== form.id) {
+        loadPlayerFormTexture(lanternGroup, form);
       }
-    });
-
-    const flame = lanternGroup.getObjectByName("flame");
-    if (flame) {
-      // Early forms: flame sits lower as a free spark; later it rides inside the glass.
-      flame.position.y = stage <= 1 ? 0.12 + stage * 0.08 : 0.3;
-      flame.scale.setScalar(stage === 0 ? 1.35 : 1);
+      lanternGroup.scale.setScalar(1);
+      return evo;
     }
     return evo;
   }
@@ -1185,13 +1181,7 @@
       emberPool.push(ember);
     }
 
-    lanternGroup = createLanternModel();
-    lanternGroup.traverse((o) => {
-      if (o.isMesh) {
-        o.castShadow = true;
-        o.receiveShadow = true;
-      }
-    });
+    lanternGroup = createPlayerVisual();
     scene.add(lanternGroup);
 
     // Warm lantern as the dominant light — soft decay, wide enough to read the floor
@@ -1326,29 +1316,26 @@
 
     if (!state || mode === "title" || mode === "tutorial" || mode === "shop") {
       const t = now * 0.00022;
-      // lower heroic angle so the brass lantern reads behind the title UI
+      // Heroic angle for the floating Ancient Relic behind the title UI
       camera.position.set(Math.sin(t) * 4.5, 7.2, 8.8 + Math.cos(t) * 1.8);
       camera.lookAt(0, 0.85, 0);
-      applyLanternEvolution(99, true);
+      applyLanternEvolution(1, false);
       const origin = { x: 0, y: 0, z: 0 };
       followGround(origin);
-      lanternGroup.position.set(0, 0.2, 0);
-      lanternGroup.rotation.y = t * 0.6;
-      lanternLight.position.set(0, 1.35, 0);
-      flameLight.position.set(0, 1.1, 0);
-      glowSprite.position.set(0, 1.1, 0);
-      glowSprite.scale.setScalar(6.2);
+      const hover = lanternGroup.userData.hoverY || 1.18;
+      const bob = Math.sin(now * 0.0025) * 0.05;
+      const coreY = lanternGroup.userData.coreY || 0.02;
+      lanternGroup.position.set(0, hover + bob, 0);
+      lanternGroup.rotation.set(0, 0, 0);
+      lanternLight.position.set(0, hover + bob + coreY, 0);
+      flameLight.position.set(0, hover + bob + coreY, 0);
+      glowSprite.position.set(0, hover + bob + coreY, 0);
+      glowSprite.scale.setScalar(3.4);
       ringMesh.position.set(0, 0.05, 0);
-      const flame = lanternGroup.getObjectByName("flame");
-      if (flame) {
-        const f = 0.92 + Math.sin(now * 0.018) * 0.1;
-        flame.scale.setScalar(f);
-        flame.material.emissiveIntensity = 3.2 + f;
-      }
-      lanternLight.intensity = 62 + Math.sin(now * 0.018) * 6;
+      lanternLight.intensity = 70 + Math.sin(now * 0.018) * 6;
       lanternLight.distance = 28;
-      flameLight.intensity = 16;
-      glowSprite.material.opacity = 0.7 + Math.sin(now * 0.015) * 0.12;
+      flameLight.intensity = 18;
+      glowSprite.material.opacity = 0.45 + Math.sin(now * 0.015) * 0.08;
       syncAtmosphere(origin, now * 0.001, true);
       enemyPool.forEach((e) => (e.mesh.visible = false));
       gemPool.forEach((m) => (m.visible = false));
@@ -1368,36 +1355,24 @@
     const evo = applyLanternEvolution(p.level, false);
     const pp = worldTo3D(p.x, p.y);
     followGround(pp);
-    const bob = Math.sin(state.time * 6) * 0.05;
-    const formLift = evo.stage <= 1 ? 0.05 : 0.15;
-    lanternGroup.position.set(pp.x, formLift + bob, pp.z);
-    lanternGroup.rotation.z = 0;
-    lanternGroup.rotation.y += 0.012;
+    const bob = Math.sin(state.time * 6) * 0.04;
+    const hover = (lanternGroup.userData.hoverY || 1.18) + bob;
+    const coreY = lanternGroup.userData.coreY || 0.02;
+    lanternGroup.position.set(pp.x, hover, pp.z);
+    lanternGroup.rotation.set(0, 0, 0);
 
-    const flame = lanternGroup.getObjectByName("flame");
     const flick = 0.88 + Math.sin(state.time * 18) * 0.08 + Math.sin(state.time * 41) * 0.03;
     const lightMul = evo.light != null ? evo.light : 1;
-    if (flame) {
-      const baseFlame = evo.stage === 0 ? 1.25 : 0.9;
-      flame.scale.setScalar(baseFlame + flick * 0.28);
-      flame.material.emissiveIntensity = (3.0 + evo.stage * 0.35 + flick * 2.4) * lightMul;
-    }
-    const glass = lanternGroup.getObjectByName("glass");
-    if (glass && glass.material && glass.material.emissiveIntensity != null) {
-      glass.material.emissiveIntensity = (0.85 + flick * 0.4) * lightMul;
-    }
-
-    const lightH = evo.stage <= 1 ? 0.55 : 1.25;
-    const flameH = evo.stage <= 1 ? 0.45 : 1.0;
-    const glowH = evo.stage <= 1 ? 0.4 : 0.95;
-    lanternLight.position.set(pp.x, lightH + bob, pp.z);
+    // Warm light locked to the relic's orange core
+    const coreWorldY = hover + coreY;
+    lanternLight.position.set(pp.x, coreWorldY, pp.z);
     lanternLight.intensity = 88 * flick * lightMul;
-    lanternLight.distance = 30 + evo.stage * 1.8;
-    flameLight.position.set(pp.x, flameH + bob, pp.z);
+    lanternLight.distance = 30 + (evo.stage || 0) * 1.8;
+    flameLight.position.set(pp.x, coreWorldY, pp.z);
     flameLight.intensity = 20 * flick * lightMul;
-    glowSprite.position.set(pp.x, glowH + bob, pp.z);
-    glowSprite.material.opacity = (0.45 + flick * 0.38) * lightMul;
-    glowSprite.scale.setScalar((2.6 + evo.stage * 0.55 + flick * 0.9) * (0.75 + lightMul * 0.3));
+    glowSprite.position.set(pp.x, coreWorldY, pp.z);
+    glowSprite.material.opacity = (0.28 + flick * 0.22) * lightMul;
+    glowSprite.scale.setScalar(2.6 + flick * 0.5);
 
     ringMesh.position.set(pp.x, 0.06, pp.z);
     const hp = Math.max(0.05, p.hp / p.maxHp);
