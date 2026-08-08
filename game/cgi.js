@@ -123,7 +123,8 @@
     c.height = size;
     const g = c.getContext("2d");
 
-    g.fillStyle = "#121510";
+    // Mid-tone soil so lantern light has something to reveal (avoid near-black base)
+    g.fillStyle = "#2a3228";
     g.fillRect(0, 0, size, size);
 
     // base soil mottling
@@ -131,9 +132,9 @@
       const x = Math.random() * size;
       const y = Math.random() * size;
       const r = 3 + Math.random() * 16;
-      const shade = 14 + Math.floor(Math.random() * 28);
-      const green = 18 + Math.floor(Math.random() * 36);
-      g.fillStyle = `rgba(${shade + 6}, ${green}, ${shade}, ${0.16 + Math.random() * 0.32})`;
+      const shade = 36 + Math.floor(Math.random() * 40);
+      const green = 42 + Math.floor(Math.random() * 48);
+      g.fillStyle = `rgba(${shade + 8}, ${green}, ${shade}, ${0.22 + Math.random() * 0.4})`;
       g.beginPath();
       g.ellipse(x, y, r, r * (0.5 + Math.random() * 0.7), Math.random() * Math.PI, 0, Math.PI * 2);
       g.fill();
@@ -175,15 +176,15 @@
       g.stroke();
     }
 
-    // damp hollows
-    for (let i = 0; i < 55; i++) {
+    // damp hollows (kept mid-dark so they don't punch black holes in the floor)
+    for (let i = 0; i < 40; i++) {
       const x = Math.random() * size;
       const y = Math.random() * size;
       const r = 12 + Math.random() * 36;
       const puddle = g.createRadialGradient(x, y, 2, x, y, r);
-      puddle.addColorStop(0, "rgba(6,12,10,0.8)");
-      puddle.addColorStop(0.5, "rgba(10,18,14,0.35)");
-      puddle.addColorStop(1, "rgba(16,22,18,0)");
+      puddle.addColorStop(0, "rgba(18,28,22,0.55)");
+      puddle.addColorStop(0.5, "rgba(24,34,28,0.28)");
+      puddle.addColorStop(1, "rgba(30,38,32,0)");
       g.fillStyle = puddle;
       g.beginPath();
       g.ellipse(x, y, r, r * 0.62, Math.random() * Math.PI, 0, Math.PI * 2);
@@ -756,41 +757,14 @@
     forestRoot = new THREE.Group();
     scene.add(forestRoot);
 
-    const barkMat = new THREE.MeshStandardMaterial({
-      color: 0x2a2118,
-      roughness: 0.94,
-      metalness: 0.02,
-    });
-    const canopyMat = new THREE.MeshStandardMaterial({
-      color: 0x2a4634,
-      roughness: 0.88,
-      metalness: 0.0,
-      flatShading: true,
-    });
-    const canopyDarkMat = new THREE.MeshStandardMaterial({
-      color: 0x1e3428,
-      roughness: 0.9,
-      metalness: 0.0,
-      flatShading: true,
-    });
-    const rockMat = new THREE.MeshStandardMaterial({
-      color: 0x4a4a42,
-      roughness: 0.86,
-      metalness: 0.08,
-    });
-    const ruinMat = new THREE.MeshStandardMaterial({
-      color: 0x5a5446,
-      roughness: 0.8,
-      metalness: 0.12,
-    });
-    const rootMat = new THREE.MeshStandardMaterial({
-      color: 0x322418,
-      roughness: 0.94,
-    });
-    const mossMat = new THREE.MeshStandardMaterial({
-      color: 0x3a5a42,
-      roughness: 1,
-    });
+    // Lambert materials: readable under the lantern on software WebGL
+    const barkMat = new THREE.MeshLambertMaterial({ color: 0x3a2c1c });
+    const canopyMat = new THREE.MeshLambertMaterial({ color: 0x1f3a28 });
+    const canopyDarkMat = new THREE.MeshLambertMaterial({ color: 0x162a1e });
+    const rockMat = new THREE.MeshLambertMaterial({ color: 0x4e4e46 });
+    const ruinMat = new THREE.MeshLambertMaterial({ color: 0x5c5648 });
+    const rootMat = new THREE.MeshLambertMaterial({ color: 0x3a2a1a });
+    const mossMat = new THREE.MeshLambertMaterial({ color: 0x3a5a42 });
 
     const trunkGeo = new THREE.CylinderGeometry(0.18, 0.28, 1, 7);
     const canopyGeo = new THREE.ConeGeometry(1.1, 2.2, 7);
@@ -815,23 +789,20 @@
       trunk.position.set(x, 0.55 * hScale, z);
       trunk.scale.set(0.7 + hash2(i, 5) * 0.6, hScale, 0.7 + hash2(i, 6) * 0.6);
       trunk.rotation.z = lean;
-      trunk.castShadow = true;
-      trunk.receiveShadow = true;
+      trunk.castShadow = false;
       forestRoot.add(trunk);
 
       const canopy = new THREE.Mesh(canopyGeo, hash2(i, 7) > 0.5 ? canopyMat : canopyDarkMat);
       canopy.position.set(x + lean * 0.8, 1.35 * hScale + 0.4, z);
       canopy.scale.setScalar(0.55 + hash2(i, 8) * 0.7);
       canopy.rotation.y = hash2(i, 9) * Math.PI * 2;
-      canopy.castShadow = true;
-      canopy.receiveShadow = true;
+      canopy.castShadow = false;
       forestRoot.add(canopy);
 
       if (hash2(i, 10) > 0.72) {
         const canopy2 = new THREE.Mesh(canopyGeo, canopyDarkMat);
         canopy2.position.set(x - 0.15, 1.05 * hScale + 0.2, z + 0.1);
         canopy2.scale.setScalar(0.4 + hash2(i, 11) * 0.35);
-        canopy2.castShadow = true;
         forestRoot.add(canopy2);
       }
     }
@@ -932,8 +903,7 @@
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.05;
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.enabled = false;
     if ("physicallyCorrectLights" in renderer) {
       renderer.physicallyCorrectLights = true;
     }
@@ -967,26 +937,25 @@
     rimLight.castShadow = false;
     scene.add(rimLight);
 
-    // Large ground that follows the lantern; UVs scroll for infinite forest floor
-    const groundGeo = new THREE.PlaneGeometry(90, 90, 72, 72);
+    // Large ground that follows the lantern; UVs scroll for infinite forest floor.
+    // Lambert + fewer segments: more reliable on software WebGL (SwiftShader).
+    const groundGeo = new THREE.PlaneGeometry(90, 90, 36, 36);
     const pos = groundGeo.attributes.position;
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i);
       const y = pos.getY(i);
       const ripples =
-        Math.sin(x * 0.35) * Math.cos(y * 0.3) * 0.16 +
-        Math.sin(x * 1.1 + y * 0.55) * 0.05;
+        Math.sin(x * 0.35) * Math.cos(y * 0.3) * 0.12 +
+        Math.sin(x * 1.1 + y * 0.55) * 0.04;
       pos.setZ(i, ripples);
     }
     groundGeo.computeVertexNormals();
 
     groundTexture = makeForestFloorTexture();
-    groundTexture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
-    const groundMat = new THREE.MeshStandardMaterial({
+    groundTexture.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
+    const groundMat = new THREE.MeshLambertMaterial({
       map: groundTexture,
-      color: 0xc4cfc2,
-      roughness: 0.92,
-      metalness: 0.03,
+      color: 0xffffff,
     });
     ground = new THREE.Mesh(groundGeo, groundMat);
     ground.rotation.x = -Math.PI / 2;
@@ -1066,12 +1035,9 @@
     scene.add(lanternGroup);
 
     // Warm lantern as the dominant light — soft decay, wide enough to read the floor
-    lanternLight = new THREE.PointLight(0xffb040, 95, 34, 1.45);
-    lanternLight.castShadow = true;
-    lanternLight.shadow.mapSize.set(1024, 1024);
-    lanternLight.shadow.bias = -0.0008;
-    lanternLight.shadow.camera.near = 0.2;
-    lanternLight.shadow.camera.far = 36;
+    lanternLight = new THREE.PointLight(0xffb040, 110, 36, 1.25);
+    // Shadows are expensive/unreliable on software WebGL; keep them off for stability
+    lanternLight.castShadow = false;
     scene.add(lanternLight);
 
     flameLight = new THREE.PointLight(0xffe08a, 22, 11, 1.9);
