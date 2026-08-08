@@ -403,11 +403,11 @@
       id: 0,
       file: "ancient-relic.png",
       // Sized for the chase camera (~20u) so the stone silhouette stays readable.
-      height: 3.6,
+      height: 4.0,
       // Glowing orange core is at image center.
       coreY: 0.02,
       // Keeps the stone body hovering above the forest floor.
-      hoverY: 1.55,
+      hoverY: 1.72,
     },
   };
 
@@ -1340,7 +1340,7 @@
       applyLanternEvolution(1, false);
       const origin = { x: 0, y: 0, z: 0 };
       followGround(origin);
-      const hover = lanternGroup.userData.hoverY || 1.55;
+      const hover = lanternGroup.userData.hoverY || 1.72;
       const bob = Math.sin(now * 0.0025) * 0.05;
       const coreY = lanternGroup.userData.coreY || 0.02;
       lanternGroup.position.set(0, hover + bob, 0);
@@ -1375,7 +1375,7 @@
     const pp = worldTo3D(p.x, p.y);
     followGround(pp);
     const bob = Math.sin(state.time * 6) * 0.04;
-    const hover = (lanternGroup.userData.hoverY || 1.55) + bob;
+    const hover = (lanternGroup.userData.hoverY || 1.72) + bob;
     const coreY = lanternGroup.userData.coreY || 0.02;
     lanternGroup.position.set(pp.x, hover, pp.z);
     lanternGroup.rotation.set(0, 0, 0);
