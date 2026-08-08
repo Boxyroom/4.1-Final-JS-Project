@@ -30,6 +30,9 @@
   const pickupPool = [];
   const grenadePool = [];
   const crateHintPool = [];
+  const orbitSparkPool = [];
+  const shockwavePool = [];
+  let orbitRing = null;
   const fireflies = [];
   const mistPuffs = [];
   const puddles = [];
@@ -376,6 +379,63 @@
     return { group, mat };
   }
 
+  function createOrbitSparkMesh() {
+    const group = new THREE.Group();
+    const core = new THREE.Mesh(
+      new THREE.SphereGeometry(0.18, 12, 12),
+      new THREE.MeshStandardMaterial({
+        color: 0xfff6d0,
+        emissive: 0xffc050,
+        emissiveIntensity: 3.5,
+        roughness: 0.2,
+      }),
+    );
+    group.add(core);
+    const halo = new THREE.Mesh(
+      new THREE.SphereGeometry(0.38, 12, 12),
+      new THREE.MeshBasicMaterial({
+        color: 0xffb040,
+        transparent: true,
+        opacity: 0.35,
+        depthWrite: false,
+      }),
+    );
+    group.add(halo);
+    group.visible = false;
+    scene.add(group);
+    return group;
+  }
+
+  function createShockwaveMesh() {
+    const mat = new THREE.MeshBasicMaterial({
+      color: 0xffd56a,
+      transparent: true,
+      opacity: 0.85,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+    const mesh = new THREE.Mesh(new THREE.RingGeometry(0.85, 1.05, 64), mat);
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.visible = false;
+    scene.add(mesh);
+    // inner bright ring
+    const inner = new THREE.Mesh(
+      new THREE.RingGeometry(0.7, 0.82, 64),
+      new THREE.MeshBasicMaterial({
+        color: 0xfff6d0,
+        transparent: true,
+        opacity: 0.55,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+      }),
+    );
+    inner.rotation.x = -Math.PI / 2;
+    inner.position.y = 0.02;
+    mesh.add(inner);
+    mesh.userData.inner = inner;
+    return mesh;
+  }
+
   function ensurePool(pool, need, factory) {
     while (pool.length < need) pool.push(factory());
   }
@@ -554,6 +614,20 @@
     ringMesh.rotation.x = -Math.PI / 2;
     scene.add(ringMesh);
 
+    orbitRing = new THREE.Mesh(
+      new THREE.RingGeometry(1.95, 2.05, 64),
+      new THREE.MeshBasicMaterial({
+        color: 0xffc050,
+        transparent: true,
+        opacity: 0.28,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+      }),
+    );
+    orbitRing.rotation.x = -Math.PI / 2;
+    orbitRing.visible = false;
+    scene.add(orbitRing);
+
     for (let i = 0; i < 48; i++) {
       const ff = new THREE.Mesh(
         new THREE.SphereGeometry(0.045, 8, 8),
@@ -621,6 +695,9 @@
       pickupPool.forEach((m) => (m.visible = false));
       grenadePool.forEach((m) => (m.visible = false));
       crateHintPool.forEach((h) => (h.group.visible = false));
+      orbitSparkPool.forEach((m) => (m.visible = false));
+      shockwavePool.forEach((m) => (m.visible = false));
+      if (orbitRing) orbitRing.visible = false;
       renderer.render(scene, camera);
       return;
     }
@@ -792,6 +869,57 @@
       hint.group.position.set(pp.x, 0.02, pp.z);
       hint.group.rotation.y = -ang;
       hint.group.scale.setScalar(ringScale);
+    }
+
+    // orbit sparks
+    const sparks = state.orbitSparks || [];
+    ensurePool(orbitSparkPool, sparks.length, createOrbitSparkMesh);
+    if (orbitRing) {
+      if (sparks.length) {
+        const orbitR = (52 + (p.orbit || 1) * 10) * 0.04;
+        orbitRing.visible = true;
+        orbitRing.position.set(pp.x, 0.12, pp.z);
+        orbitRing.scale.setScalar(orbitR / 2);
+        orbitRing.material.opacity = 0.22 + Math.sin(state.time * 5) * 0.08;
+      } else {
+        orbitRing.visible = false;
+      }
+    }
+    for (let i = 0; i < orbitSparkPool.length; i++) {
+      const m = orbitSparkPool[i];
+      const sp = sparks[i];
+      if (!sp) {
+        m.visible = false;
+        continue;
+      }
+      const sp3 = worldTo3D(sp.x, sp.y);
+      m.visible = true;
+      m.position.set(sp3.x, 0.75 + Math.sin(state.time * 10 + i) * 0.08, sp3.z);
+      const pulse = 0.9 + Math.sin(state.time * 14 + i) * 0.2;
+      m.scale.setScalar(pulse);
+      m.children[0].material.emissiveIntensity = 3.2 + pulse;
+    }
+
+    // nova shockwaves
+    const waves = state.shockwaves || [];
+    ensurePool(shockwavePool, waves.length, createShockwaveMesh);
+    for (let i = 0; i < shockwavePool.length; i++) {
+      const m = shockwavePool[i];
+      const sw = waves[i];
+      if (!sw) {
+        m.visible = false;
+        continue;
+      }
+      const sw3 = worldTo3D(sw.x, sw.y);
+      const alpha = Math.max(0, sw.life / sw.maxLife);
+      const scale = Math.max(0.15, sw.r * 0.04);
+      m.visible = true;
+      m.position.set(sw3.x, 0.1, sw3.z);
+      m.scale.set(scale, 1, scale);
+      m.material.opacity = 0.15 + 0.75 * alpha;
+      if (m.userData.inner) {
+        m.userData.inner.material.opacity = 0.2 + 0.5 * alpha;
+      }
     }
 
     renderer.render(scene, camera);

@@ -52,6 +52,11 @@
     },
     grenade: () => beep(240, 0.07, "square", 0.04, -120),
     boom: () => beep(90, 0.16, "sawtooth", 0.055, -50),
+    nova: () => {
+      beep(180, 0.12, "sawtooth", 0.05, 320);
+      setTimeout(() => beep(90, 0.2, "triangle", 0.045, -40), 60);
+    },
+    spark: () => beep(880, 0.03, "sine", 0.012, 120),
     boss: () => { beep(90, 0.2, "sawtooth", 0.05); setTimeout(() => beep(70, 0.25, "sawtooth", 0.05), 120); },
     death: () => beep(70, 0.35, "sawtooth", 0.06, -30),
   };
@@ -703,6 +708,8 @@
       gems: [],
       weaponPickups: [],
       grenades: [],
+      shockwaves: [],
+      orbitSparks: [],
       particles: [],
       floats: [],
       time: 0,
@@ -904,30 +911,52 @@
     }
 
     if (p.orbit > 0) {
-      const orbitR = 42 + p.orbit * 8;
-      const sparks = p.orbit + 2;
+      const orbitR = 52 + p.orbit * 10;
+      const sparks = p.orbit + 3;
+      state.orbitSparks = [];
       for (let i = 0; i < sparks; i++) {
-        const a = state.time * (1.8 + p.orbit * 0.15) + (TAU * i) / sparks;
+        const a = state.time * (2.4 + p.orbit * 0.2) + (TAU * i) / sparks;
         const ox = p.x + Math.cos(a) * orbitR;
         const oy = p.y + Math.sin(a) * orbitR;
+        state.orbitSparks.push({ x: ox, y: oy, a, i });
+        let hit = false;
         for (const e of state.enemies) {
-          if (dist({ x: ox, y: oy }, e) < e.r + 8) {
-            hurtEnemy(e, p.damage * 0.35 * dt * 8, { sfx: false });
+          if (dist({ x: ox, y: oy }, e) < e.r + 14) {
+            hurtEnemy(e, p.damage * 0.4 * dt * 8, { sfx: false });
+            hit = true;
           }
         }
+        if (hit && Math.random() < 0.08) {
+          addParticles(ox, oy, "#ffe08a", 3, 90);
+        }
       }
+    } else {
+      state.orbitSparks = [];
     }
 
     if (p.nova > 0) {
       p.novaTimer -= dt;
       if (p.novaTimer <= 0) {
         p.novaTimer = Math.max(1.8, 4.2 - p.nova * 0.35);
-        const radius = 70 + p.nova * 18;
+        const radius = 90 + p.nova * 22;
         for (const e of state.enemies) {
-          if (dist(p, e) < radius + e.r) hurtEnemy(e, p.damage * (1.1 + p.nova * 0.25));
+          if (dist(p, e) < radius + e.r) hurtEnemy(e, p.damage * (1.25 + p.nova * 0.3));
         }
-        addParticles(p.x, p.y, "#f0b429", 20, 200);
-        state.shake = 6;
+        state.shockwaves.push({
+          x: p.x,
+          y: p.y,
+          r: 12,
+          maxR: radius,
+          life: 0.65,
+          maxLife: 0.65,
+        });
+        addParticles(p.x, p.y, "#fff2c0", 36, 280);
+        addParticles(p.x, p.y, "#f0b429", 28, 220);
+        addParticles(p.x, p.y, "#e07a2f", 18, 160);
+        floatText(p.x, p.y - 36, "NOVA!", "#ffe08a", 1.15, true);
+        showBanner("Burst Nova!", 0.85);
+        sfx.nova();
+        state.shake = 12;
       }
     }
   }
@@ -1421,6 +1450,15 @@
       }
     }
     state.grenades = state.grenades.filter((g) => !g._boom);
+
+    // nova shockwave rings (visual + leftover push)
+    for (const sw of state.shockwaves) {
+      sw.life -= dt;
+      const t = 1 - Math.max(0, sw.life) / sw.maxLife;
+      const ease = 1 - (1 - t) * (1 - t);
+      sw.r = 12 + (sw.maxR - 12) * ease;
+    }
+    state.shockwaves = state.shockwaves.filter((sw) => sw.life > 0);
 
     // enemies
     for (const e of state.enemies) {
@@ -2044,20 +2082,70 @@
       drawEnemy(e, worldToScreen(e.x, e.y));
     }
 
-    // orbit sparks
+    // nova shockwaves
     const p = state.player;
-    if (p.orbit > 0) {
-      const sparks = p.orbit + 2;
-      const orbitR = 42 + p.orbit * 8;
-      for (let i = 0; i < sparks; i++) {
-        const a = state.time * (1.8 + p.orbit * 0.15) + (TAU * i) / sparks;
-        const s = worldToScreen(p.x + Math.cos(a) * orbitR, p.y + Math.sin(a) * orbitR);
-        const og = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, 7);
-        og.addColorStop(0, "#fff2c0");
-        og.addColorStop(1, "rgba(255,180,60,0)");
+    for (const sw of state.shockwaves) {
+      const s = worldToScreen(sw.x, sw.y);
+      const alpha = clamp(sw.life / sw.maxLife, 0, 1);
+      const glow = ctx.createRadialGradient(s.x, s.y, sw.r * 0.35, s.x, s.y, sw.r);
+      glow.addColorStop(0, `rgba(255, 242, 180, ${0.2 * alpha})`);
+      glow.addColorStop(0.55, `rgba(240, 180, 41, ${0.18 * alpha})`);
+      glow.addColorStop(0.85, `rgba(224, 122, 47, ${0.35 * alpha})`);
+      glow.addColorStop(1, "rgba(224,122,47,0)");
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, sw.r, 0, TAU);
+      ctx.fill();
+      ctx.strokeStyle = `rgba(255, 230, 140, ${0.85 * alpha})`;
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, sw.r, 0, TAU);
+      ctx.stroke();
+      ctx.strokeStyle = `rgba(255, 255, 255, ${0.45 * alpha})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, Math.max(4, sw.r - 8), 0, TAU);
+      ctx.stroke();
+    }
+
+    // orbit sparks — bright cores + trails + path ring
+    if (p.orbit > 0 && state.orbitSparks.length) {
+      const orbitR = 52 + p.orbit * 10;
+      const center = worldToScreen(p.x, p.y);
+      ctx.strokeStyle = "rgba(255, 200, 80, 0.22)";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 10]);
+      ctx.beginPath();
+      ctx.arc(center.x, center.y, orbitR, 0, TAU);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      for (const sp of state.orbitSparks) {
+        const s = worldToScreen(sp.x, sp.y);
+        const trailA = sp.a - 0.45;
+        const tx = worldToScreen(
+          p.x + Math.cos(trailA) * orbitR,
+          p.y + Math.sin(trailA) * orbitR,
+        );
+        const streak = ctx.createLinearGradient(tx.x, tx.y, s.x, s.y);
+        streak.addColorStop(0, "rgba(255,160,40,0)");
+        streak.addColorStop(1, "rgba(255,220,120,0.85)");
+        ctx.strokeStyle = streak;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(tx.x, tx.y);
+        ctx.lineTo(s.x, s.y);
+        ctx.stroke();
+        const og = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, 16);
+        og.addColorStop(0, "#fffce8");
+        og.addColorStop(0.35, "#ffd056");
+        og.addColorStop(1, "rgba(255,140,40,0)");
         ctx.fillStyle = og;
         ctx.beginPath();
-        ctx.arc(s.x, s.y, 7, 0, TAU);
+        ctx.arc(s.x, s.y, 16, 0, TAU);
+        ctx.fill();
+        ctx.fillStyle = "#fff6d0";
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, 4.5, 0, TAU);
         ctx.fill();
       }
     }
