@@ -1585,33 +1585,33 @@ h2 {
       metalness: 0.02,
     });
     const canopyMat = new THREE.MeshStandardMaterial({
-      color: 0x1a2e22,
-      roughness: 0.9,
+      color: 0x2a4634,
+      roughness: 0.88,
       metalness: 0.0,
       flatShading: true,
     });
     const canopyDarkMat = new THREE.MeshStandardMaterial({
-      color: 0x132018,
-      roughness: 0.92,
+      color: 0x1e3428,
+      roughness: 0.9,
       metalness: 0.0,
       flatShading: true,
     });
     const rockMat = new THREE.MeshStandardMaterial({
-      color: 0x3a3a34,
-      roughness: 0.88,
+      color: 0x4a4a42,
+      roughness: 0.86,
       metalness: 0.08,
     });
     const ruinMat = new THREE.MeshStandardMaterial({
-      color: 0x4a4538,
-      roughness: 0.82,
+      color: 0x5a5446,
+      roughness: 0.8,
       metalness: 0.12,
     });
     const rootMat = new THREE.MeshStandardMaterial({
-      color: 0x241a12,
-      roughness: 0.95,
+      color: 0x322418,
+      roughness: 0.94,
     });
     const mossMat = new THREE.MeshStandardMaterial({
-      color: 0x2f4a34,
+      color: 0x3a5a42,
       roughness: 1,
     });
 
@@ -1624,11 +1624,11 @@ h2 {
       return Math.hypot(wx, wy) >= minDist;
     }
 
-    // Trees
+    // Trees — keep a playable clearing, but allow trunks into the lantern's light ring
     for (let i = 0; i < 160; i++) {
       const wx = (hash2(i, 1) - 0.5) * 4200;
       const wy = (hash2(i, 2) - 0.5) * 4200;
-      if (!placeClear(wx, wy, 200)) continue;
+      if (!placeClear(wx, wy, 110)) continue;
       const x = wx * WORLD_SCALE;
       const z = wy * WORLD_SCALE;
       const hScale = 0.75 + hash2(i, 3) * 1.1;
@@ -1754,7 +1754,7 @@ h2 {
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 0.95;
+    renderer.toneMappingExposure = 1.05;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     if ("physicallyCorrectLights" in renderer) {
@@ -1766,8 +1766,9 @@ h2 {
       "position:absolute;inset:0;width:100%;height:100%;display:block;";
 
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x030504);
-    scene.fog = new THREE.FogExp2(0x050807, 0.055);
+    scene.background = new THREE.Color(0x040706);
+    // Keep fog gentle — camera sits ~20 units away; dense fog erased the forest
+    scene.fog = new THREE.FogExp2(0x08100c, 0.022);
 
     camera = new THREE.PerspectiveCamera(
       48,
@@ -1778,13 +1779,13 @@ h2 {
     camera.position.set(0, 17, 15.5);
     camera.lookAt(0, 0, 0);
 
-    // Keep fill extremely low so the lantern is the primary reveal
-    hemi = new THREE.HemisphereLight(0x3a4a40, 0x080604, 0.12);
+    // Dim fill: enough to silhouette trees, not enough to flatten the night
+    hemi = new THREE.HemisphereLight(0x4a5c50, 0x0a0806, 0.22);
     scene.add(hemi);
-    ambient = new THREE.AmbientLight(0x101410, 0.05);
+    ambient = new THREE.AmbientLight(0x141c16, 0.1);
     scene.add(ambient);
 
-    rimLight = new THREE.DirectionalLight(0x2a3830, 0.08);
+    rimLight = new THREE.DirectionalLight(0x3a4a40, 0.12);
     rimLight.position.set(-12, 18, -8);
     rimLight.castShadow = false;
     scene.add(rimLight);
@@ -1806,9 +1807,9 @@ h2 {
     groundTexture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
     const groundMat = new THREE.MeshStandardMaterial({
       map: groundTexture,
-      color: 0x8a9084,
-      roughness: 0.94,
-      metalness: 0.04,
+      color: 0xc4cfc2,
+      roughness: 0.92,
+      metalness: 0.03,
     });
     ground = new THREE.Mesh(groundGeo, groundMat);
     ground.rotation.x = -Math.PI / 2;
@@ -1887,16 +1888,16 @@ h2 {
     });
     scene.add(lanternGroup);
 
-    // Warm lantern as the dominant light — short range, soft decay
-    lanternLight = new THREE.PointLight(0xffb040, 78, 26, 1.65);
+    // Warm lantern as the dominant light — soft decay, wide enough to read the floor
+    lanternLight = new THREE.PointLight(0xffb040, 95, 34, 1.45);
     lanternLight.castShadow = true;
     lanternLight.shadow.mapSize.set(1024, 1024);
     lanternLight.shadow.bias = -0.0008;
     lanternLight.shadow.camera.near = 0.2;
-    lanternLight.shadow.camera.far = 28;
+    lanternLight.shadow.camera.far = 36;
     scene.add(lanternLight);
 
-    flameLight = new THREE.PointLight(0xffe08a, 18, 8, 2.1);
+    flameLight = new THREE.PointLight(0xffe08a, 22, 11, 1.9);
     scene.add(flameLight);
 
     glowSprite = new THREE.Sprite(
@@ -2084,10 +2085,10 @@ h2 {
     const flameH = evo.stage <= 1 ? 0.45 : 1.0;
     const glowH = evo.stage <= 1 ? 0.4 : 0.95;
     lanternLight.position.set(pp.x, lightH + bob, pp.z);
-    lanternLight.intensity = 72 * flick * lightMul;
-    lanternLight.distance = 22 + evo.stage * 1.5;
+    lanternLight.intensity = 88 * flick * lightMul;
+    lanternLight.distance = 30 + evo.stage * 1.8;
     flameLight.position.set(pp.x, flameH + bob, pp.z);
-    flameLight.intensity = 16 * flick * lightMul;
+    flameLight.intensity = 20 * flick * lightMul;
     glowSprite.position.set(pp.x, glowH + bob, pp.z);
     glowSprite.material.opacity = (0.45 + flick * 0.38) * lightMul;
     glowSprite.scale.setScalar((2.6 + evo.stage * 0.55 + flick * 0.9) * (0.75 + lightMul * 0.3));
