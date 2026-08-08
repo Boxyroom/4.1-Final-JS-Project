@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Click Test</title>
+<style>
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#142019;color:#f4efe4;font-family:system-ui,sans-serif}
+button{font-size:2rem;padding:1rem 2rem;background:#f0b429;border:0;color:#142019;font-weight:800}
+#out{position:fixed;bottom:2rem;left:0;right:0;text-align:center;font-size:1.4rem}
+</style></head><body>
+<button id="b">TAP ME</button>
+<div id="out">Waiting...</div>
+<script>
+document.getElementById('b').onclick=()=>{
+  document.getElementById('out').textContent='IT WORKS — button clicks are fine on this device.';
+  document.body.style.background='#1f3b2d';
+};
+</script></body></html>
