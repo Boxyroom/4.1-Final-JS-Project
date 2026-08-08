@@ -334,11 +334,17 @@ h2 {
   font-weight: 600;
 }
 
-.xp-track {
-  margin-top: 10px;
+.xp-track,
+.dash-track {
+  margin-top: 8px;
   height: 8px;
   background: rgba(255, 255, 255, 0.08);
   overflow: hidden;
+}
+
+.dash-track {
+  height: 5px;
+  max-width: 220px;
 }
 
 #xp-fill {
@@ -346,6 +352,33 @@ h2 {
   width: 0%;
   background: linear-gradient(90deg, var(--fern), var(--amber));
   transition: width 120ms linear;
+}
+
+#dash-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, var(--ember), var(--amber));
+  transition: width 80ms linear;
+}
+
+.banner {
+  margin-top: 12px;
+  display: inline-block;
+  padding: 10px 16px;
+  border: 1px solid rgba(224, 122, 47, 0.55);
+  background: rgba(40, 18, 10, 0.82);
+  color: #ffd39a;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  animation: fade-in 240ms ease both;
+}
+
+#hud-hp.danger {
+  color: #e07a2f;
+}
+
+#hud-dash.ready {
+  color: var(--amber);
 }
 
 .hud-hint {

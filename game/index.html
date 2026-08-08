@@ -20,15 +20,21 @@
         <div class="hud-stats">
           <span id="hud-time" title="How long you have survived">0:00</span>
           <span id="hud-hp" title="Your health. Reach 0 and the run ends.">100 light</span>
+          <span id="hud-dash" title="Dash cooldown. Ready means you can burst away.">Dash ready</span>
           <span id="hud-kills">0 kills</span>
           <span id="hud-level">Lv 1</span>
+          <button type="button" id="btn-mute" class="hud-pause" title="Mute or unmute sounds">Sound</button>
           <button type="button" id="btn-hud-pause" class="hud-pause" title="Pause the game">Pause</button>
         </div>
       </div>
       <div class="xp-track" title="XP bar — fill it to level up">
         <div id="xp-fill"></div>
       </div>
-      <div class="hud-hint">Yellow bar = XP · Light = your health · Pause anytime</div>
+      <div class="dash-track" title="Dash cooldown">
+        <div id="dash-fill"></div>
+      </div>
+      <div class="hud-hint">Yellow = XP · Amber bar = Dash cooldown · Space to dash</div>
+      <div id="banner" class="banner hidden"></div>
       <div id="coach" class="coach hidden"></div>
     </div>
 
@@ -59,6 +65,7 @@
         <button type="button" id="btn-tutorial" class="btn primary">How to play</button>
         <button type="button" id="btn-start" class="btn">Play now</button>
         <button type="button" id="btn-upgrades" class="btn">Ember shop</button>
+        <button type="button" id="btn-mute-title" class="btn">Sound on</button>
       </div>
       <p class="footnote">New here? Start with <strong>How to play</strong>.</p>
     </section>

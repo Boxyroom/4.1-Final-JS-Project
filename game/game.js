@@ -4,6 +4,52 @@
   const STORAGE_KEY = "lantern-hollow-v1";
   const TAU = Math.PI * 2;
 
+  let audioCtx = null;
+  function ensureAudio() {
+    if (!audioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      audioCtx = new AC();
+    }
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    return audioCtx;
+  }
+
+  function beep(freq, dur = 0.08, type = "square", gain = 0.04, slide = 0) {
+    if (meta && meta.muted) return;
+    const ctxA = ensureAudio();
+    if (!ctxA) return;
+    const osc = ctxA.createOscillator();
+    const g = ctxA.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, ctxA.currentTime);
+    if (slide) {
+      osc.frequency.exponentialRampToValueAtTime(
+        Math.max(40, freq + slide),
+        ctxA.currentTime + dur,
+      );
+    }
+    g.gain.setValueAtTime(gain, ctxA.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctxA.currentTime + dur);
+    osc.connect(g);
+    g.connect(ctxA.destination);
+    osc.start();
+    osc.stop(ctxA.currentTime + dur + 0.02);
+  }
+
+  const sfx = {
+    shoot: () => beep(520, 0.05, "square", 0.025, -180),
+    hit: () => beep(180, 0.05, "triangle", 0.03, -60),
+    kill: () => beep(340, 0.07, "sawtooth", 0.03, 220),
+    xp: () => beep(760, 0.06, "sine", 0.025, 200),
+    level: () => { beep(440, 0.08, "sine", 0.04, 200); setTimeout(() => beep(660, 0.1, "sine", 0.04), 80); },
+    hurt: () => beep(120, 0.14, "sawtooth", 0.05, -40),
+    dash: () => beep(280, 0.1, "square", 0.035, 260),
+    boss: () => { beep(90, 0.2, "sawtooth", 0.05); setTimeout(() => beep(70, 0.25, "sawtooth", 0.05), 120); },
+    death: () => beep(70, 0.35, "sawtooth", 0.06, -30),
+  };
+
+
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d");
 
@@ -22,6 +68,9 @@
     hudKills: document.getElementById("hud-kills"),
     hudLevel: document.getElementById("hud-level"),
     coach: document.getElementById("coach"),
+    banner: document.getElementById("banner"),
+    hudDash: document.getElementById("hud-dash"),
+    dashFill: document.getElementById("dash-fill"),
     metaEmbers: document.getElementById("meta-embers"),
     metaBest: document.getElementById("meta-best"),
     metaRuns: document.getElementById("meta-runs"),
@@ -336,6 +385,7 @@
       shop: {},
       achievements: {},
       seenTutorial: false,
+      muted: false,
     };
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -451,7 +501,7 @@
   }
 
   function isTouchPrimary() {
-    return matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 0;
+    return matchMedia("(pointer: coarse)").matches;
   }
 
   function refreshMetaUi() {
@@ -499,6 +549,7 @@
   }
 
   function startRun() {
+    ensureAudio();
     resize();
     state = {
       w: window.innerWidth,
@@ -511,9 +562,11 @@
       floats: [],
       time: 0,
       kills: 0,
-      spawnTimer: 0.4,
+      spawnTimer: 1.2,
       bossesDown: 0,
-      nextBossAt: 90,
+      nextBossAt: 100,
+      bannerTimer: 0,
+      killFlash: 0,
       shake: 0,
       hurtFlash: 0,
       pausedChoice: false,
@@ -547,6 +600,13 @@
     ui.coach.classList.add("hidden");
   }
 
+  function showBanner(text, seconds = 2.4) {
+    if (!ui.banner) return;
+    ui.banner.textContent = text;
+    ui.banner.classList.remove("hidden");
+    state.bannerTimer = seconds;
+  }
+
   function xpForLevel(level) {
     return Math.floor(10 + level * 7 + level * level * 1.4);
   }
@@ -557,7 +617,13 @@
     const x = state.player.x + Math.cos(angle) * distAway;
     const y = state.player.y + Math.sin(angle) * distAway;
     const t = state.time;
-    const roll = kind || (Math.random() < Math.min(0.18, t / 900) ? "brute" : Math.random() < 0.12 ? "dart" : "wisp");
+    let roll = kind;
+    if (!roll) {
+      if (t < 25) roll = "wisp";
+      else if (Math.random() < Math.min(0.16, (t - 20) / 900)) roll = "brute";
+      else if (Math.random() < 0.14) roll = "dart";
+      else roll = "wisp";
+    }
 
     if (roll === "boss") {
       state.enemies.push({
@@ -565,10 +631,10 @@
         x,
         y,
         r: 34,
-        hp: 220 + t * 1.6,
-        maxHp: 220 + t * 1.6,
-        speed: 70,
-        damage: 18,
+        hp: 180 + t * 1.35,
+        maxHp: 180 + t * 1.35,
+        speed: 66,
+        damage: 16,
         xp: 40,
         color: "#c45c26",
         pulse: 0,
@@ -582,10 +648,10 @@
         x,
         y,
         r: 18,
-        hp: 34 + t * 0.12,
-        maxHp: 34 + t * 0.12,
-        speed: 78 + t * 0.02,
-        damage: 12,
+        hp: 28 + t * 0.1,
+        maxHp: 28 + t * 0.1,
+        speed: 72 + t * 0.018,
+        damage: 10,
         xp: 5,
         color: "#3f6b4f",
         pulse: rand(0, TAU),
@@ -615,10 +681,10 @@
       x,
       y,
       r: 11,
-      hp: 16 + t * 0.08,
-      maxHp: 16 + t * 0.08,
-      speed: 105 + t * 0.035,
-      damage: 8,
+      hp: 12 + t * 0.06,
+      maxHp: 12 + t * 0.06,
+      speed: 95 + Math.max(0, t - 20) * 0.03,
+      damage: 7,
       xp: 2,
       color: "#86a37a",
       pulse: rand(0, TAU),
@@ -651,6 +717,7 @@
     p.fireTimer -= dt;
     if (p.fireTimer <= 0 && state.enemies.length) {
       p.fireTimer = p.fireCooldown;
+      sfx.shoot();
       const sorted = [...state.enemies].sort((a, b) => dist(p, a) - dist(p, b));
       const targets = sorted.slice(0, p.projectiles);
       for (const target of targets) {
@@ -702,6 +769,8 @@
   function hurtEnemy(e, amount) {
     if (e.hp <= 0) return;
     e.hp -= amount;
+    e.hitFlash = 0.08;
+    sfx.hit();
     if (e.hp <= 0) {
       killEnemy(e);
     }
@@ -710,7 +779,12 @@
   function killEnemy(e) {
     e.hp = 0;
     state.kills += 1;
-    if (e.kind === "boss") state.bossesDown += 1;
+    state.killFlash = 0.08;
+    sfx.kill();
+    if (e.kind === "boss") {
+      state.bossesDown += 1;
+      showBanner("Bog crown fallen");
+    }
     state.gems.push({
       x: e.x,
       y: e.y,
@@ -736,7 +810,10 @@
     }
     if (leveled > 0) {
       state.levelUpsQueued = (state.levelUpsQueued || 0) + leveled;
+      sfx.level();
       if (!state.pausedChoice) offerLevelUp();
+    } else {
+      sfx.xp();
     }
   }
 
@@ -779,9 +856,10 @@
     if (p.invuln > 0 || p.dashTimer > 0) return;
     const dmg = amount * (1 - Math.min(0.55, p.armor));
     p.hp -= dmg;
-    p.invuln = 0.55;
+    p.invuln = 0.65;
     state.shake = 8;
     state.hurtFlash = 0.22;
+    sfx.hurt();
     floatText(p.x, p.y - 18, `-${Math.ceil(dmg)}`, "#e07a2f");
     addParticles(p.x, p.y, "#e07a2f", 8, 90);
     if (p.thorns > 0 && source) {
@@ -789,6 +867,7 @@
     }
     if (p.hp <= 0) {
       p.hp = 0;
+      sfx.death();
       endRun(false);
     }
   }
@@ -848,9 +927,10 @@
     }
 
     if (input.dash && p.dashCd <= 0 && mag > 0.1) {
-      p.dashTimer = 0.18;
+      p.dashTimer = 0.2;
       p.dashCd = p.dashCooldown;
-      addParticles(p.x, p.y, "#f0b429", 12, 140);
+      addParticles(p.x, p.y, "#f0b429", 14, 160);
+      sfx.dash();
       input.dash = false;
     }
 
@@ -876,15 +956,25 @@
     const density = 1 + state.time / 70;
     state.spawnTimer -= dt;
     if (state.spawnTimer <= 0) {
-      const count = 1 + ((state.time / 80) | 0);
+      const early = state.time < 35;
+      const count = early ? 1 : 1 + ((state.time / 95) | 0);
       for (let i = 0; i < count; i++) spawnEnemy();
-      state.spawnTimer = Math.max(0.18, 0.85 / density);
+      state.spawnTimer = early
+        ? 1.05
+        : Math.max(0.22, 0.95 / density);
     }
     if (state.time >= state.nextBossAt) {
       spawnEnemy("boss");
-      state.nextBossAt += 85;
+      state.nextBossAt += 90;
+      showBanner("Bog crown approaches!");
+      sfx.boss();
       floatText(p.x, p.y - 40, "A bog crown stirs", "#e07a2f");
     }
+    if (state.bannerTimer > 0) {
+      state.bannerTimer -= dt;
+      if (state.bannerTimer <= 0 && ui.banner) ui.banner.classList.add("hidden");
+    }
+    state.killFlash = Math.max(0, state.killFlash - dt);
 
     fireWeapons(dt);
 
@@ -955,10 +1045,20 @@
     state.floats = state.floats.filter((f) => f.life > 0);
 
     ui.hudTime.textContent = formatTime(state.time);
-    ui.hudHp.textContent = `${Math.ceil(p.hp)} light`;
+    ui.hudHp.textContent = `${Math.ceil(p.hp)} / ${Math.ceil(p.maxHp)} light`;
+    ui.hudHp.classList.toggle("danger", p.hp / p.maxHp < 0.3);
     ui.hudKills.textContent = `${state.kills} kills`;
     ui.hudLevel.textContent = `Lv ${p.level}`;
     ui.xpFill.style.width = `${(p.xp / p.nextXp) * 100}%`;
+    const dashReady = p.dashCd <= 0;
+    if (ui.hudDash) {
+      ui.hudDash.textContent = dashReady ? "Dash ready" : `Dash ${p.dashCd.toFixed(1)}s`;
+      ui.hudDash.classList.toggle("ready", dashReady);
+    }
+    if (ui.dashFill) {
+      const pct = dashReady ? 100 : (1 - p.dashCd / p.dashCooldown) * 100;
+      ui.dashFill.style.width = `${clamp(pct, 0, 100)}%`;
+    }
 
     if (ui.dashBtn) {
       ui.dashBtn.classList.toggle("cooling", p.dashCd > 0);
@@ -1067,23 +1167,58 @@
     // enemies
     for (const e of state.enemies) {
       const s = worldToScreen(e.x, e.y);
-      ctx.beginPath();
-      ctx.fillStyle = e.color;
-      ctx.arc(s.x, s.y, e.r, 0, TAU);
-      ctx.fill();
+      const flash = e.hitFlash && e.hitFlash > 0;
+      if (e.hitFlash) e.hitFlash = Math.max(0, e.hitFlash - 0.016);
+      ctx.save();
+      ctx.translate(s.x, s.y);
+      ctx.fillStyle = flash ? "#f4efe4" : e.color;
+      if (e.kind === "brute") {
+        ctx.beginPath();
+        ctx.moveTo(0, -e.r);
+        ctx.lineTo(e.r, e.r * 0.7);
+        ctx.lineTo(-e.r, e.r * 0.7);
+        ctx.closePath();
+        ctx.fill();
+      } else if (e.kind === "dart") {
+        ctx.rotate(Math.atan2(state.player.y - e.y, state.player.x - e.x));
+        ctx.beginPath();
+        ctx.moveTo(e.r, 0);
+        ctx.lineTo(-e.r * 0.8, e.r * 0.7);
+        ctx.lineTo(-e.r * 0.8, -e.r * 0.7);
+        ctx.closePath();
+        ctx.fill();
+      } else if (e.kind === "boss") {
+        ctx.beginPath();
+        ctx.arc(0, 0, e.r, 0, TAU);
+        ctx.fill();
+        ctx.strokeStyle = "rgba(224,122,47,0.9)";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(0, 0, e.r + 5 + Math.sin(e.pulse) * 3, 0, TAU);
+        ctx.stroke();
+        ctx.fillStyle = "#f0b429";
+        ctx.beginPath();
+        ctx.arc(0, -e.r * 0.2, 5, 0, TAU);
+        ctx.fill();
+      } else {
+        ctx.beginPath();
+        ctx.arc(0, 0, e.r, 0, TAU);
+        ctx.fill();
+        ctx.globalAlpha = 0.35;
+        ctx.beginPath();
+        ctx.arc(0, 0, e.r + 4 + Math.sin(e.pulse) * 2, 0, TAU);
+        ctx.strokeStyle = e.color;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+      ctx.restore();
       if (e.kind === "boss" || e.hp < e.maxHp) {
         const pct = clamp(e.hp / e.maxHp, 0, 1);
         ctx.fillStyle = "rgba(0,0,0,0.45)";
-        ctx.fillRect(s.x - e.r, s.y - e.r - 10, e.r * 2, 4);
+        ctx.fillRect(s.x - e.r, s.y - e.r - 12, e.r * 2, 4);
         ctx.fillStyle = "#f0b429";
-        ctx.fillRect(s.x - e.r, s.y - e.r - 10, e.r * 2 * pct, 4);
-      }
-      if (e.kind === "boss") {
-        ctx.strokeStyle = "rgba(224,122,47,0.8)";
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(s.x, s.y, e.r + 4 + Math.sin(e.pulse) * 2, 0, TAU);
-        ctx.stroke();
+        ctx.fillRect(s.x - e.r, s.y - e.r - 12, e.r * 2 * pct, 4);
       }
     }
 
@@ -1163,6 +1298,10 @@
 
     if (state.hurtFlash > 0) {
       ctx.fillStyle = `rgba(224, 122, 47, ${state.hurtFlash * 0.45})`;
+      ctx.fillRect(0, 0, w, h);
+    }
+    if (state.player.hp / state.player.maxHp < 0.3) {
+      ctx.fillStyle = "rgba(120, 30, 10, 0.16)";
       ctx.fillRect(0, 0, w, h);
     }
   }
@@ -1308,11 +1447,41 @@
     markTutorialSeen();
     setMode("title");
   });
+  function refreshMuteUi() {
+    const label = meta.muted ? "Sound off" : "Sound on";
+    const hud = document.getElementById("btn-mute");
+    const title = document.getElementById("btn-mute-title");
+    if (hud) hud.textContent = meta.muted ? "Muted" : "Sound";
+    if (title) title.textContent = label;
+  }
+
+  function toggleMute() {
+    meta.muted = !meta.muted;
+    saveMeta();
+    refreshMuteUi();
+    if (!meta.muted) {
+      ensureAudio();
+      sfx.xp();
+    }
+  }
+
+  document.getElementById("btn-mute").addEventListener("click", toggleMute);
+  document.getElementById("btn-mute-title").addEventListener("click", toggleMute);
+
   document.getElementById("btn-hud-pause").addEventListener("click", () => {
     if (mode === "play" && state && !state.ended && !state.pausedChoice) {
       setMode("pause");
     }
   });
+
+  // Unlock audio on first gesture
+  window.addEventListener(
+    "pointerdown",
+    () => {
+      ensureAudio();
+    },
+    { once: true },
+  );
   document.getElementById("btn-again").addEventListener("click", startRun);
   document.getElementById("btn-menu").addEventListener("click", () => setMode("title"));
   document.getElementById("btn-upgrades").addEventListener("click", () => setMode("shop"));
@@ -1323,6 +1492,7 @@
   window.addEventListener("resize", resize);
   resize();
   refreshMetaUi();
+  refreshMuteUi();
   // First visit opens the tutorial automatically
   if (!meta.seenTutorial) {
     openTutorial(true);
