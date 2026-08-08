@@ -20,7 +20,7 @@
         <div class="hud-stats">
           <span id="hud-time" title="How long you have survived">0:00</span>
           <span id="hud-hp" title="Your health. Reach 0 and the run ends.">100 light</span>
-          <span id="hud-dash" title="Dash cooldown. Ready means you can burst away.">Dash ready</span>
+          <span id="hud-dash" title="Equipped special weapon. Empty until you drive through a crate.">No weapon</span>
           <span id="hud-focus" class="hud-focus hidden" title="Holding F: prioritizing brutes and bosses">FOCUS</span>
           <span id="hud-kills">0 kills</span>
           <span id="hud-level">Lv 1</span>
@@ -31,10 +31,10 @@
       <div class="xp-track" title="XP bar — fill it to level up">
         <div id="xp-fill"></div>
       </div>
-      <div class="dash-track" title="Dash cooldown">
+      <div class="dash-track" title="Special weapon loaded">
         <div id="dash-fill"></div>
       </div>
-      <div class="hud-hint">Yellow = XP · Amber bar = Dash cooldown · Space to dash</div>
+      <div class="hud-hint">Yellow = XP · Drive through crates to arm · Space / Fire to use weapon</div>
       <div id="banner" class="banner hidden"></div>
       <div id="coach" class="coach hidden"></div>
     </div>
@@ -44,10 +44,10 @@
       <div id="stick" class="stick" aria-label="Move stick">
         <div id="stick-knob" class="stick-knob"></div>
       </div>
-      <div class="touch-label dash-label">Dash = quick burst of speed to escape</div>
-      <button type="button" id="dash-btn" class="dash-btn" title="Dash: short burst of speed. You also become briefly safe while dashing.">
-        Dash
-        <span class="dash-sub">speed burst</span>
+      <div class="touch-label dash-label">Fire = use equipped weapon</div>
+      <button type="button" id="dash-btn" class="dash-btn" title="Fire the equipped special weapon. Drive through a crate to load one.">
+        Empty
+        <span class="dash-sub">pick up crate</span>
       </button>
     </div>
 
@@ -55,7 +55,7 @@
       <div class="panel-glow"></div>
       <p class="eyebrow">A marsh of endless nights</p>
       <h1>Lantern Hollow</h1>
-      <p class="lede">Survive the marsh in 3D light and fog. Your lantern fights for you — steer, dash, and build.</p>
+      <p class="lede">Survive the marsh in 3D light and fog. Your lantern fights for you — steer, arm special weapons, and build.</p>
 
       <div class="meta-row">
         <div class="meta-chip"><strong id="meta-embers">0</strong> embers</div>
@@ -113,7 +113,8 @@
       <p class="lede">Game is frozen. Check your build, then resume.</p>
       <div class="control-cheat">
         <div><strong>Move</strong> — WASD / arrows / right stick</div>
-        <div><strong>Dash</strong> — Space / Shift / orange button: escape <em>and</em> damage enemies you rush through</div>
+        <div><strong>Weapons</strong> — drive through crates to equip; Space / Shift / Fire button to shoot</div>
+        <div><strong>Grenades</strong> — orange crates ~every 20s · <strong>Nuke</strong> — purple crate ~every 60s</div>
         <div><strong>Focus</strong> — hold <span class="key">F</span> to prioritize brutes/bosses</div>
         <div><strong>Attack</strong> — automatic</div>
         <div><strong>Pause</strong> — P / Escape / Pause button</div>

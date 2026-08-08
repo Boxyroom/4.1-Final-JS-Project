@@ -366,9 +366,17 @@ h2 {
 
 #dash-fill {
   height: 100%;
-  width: 100%;
+  width: 0%;
   background: linear-gradient(90deg, var(--ember), var(--amber));
   transition: width 80ms linear;
+}
+
+#dash-fill.nuke {
+  background: linear-gradient(90deg, #7c3aed, #c084fc);
+}
+
+#dash-fill.grenades {
+  background: linear-gradient(90deg, var(--ember), #ffb040);
 }
 
 .banner {
@@ -565,6 +573,17 @@ h2 {
 .dash-btn:disabled,
 .dash-btn.cooling {
   opacity: 0.45;
+}
+
+.dash-btn.loaded-nuke {
+  background: rgba(124, 58, 237, 0.9);
+  border-color: rgba(216, 180, 254, 0.65);
+  color: #f5f3ff;
+}
+
+.dash-btn.loaded-grenades {
+  background: rgba(224, 122, 47, 0.92);
+  border-color: rgba(255, 200, 120, 0.65);
 }
 
 @keyframes fade-in {

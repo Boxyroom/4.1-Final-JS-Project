@@ -45,6 +45,13 @@
     level: () => { beep(440, 0.08, "sine", 0.04, 200); setTimeout(() => beep(660, 0.1, "sine", 0.04), 80); },
     hurt: () => beep(120, 0.14, "sawtooth", 0.05, -40),
     dash: () => beep(280, 0.1, "square", 0.035, 260),
+    pickup: () => beep(620, 0.08, "sine", 0.035, 180),
+    nuke: () => {
+      beep(60, 0.28, "sawtooth", 0.07, -20);
+      setTimeout(() => beep(40, 0.35, "sawtooth", 0.06), 90);
+    },
+    grenade: () => beep(240, 0.07, "square", 0.04, -120),
+    boom: () => beep(90, 0.16, "sawtooth", 0.055, -50),
     boss: () => { beep(90, 0.2, "sawtooth", 0.05); setTimeout(() => beep(70, 0.25, "sawtooth", 0.05), 120); },
     death: () => beep(70, 0.35, "sawtooth", 0.06, -30),
   };
@@ -137,15 +144,15 @@
       `,
     },
     {
-      title: "What Dash does",
-      body: "Dash is both escape and a tactical weapon.",
+      title: "Special weapons",
+      body: "Drive through pickups, then fire with the weapon button.",
       card: `
-        <p><strong>Dash</strong> surges you forward for a moment.</p>
+        <p>Colored crates on the marsh are <strong>special weapons</strong>.</p>
         <ul>
-          <li><strong>Keyboard:</strong> <span class="key">Space</span> or <span class="key">Shift</span></li>
-          <li><strong>Phone:</strong> orange <strong>Dash</strong> button</li>
-          <li>You are briefly safe while dashing</li>
-          <li><strong>Strategy:</strong> dash <em>through</em> a pack to damage them, or dash <em>away</em> when surrounded</li>
+          <li><strong>Star Grenades</strong> (orange) — spawn about every 20s. Fire 5 bombs in a star.</li>
+          <li><strong>Nuke</strong> (purple, rare) — spawn about every 60s. Clears the field and sucks in all XP.</li>
+          <li>Drive through a crate to equip it. The left button shows what is loaded.</li>
+          <li><strong>Keyboard:</strong> <span class="key">Space</span> or <span class="key">Shift</span> to fire</li>
         </ul>
       `,
     },
@@ -179,7 +186,7 @@
       card: `
         <ul>
           <li>Move with WASD / stick</li>
-          <li>Dash through OR away — choose intentionally</li>
+          <li>Pick up weapons and fire with Space / the weapon button</li>
           <li>Hold F to focus big threats</li>
           <li>Stack upgrades toward one strategy</li>
           <li>Take tactical choices when they appear</li>
@@ -234,12 +241,12 @@
     },
     {
       id: "dash",
-      name: "Blink Ember",
-      desc: "Shorter dash cooldown per rank.",
+      name: "Warhead Stock",
+      desc: "+18% special weapon damage per rank.",
       max: 4,
       cost: (r) => 18 + r * 16,
       apply: (p, r) => {
-        p.dashCooldown *= 1 - 0.12 * r;
+        p.weaponDamage *= 1 + 0.18 * r;
       },
     },
     {
@@ -320,7 +327,7 @@
       name: "Glass Shade",
       tag: "Survival",
       desc: "Take less damage.",
-      strategy: "Enables aggressive dash-through play.",
+      strategy: "Helps you survive while hunting weapon pickups.",
       apply: (s) => {
         s.player.armor += 0.12;
       },
@@ -357,13 +364,13 @@
     },
     {
       id: "dashpower",
-      name: "Cinder Rush",
-      tag: "Dash",
-      desc: "Dash hits harder and cools down faster.",
-      strategy: "Commit to dash-through tactics. Skip if you only flee.",
+      name: "Cluster Star",
+      tag: "Weapon",
+      desc: "Special weapons hit harder. Grenades explode wider.",
+      strategy: "Great if you grab grenade crates often.",
       apply: (s) => {
-        s.player.dashDamage *= 1.45;
-        s.player.dashCooldown *= 0.85;
+        s.player.weaponDamage *= 1.4;
+        s.player.grenadeRadius *= 1.25;
       },
     },
   ];
@@ -663,10 +670,9 @@
       level: 1,
       nextXp: 12,
       invuln: 0,
-      dashTimer: 0,
-      dashCooldown: 1.5,
-      dashCd: 0,
-      dashDamage: 16,
+      equippedWeapon: null,
+      weaponDamage: 1,
+      grenadeRadius: 120,
       orbit: 0,
       nova: 0,
       novaTimer: 3.5,
@@ -695,11 +701,15 @@
       enemies: [],
       bullets: [],
       gems: [],
+      weaponPickups: [],
+      grenades: [],
       particles: [],
       floats: [],
       time: 0,
       kills: 0,
       spawnTimer: 1.2,
+      nextGrenadePickupAt: 20,
+      nextNukeAt: 60,
       bossesDown: 0,
       nextBossAt: 100,
       bannerTimer: 0,
@@ -725,10 +735,11 @@
     state.player.x = 0;
     state.player.y = 0;
     setMode("play");
+    refreshWeaponUi();
     showCoach(
       isTouchPrimary()
-        ? "You are the glowing lantern in the center. Drag Move to steer."
-        : "You are the glowing lantern in the center. WASD move · Space dash",
+        ? "You are the glowing lantern. Drive through weapon crates, then tap Fire."
+        : "You are the glowing lantern. WASD move · pick up weapons · Space to fire",
     );
     lastTs = performance.now();
     cancelAnimationFrame(animId);
@@ -1068,9 +1079,134 @@
     return arr;
   }
 
+  function weaponLabel(kind) {
+    if (kind === "nuke") return "NUKE";
+    if (kind === "grenades") return "GRENADES";
+    return "Empty";
+  }
+
+  function spawnWeaponPickup(kind) {
+    const angle = rand(0, TAU);
+    const distAway = rand(160, 320);
+    state.weaponPickups.push({
+      kind,
+      x: state.player.x + Math.cos(angle) * distAway,
+      y: state.player.y + Math.sin(angle) * distAway,
+      r: kind === "nuke" ? 16 : 13,
+      pulse: rand(0, TAU),
+    });
+    if (kind === "nuke") showBanner("Rare nuke crate appeared!", 1.6);
+    else showBanner("Grenade crate nearby", 1.2);
+  }
+
+  function equipWeapon(kind) {
+    state.player.equippedWeapon = kind;
+    sfx.pickup();
+    showBanner(`${weaponLabel(kind)} equipped!`, 1.4);
+    floatText(state.player.x, state.player.y - 28, weaponLabel(kind), "#ffd39a", 1.2, true);
+    refreshWeaponUi();
+  }
+
+  function fireEquippedWeapon() {
+    const p = state.player;
+    const kind = p.equippedWeapon;
+    if (!kind) {
+      showBanner("No weapon loaded — drive through a crate", 1.2);
+      return false;
+    }
+    if (kind === "nuke") {
+      const foes = state.enemies.filter((e) => e.hp > 0);
+      for (const e of foes) {
+        hurtEnemy(e, 9999, { sfx: false });
+      }
+      // hard-suck every XP gem into the lantern
+      state.nukeSuckTimer = 2.8;
+      for (const g of state.gems) {
+        const ang = Math.atan2(p.y - g.y, p.x - g.x);
+        g.vx = Math.cos(ang) * 520;
+        g.vy = Math.sin(ang) * 520;
+      }
+      state.shake = 22;
+      addParticles(p.x, p.y, "#c084fc", 48, 340);
+      addParticles(p.x, p.y, "#f0b429", 28, 260);
+      sfx.nuke();
+      showBanner("NUKE — field cleared!", 1.8);
+      floatText(p.x, p.y - 36, "NUKE", "#e9d5ff", 1.4, true);
+    } else if (kind === "grenades") {
+      const damage = 95 * p.weaponDamage;
+      const speed = 340;
+      for (let i = 0; i < 5; i++) {
+        const a = (TAU * i) / 5 - Math.PI / 2;
+        state.grenades.push({
+          x: p.x,
+          y: p.y,
+          vx: Math.cos(a) * speed,
+          vy: Math.sin(a) * speed,
+          r: 8,
+          life: 0.55,
+          damage,
+          radius: p.grenadeRadius,
+        });
+      }
+      sfx.grenade();
+      showBanner("Star grenades away!", 1.2);
+      addParticles(p.x, p.y, "#e07a2f", 18, 200);
+    }
+    p.equippedWeapon = null;
+    refreshWeaponUi();
+    return true;
+  }
+
+  function explodeGrenade(g) {
+    addParticles(g.x, g.y, "#ff8a2a", 26, 260);
+    addParticles(g.x, g.y, "#f0b429", 14, 180);
+    state.shake = Math.max(state.shake, 10);
+    sfx.boom();
+    floatText(g.x, g.y - 12, "BOOM", "#ffd39a", 1.05, true);
+    for (const e of state.enemies) {
+      if (e.hp > 0 && dist(g, e) < g.radius + e.r) {
+        hurtEnemy(e, g.damage);
+      }
+    }
+  }
+
+  function refreshWeaponUi() {
+    const kind = state && state.player ? state.player.equippedWeapon : null;
+    const loaded = !!kind;
+    const label = weaponLabel(kind);
+    if (ui.hudDash) {
+      ui.hudDash.textContent = loaded ? label : "No weapon";
+      ui.hudDash.classList.toggle("ready", loaded);
+      ui.hudDash.title = loaded
+        ? `${label} loaded — press Space / Fire to use`
+        : "Drive through a weapon crate to equip one";
+    }
+    if (ui.dashFill) {
+      ui.dashFill.style.width = loaded ? "100%" : "0%";
+      ui.dashFill.classList.toggle("nuke", kind === "nuke");
+      ui.dashFill.classList.toggle("grenades", kind === "grenades");
+    }
+    if (ui.dashBtn) {
+      ui.dashBtn.disabled = !loaded;
+      ui.dashBtn.classList.toggle("cooling", !loaded);
+      ui.dashBtn.classList.toggle("loaded-nuke", kind === "nuke");
+      ui.dashBtn.classList.toggle("loaded-grenades", kind === "grenades");
+      const sub =
+        kind === "nuke"
+          ? "clear field"
+          : kind === "grenades"
+            ? "star blast"
+            : "pick up crate";
+      ui.dashBtn.innerHTML = `${label}<span class="dash-sub">${sub}</span>`;
+      ui.dashBtn.title = loaded
+        ? `Fire ${label}`
+        : "No weapon loaded — drive through a crate first";
+    }
+  }
+
   function hurtPlayer(amount, source) {
     const p = state.player;
-    if (p.invuln > 0 || p.dashTimer > 0) return;
+    if (p.invuln > 0) return;
     const dmg = amount * (1 - Math.min(0.55, p.armor));
     p.hp -= dmg;
     p.invuln = 0.65;
@@ -1145,45 +1281,16 @@
 
     if (mag > 0.1) p.facing = Math.atan2(my, mx);
 
-    if (input.dash && p.dashCd <= 0) {
-      // If standing still, dash in the last facing direction
-      if (mag <= 0.1) {
-        mx = Math.cos(p.facing || 0);
-        my = Math.sin(p.facing || 0);
-      }
-      p.dashTimer = 0.2;
-      p.dashCd = p.dashCooldown;
-      addParticles(p.x, p.y, "#f0b429", 14, 160);
-      sfx.dash();
+    if (input.dash) {
+      fireEquippedWeapon();
       input.dash = false;
     }
 
-    const speedMul = p.dashTimer > 0 ? 2.6 : 1;
-    const moveX = p.dashTimer > 0 && mag <= 0.1 ? Math.cos(p.facing || 0) : mx;
-    const moveY = p.dashTimer > 0 && mag <= 0.1 ? Math.sin(p.facing || 0) : my;
-    p.x += moveX * p.speed * speedMul * dt;
-    p.y += moveY * p.speed * speedMul * dt;
+    p.x += mx * p.speed * dt;
+    p.y += my * p.speed * dt;
 
-    if (p.dashTimer > 0) {
-      for (const e of state.enemies) {
-        if (e.hp > 0 && dist(p, e) < p.r + e.r + 22) {
-          if (!e._dashHit || state.time - e._dashHit > 0.2) {
-            hurtEnemy(e, p.dashDamage);
-            e._dashHit = state.time;
-            floatText(e.x, e.y - 16, "DASH HIT!", "#ffd39a", 1.15, true);
-            addParticles(e.x, e.y, "#e07a2f", 10, 180);
-            if (!state._dashBannerCool || state.time - state._dashBannerCool > 0.8) {
-              showBanner("Dash strike!", 0.9);
-              state._dashBannerCool = state.time;
-            }
-          }
-        }
-      }
-    }
-
-    p.dashTimer = Math.max(0, p.dashTimer - dt);
-    p.dashCd = Math.max(0, p.dashCd - dt);
     p.invuln = Math.max(0, p.invuln - dt);
+    if (state.nukeSuckTimer > 0) state.nukeSuckTimer = Math.max(0, state.nukeSuckTimer - dt);
     if (p.regen > 0) p.hp = Math.min(p.maxHp, p.hp + p.regen * dt);
 
     // world soft bounds so camera feels open but player isn't lost forever
@@ -1211,6 +1318,16 @@
       showBanner("Bog crown approaches!");
       sfx.boss();
       floatText(p.x, p.y - 40, "A bog crown stirs", "#e07a2f");
+    }
+
+    // special weapon crates
+    if (state.time >= state.nextGrenadePickupAt) {
+      state.nextGrenadePickupAt += 20;
+      spawnWeaponPickup("grenades");
+    }
+    if (state.time >= state.nextNukeAt) {
+      state.nextNukeAt += 60;
+      spawnWeaponPickup("nuke");
     }
     if (state.bannerTimer > 0) {
       state.bannerTimer -= dt;
@@ -1241,7 +1358,7 @@
     if (!state.spawnedFocusBrute && state.time >= 18) {
       state.spawnedFocusBrute = true;
       spawnEnemy("brute");
-      showCoach("Triangle brute! Hold F to FOCUS it, then dash through.");
+      showCoach("Triangle brute! Hold F to FOCUS it, or save a grenade crate for it.");
       showBanner("Hold F — focus the brute");
     }
 
@@ -1271,6 +1388,27 @@
     }
     state.bullets = state.bullets.filter((b) => b.life > 0);
 
+    // star grenades
+    for (const g of state.grenades) {
+      g.x += g.vx * dt;
+      g.y += g.vy * dt;
+      g.life -= dt;
+      g.vx *= 0.985;
+      g.vy *= 0.985;
+      let hit = false;
+      for (const e of state.enemies) {
+        if (e.hp > 0 && dist(g, e) < g.r + e.r) {
+          hit = true;
+          break;
+        }
+      }
+      if (hit || g.life <= 0) {
+        g._boom = true;
+        explodeGrenade(g);
+      }
+    }
+    state.grenades = state.grenades.filter((g) => !g._boom);
+
     // enemies
     for (const e of state.enemies) {
       if (e.hp <= 0) continue;
@@ -1286,22 +1424,35 @@
     }
     state.enemies = state.enemies.filter((e) => e.hp > 0);
 
+    // weapon pickups
+    for (const w of state.weaponPickups) {
+      w.pulse += dt * 4;
+      if (dist(p, w) < p.r + w.r + 8) {
+        w._taken = true;
+        equipWeapon(w.kind);
+      }
+    }
+    state.weaponPickups = state.weaponPickups.filter((w) => !w._taken);
+
     // gems
     for (const g of state.gems) {
-      g.vx *= 0.9;
-      g.vy *= 0.9;
+      g.vx *= state.nukeSuckTimer > 0 ? 0.98 : 0.9;
+      g.vy *= state.nukeSuckTimer > 0 ? 0.98 : 0.9;
       g.x += g.vx * dt;
       g.y += g.vy * dt;
       const d = dist(p, g);
-      if (d < p.magnet) {
-        const pull = (p.magnet - d) / p.magnet;
+      const magnetRange = state.nukeSuckTimer > 0 ? 4000 : p.magnet;
+      if (d < magnetRange) {
+        const pull = state.nukeSuckTimer > 0 ? 1 : (p.magnet - d) / p.magnet;
         const ang = Math.atan2(p.y - g.y, p.x - g.x);
-        g.x += Math.cos(ang) * 380 * pull * dt;
-        g.y += Math.sin(ang) * 380 * pull * dt;
+        const force = state.nukeSuckTimer > 0 ? 980 : 380 * pull;
+        g.x += Math.cos(ang) * force * dt;
+        g.y += Math.sin(ang) * force * dt;
       }
       if (d < p.r + g.r + 6) {
         g._collected = true;
         gainXp(g.value);
+        if (state.nukeSuckTimer > 0) sfx.xp();
       }
     }
     state.gems = state.gems.filter((g) => !g._collected);
@@ -1327,39 +1478,29 @@
     ui.hudKills.textContent = `${state.kills} kills`;
     ui.hudLevel.textContent = `Lv ${p.level}`;
     ui.xpFill.style.width = `${(p.xp / p.nextXp) * 100}%`;
-    const dashReady = p.dashCd <= 0;
-    if (ui.hudDash) {
-      ui.hudDash.textContent = dashReady ? "Dash ready" : `Dash ${p.dashCd.toFixed(1)}s`;
-      ui.hudDash.classList.toggle("ready", dashReady);
-    }
     if (ui.hudFocus) {
       ui.hudFocus.classList.toggle("hidden", !input.focus);
     }
-    if (ui.dashFill) {
-      const pct = dashReady ? 100 : (1 - p.dashCd / p.dashCooldown) * 100;
-      ui.dashFill.style.width = `${clamp(pct, 0, 100)}%`;
-    }
-
-    if (ui.dashBtn) {
-      ui.dashBtn.classList.toggle("cooling", p.dashCd > 0);
-      ui.dashBtn.disabled = p.dashCd > 0;
-    }
+    refreshWeaponUi();
 
     // Short onboarding tips for the first half-minute
     if (state.coachStep === 0 && state.time > 4) {
       state.coachStep = 1;
-      showCoach("Green hurts on touch. Dash through a pack to smash it, or dash out.");
+      showCoach("Green hurts on touch. Keep moving and watch for weapon crates.");
     } else if (state.coachStep === 1 && state.kills >= 1) {
       state.coachStep = 2;
       showCoach("Gold orbs = XP. Hold F to focus brutes/bosses.");
-    } else if (state.coachStep === 2 && state.player.level >= 2) {
+    } else if (state.coachStep === 2 && state.time >= 18) {
       state.coachStep = 3;
+      showCoach("Orange crate ≈ grenades (20s). Purple nuke is rare (60s). Drive through, then Fire.");
+    } else if (state.coachStep === 3 && state.player.level >= 2) {
+      state.coachStep = 4;
       showCoach("Level up! Read the Strategy tip — stack one build path.");
-    } else if (state.coachStep === 3 && state.time > 22) {
-      state.coachStep = 4;
+    } else if (state.coachStep === 4 && state.time > 34) {
+      state.coachStep = 5;
       hideCoach();
-    } else if (state.coachStep < 3 && state.time > 30) {
-      state.coachStep = 4;
+    } else if (state.coachStep < 4 && state.time > 40) {
+      state.coachStep = 5;
       hideCoach();
     }
   }
@@ -1487,12 +1628,11 @@
     ctx.arc(ps.x, ps.y + 18, 210 * flicker, 0, TAU);
     ctx.fill();
 
-    drawShadow(ps.x, ps.y + 22, 28, 14, p.dashTimer > 0 ? 0.2 : 0.45);
+    drawShadow(ps.x, ps.y + 22, 28, 14, 0.45);
 
     ctx.save();
     ctx.translate(ps.x, ps.y);
     ctx.scale(2.1, 2.1);
-    if (p.dashTimer > 0) ctx.rotate(Math.sin(state.time * 40) * 0.1);
 
     // ring plate under lantern
     ctx.fillStyle = "rgba(255, 200, 90, 0.2)";
@@ -1572,17 +1712,6 @@
     ctx.fillRect(-8, 13, 16, 5);
     ctx.fillStyle = "#3a220c";
     ctx.fillRect(-6, 18, 12, 3);
-
-    if (p.dashTimer > 0) {
-      ctx.globalAlpha = 0.45;
-      ctx.strokeStyle = "#ffe08a";
-      ctx.lineWidth = 4;
-      ctx.beginPath();
-      ctx.moveTo(-Math.cos(p.facing) * 26, -Math.sin(p.facing) * 26);
-      ctx.lineTo(0, 0);
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-    }
 
     ctx.restore();
 
@@ -1761,6 +1890,51 @@
     ctx.restore();
   }
 
+  function drawWeaponPickup(wpn, s) {
+    const bob = Math.sin(wpn.pulse) * 4;
+    const nuke = wpn.kind === "nuke";
+    const col = nuke ? "#c084fc" : "#e07a2f";
+    drawShadow(s.x, s.y + 6, wpn.r + 4, 5, 0.3);
+    const glow = ctx.createRadialGradient(s.x, s.y + bob, 2, s.x, s.y + bob, wpn.r * 3.2);
+    glow.addColorStop(0, nuke ? "rgba(220,180,255,0.85)" : "rgba(255,180,90,0.85)");
+    glow.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y + bob, wpn.r * 3.2, 0, TAU);
+    ctx.fill();
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    if (typeof ctx.roundRect === "function") {
+      ctx.roundRect(s.x - wpn.r, s.y + bob - wpn.r, wpn.r * 2, wpn.r * 2, 4);
+    } else {
+      ctx.rect(s.x - wpn.r, s.y + bob - wpn.r, wpn.r * 2, wpn.r * 2);
+    }
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,240,0.7)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = "#142019";
+    ctx.font = `800 ${nuke ? 10 : 9}px Outfit, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(nuke ? "NUKE" : "★5", s.x, s.y + bob);
+  }
+
+  function drawGrenade(g, s) {
+    const glow = ctx.createRadialGradient(s.x, s.y, 1, s.x, s.y, 14);
+    glow.addColorStop(0, "rgba(255,220,120,0.95)");
+    glow.addColorStop(0.5, "rgba(224,122,47,0.7)");
+    glow.addColorStop(1, "rgba(224,122,47,0)");
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, 14, 0, TAU);
+    ctx.fill();
+    ctx.fillStyle = "#ffb040";
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, g.r, 0, TAU);
+    ctx.fill();
+  }
+
   function drawDarkness(w, h, ps, p) {
     // Soft night veil without destination-out (more reliable on iOS)
     const flicker = 0.92 + Math.sin(state.time * 19) * 0.04;
@@ -1808,6 +1982,16 @@
     // gems
     for (const g of state.gems) {
       drawGem(g, worldToScreen(g.x, g.y));
+    }
+
+    // weapon crates
+    for (const wpn of state.weaponPickups) {
+      drawWeaponPickup(wpn, worldToScreen(wpn.x, wpn.y));
+    }
+
+    // star grenades
+    for (const g of state.grenades) {
+      drawGrenade(g, worldToScreen(g.x, g.y));
     }
 
     // bullets
@@ -2012,7 +2196,7 @@
     if (k === "s" || k === "arrowdown") input.down = true;
     if (k === "a" || k === "arrowleft") input.left = true;
     if (k === "d" || k === "arrowright") input.right = true;
-    if (k === " " || k === "shift") input.dash = true;
+    if ((k === " " || k === "shift") && !e.repeat) input.dash = true;
     if (k === "f") input.focus = true;
     if ((k === "p" || k === "escape") && state && !state.ended && !state.pausedChoice) {
       if (mode === "play") setMode("pause");

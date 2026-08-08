@@ -27,6 +27,8 @@
   const enemyPool = [];
   const gemPool = [];
   const bulletPool = [];
+  const pickupPool = [];
+  const grenadePool = [];
   const fireflies = [];
   const mistPuffs = [];
   const puddles = [];
@@ -319,6 +321,38 @@
     return mesh;
   }
 
+  function createPickupMesh(kind) {
+    const nuke = kind === "nuke";
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(0.45, 0.45, 0.45),
+      new THREE.MeshStandardMaterial({
+        color: nuke ? 0xc084fc : 0xe07a2f,
+        emissive: nuke ? 0x7c3aed : 0xff8a2a,
+        emissiveIntensity: 1.4,
+        metalness: 0.35,
+        roughness: 0.35,
+      }),
+    );
+    mesh.visible = false;
+    mesh.userData.kind = kind;
+    scene.add(mesh);
+    return mesh;
+  }
+
+  function createGrenadeMesh() {
+    const mesh = new THREE.Mesh(
+      new THREE.SphereGeometry(0.16, 12, 12),
+      new THREE.MeshStandardMaterial({
+        color: 0xffb040,
+        emissive: 0xff6a20,
+        emissiveIntensity: 2.6,
+      }),
+    );
+    mesh.visible = false;
+    scene.add(mesh);
+    return mesh;
+  }
+
   function ensurePool(pool, need, factory) {
     while (pool.length < need) pool.push(factory());
   }
@@ -561,6 +595,8 @@
       enemyPool.forEach((e) => (e.mesh.visible = false));
       gemPool.forEach((m) => (m.visible = false));
       bulletPool.forEach((m) => (m.visible = false));
+      pickupPool.forEach((m) => (m.visible = false));
+      grenadePool.forEach((m) => (m.visible = false));
       renderer.render(scene, camera);
       return;
     }
@@ -569,13 +605,8 @@
     const pp = worldTo3D(p.x, p.y);
     const bob = Math.sin(state.time * 6) * 0.05;
     lanternGroup.position.set(pp.x, 0.15 + bob, pp.z);
-    if (p.dashTimer > 0) {
-      lanternGroup.rotation.y = p.facing || 0;
-      lanternGroup.rotation.z = Math.sin(state.time * 40) * 0.1;
-    } else {
-      lanternGroup.rotation.z = 0;
-      lanternGroup.rotation.y += 0.012;
-    }
+    lanternGroup.rotation.z = 0;
+    lanternGroup.rotation.y += 0.012;
 
     const flame = lanternGroup.getObjectByName("flame");
     const flick = 0.88 + Math.sin(state.time * 18) * 0.08 + Math.sin(state.time * 41) * 0.03;
@@ -658,6 +689,41 @@
       const bp = worldTo3D(b.x, b.y);
       m.visible = true;
       m.position.set(bp.x, 0.7, bp.z);
+    }
+
+    const pickups = state.weaponPickups || [];
+    ensurePool(pickupPool, pickups.length, () => createPickupMesh("grenades"));
+    for (let i = 0; i < pickupPool.length; i++) {
+      let m = pickupPool[i];
+      const w = pickups[i];
+      if (!w) {
+        m.visible = false;
+        continue;
+      }
+      if (m.userData.kind !== w.kind) {
+        scene.remove(m);
+        m = createPickupMesh(w.kind);
+        pickupPool[i] = m;
+      }
+      const wp = worldTo3D(w.x, w.y);
+      m.visible = true;
+      m.position.set(wp.x, 0.45 + Math.sin((w.pulse || state.time) * 4) * 0.12, wp.z);
+      m.rotation.y += 0.04;
+      m.rotation.x = Math.sin(state.time * 2 + i) * 0.15;
+    }
+
+    const grenades = state.grenades || [];
+    ensurePool(grenadePool, grenades.length, createGrenadeMesh);
+    for (let i = 0; i < grenadePool.length; i++) {
+      const m = grenadePool[i];
+      const g = grenades[i];
+      if (!g) {
+        m.visible = false;
+        continue;
+      }
+      const gp = worldTo3D(g.x, g.y);
+      m.visible = true;
+      m.position.set(gp.x, 0.55, gp.z);
     }
 
     for (let i = 0; i < fireflies.length; i++) {
