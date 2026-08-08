@@ -20,6 +20,7 @@
     hudHp: document.getElementById("hud-hp"),
     hudKills: document.getElementById("hud-kills"),
     hudLevel: document.getElementById("hud-level"),
+    coach: document.getElementById("coach"),
     metaEmbers: document.getElementById("meta-embers"),
     metaBest: document.getElementById("meta-best"),
     metaRuns: document.getElementById("meta-runs"),

@@ -2,29 +2,30 @@
 
 Movie search site (OMDb) plus a browser game.
 
-## Movie search
+## Play Lantern Hollow (easiest)
 
-Open `index.html` in a browser to search movies, sort by year, and browse results.
+**Click this link:**
 
-## Lantern Hollow
+https://htmlpreview.github.io/?https://raw.githubusercontent.com/Boxyroom/4.1-Final-JS-Project/cursor/lantern-hollow-game-c3be/game/play.html
 
-A replayable survivor game built to last for many runs:
+1. Wait a second for it to load
+2. Click the big **Play** button
+3. Move with **WASD** (or the on-screen stick on phones)
 
-- Auto-attack lantern combat with level-up choices
-- Escalating enemy waves and bog-crown bosses
-- Embers meta shop that persists on your device
-- Achievements that pay out bonus embers
+You do **not** need to install anything.
 
-Play it:
+## Local play
 
 ```bash
-# open directly
+git checkout cursor/lantern-hollow-game-c3be
 open game/index.html
-
-# or serve the folder
-npx serve .
 ```
 
-Then visit `/game/`.
+Or serve the folder and visit `/game/`.
 
-**Controls:** WASD / arrows move · Space / Shift dash · P pause · touch stick on mobile
+## Controls
+
+- **WASD / arrows** — move
+- **Space** — dash
+- **P** — pause
+- Your lantern **attacks automatically**
