@@ -1425,9 +1425,37 @@
     if (ui.dashBtn) {
       ui.dashBtn.disabled = !loaded;
       ui.dashBtn.classList.toggle("cooling", !loaded);
-      ui.dashBtn.classList.toggle("loaded-nuke", kind === "nuke");
-      ui.dashBtn.classList.toggle("loaded-grenades", kind === "grenades");
+      ui.dashBtn.classList.toggle("loaded-nuke", kind === "nuke" && !swarming);
+      ui.dashBtn.classList.toggle("loaded-grenades", kind === "grenades" && !swarming);
       ui.dashBtn.classList.toggle("loaded-swarm", swarming);
+      // Mobile WebKit often ignores button background gradients — set inline too.
+      if (kind === "grenades" && !swarming) {
+        ui.dashBtn.style.backgroundColor = "#22c55e";
+        ui.dashBtn.style.backgroundImage =
+          "radial-gradient(circle at 40% 35%, #bbf7d0 0%, #22c55e 55%, #15803d 100%)";
+        ui.dashBtn.style.borderColor = "#bbf7d0";
+        ui.dashBtn.style.color = "#052e16";
+        ui.dashBtn.style.boxShadow =
+          "0 0 16px rgba(74,222,128,0.95), 0 0 32px rgba(34,197,94,0.65), inset 0 0 12px rgba(220,252,231,0.4)";
+      } else if (swarming) {
+        ui.dashBtn.style.backgroundColor = "#e11d48";
+        ui.dashBtn.style.backgroundImage = "none";
+        ui.dashBtn.style.borderColor = "#fb7185";
+        ui.dashBtn.style.color = "#fff5f5";
+        ui.dashBtn.style.boxShadow = "0 0 16px rgba(225,29,72,0.75)";
+      } else if (kind === "nuke") {
+        ui.dashBtn.style.backgroundColor = "#7c3aed";
+        ui.dashBtn.style.backgroundImage = "none";
+        ui.dashBtn.style.borderColor = "#d8b4fe";
+        ui.dashBtn.style.color = "#f5f3ff";
+        ui.dashBtn.style.boxShadow = "0 0 16px rgba(168,85,247,0.7)";
+      } else {
+        ui.dashBtn.style.backgroundColor = "";
+        ui.dashBtn.style.backgroundImage = "";
+        ui.dashBtn.style.borderColor = "";
+        ui.dashBtn.style.color = "";
+        ui.dashBtn.style.boxShadow = "";
+      }
       const sub = swarming
         ? `${p.swarmTimer.toFixed(1)}s left`
         : kind === "nuke"
