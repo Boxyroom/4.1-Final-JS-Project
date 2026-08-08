@@ -650,8 +650,30 @@ h2 {
 }
 
 .dash-btn.loaded-grenades {
-  background: rgba(224, 122, 47, 0.92);
-  border-color: rgba(255, 200, 120, 0.65);
+  background: radial-gradient(circle at 40% 35%, rgba(187, 247, 208, 0.95), rgba(34, 197, 94, 0.95) 55%, rgba(21, 128, 61, 0.98));
+  border-color: rgba(187, 247, 208, 0.95);
+  color: #052e16;
+  box-shadow:
+    0 0 14px rgba(74, 222, 128, 0.85),
+    0 0 28px rgba(34, 197, 94, 0.55),
+    inset 0 0 12px rgba(220, 252, 231, 0.35);
+  animation: grenade-armed-glow 1.4s ease-in-out infinite;
+}
+
+@keyframes grenade-armed-glow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 12px rgba(74, 222, 128, 0.75),
+      0 0 24px rgba(34, 197, 94, 0.45),
+      inset 0 0 10px rgba(220, 252, 231, 0.3);
+  }
+  50% {
+    box-shadow:
+      0 0 20px rgba(134, 239, 172, 1),
+      0 0 36px rgba(34, 197, 94, 0.75),
+      inset 0 0 16px rgba(240, 253, 244, 0.45);
+  }
 }
 
 .dash-btn.loaded-swarm {
