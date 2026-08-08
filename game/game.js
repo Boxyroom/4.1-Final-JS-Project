@@ -120,9 +120,14 @@
     nuke: "rgba(59, 130, 246, 0.5)",
   };
   const CRATE_GLOW_CSS = {
-    grenades: "rgba(34, 197, 94, 0.85)",
-    swarm: "rgba(225, 29, 72, 0.9)",
-    nuke: "rgba(59, 130, 246, 0.85)",
+    grenades: "rgba(74, 222, 128, 0.95)",
+    swarm: "rgba(251, 113, 133, 0.95)",
+    nuke: "rgba(96, 165, 250, 0.95)",
+  };
+  const CRATE_GLOW_CORE_CSS = {
+    grenades: "rgba(187, 247, 208, 0.9)",
+    swarm: "rgba(254, 205, 211, 0.9)",
+    nuke: "rgba(219, 234, 254, 0.9)",
   };
   const crateTintCanvas = document.createElement("canvas");
   const crateTintCtx = crateTintCanvas.getContext("2d");
@@ -2135,14 +2140,35 @@
     const bob = Math.sin(wpn.pulse) * 4;
     const kind = wpn.kind === "nuke" || wpn.kind === "swarm" ? wpn.kind : "grenades";
     const glowCol = CRATE_GLOW_CSS[kind];
+    const coreCol = CRATE_GLOW_CORE_CSS[kind];
     const tint = CRATE_TINT_CSS[kind];
+    const pulse = 0.75 + Math.sin(state.time * 5 + wpn.pulse) * 0.25;
     drawShadow(s.x, s.y + 6, wpn.r + 4, 5, 0.3);
-    const glow = ctx.createRadialGradient(s.x, s.y + bob, 2, s.x, s.y + bob, wpn.r * 3.2);
-    glow.addColorStop(0, glowCol);
-    glow.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.fillStyle = glow;
+    // Outer power aura
+    const outerR = wpn.r * (4.6 + pulse * 0.6);
+    const mid =
+      kind === "nuke"
+        ? "rgba(59, 130, 246, 0.35)"
+        : kind === "swarm"
+          ? "rgba(225, 29, 72, 0.35)"
+          : "rgba(34, 197, 94, 0.35)";
+    const outer = ctx.createRadialGradient(s.x, s.y + bob, 4, s.x, s.y + bob, outerR);
+    outer.addColorStop(0, glowCol);
+    outer.addColorStop(0.45, mid);
+    outer.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = outer;
     ctx.beginPath();
-    ctx.arc(s.x, s.y + bob, wpn.r * 3.2, 0, TAU);
+    ctx.arc(s.x, s.y + bob, outerR, 0, TAU);
+    ctx.fill();
+    // Hot core bloom
+    const coreR = wpn.r * (2.2 + pulse * 0.35);
+    const core = ctx.createRadialGradient(s.x, s.y + bob, 1, s.x, s.y + bob, coreR);
+    core.addColorStop(0, coreCol);
+    core.addColorStop(0.55, glowCol);
+    core.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = core;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y + bob, coreR, 0, TAU);
     ctx.fill();
 
     const drawH = wpn.r * 2.6;
