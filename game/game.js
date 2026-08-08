@@ -1888,7 +1888,7 @@
       ctx.fillRect(-1.2, 4, 2.4, 5);
     }
 
-    if (evo.stage >= 1 && evo.stage >= 2) {
+    if (evo.stage >= 2) {
       // wick under the flame inside glass
       ctx.fillStyle = "#2a1a10";
       ctx.fillRect(-1.2, 6, 2.4, 5);
