@@ -2972,16 +2972,6 @@ h2 {
     }
     state.enemies = state.enemies.filter((e) => e.hp > 0);
 
-    // weapon pickups
-    for (const w of state.weaponPickups) {
-      w.pulse += dt * 4;
-      if (dist(p, w) < p.r + w.r + 8) {
-        w._taken = true;
-        equipWeapon(w.kind);
-      }
-    }
-    state.weaponPickups = state.weaponPickups.filter((w) => !w._taken);
-
     // gems
     for (const g of state.gems) {
       g.vx *= state.nukeSuckTimer > 0 ? 0.98 : 0.9;
