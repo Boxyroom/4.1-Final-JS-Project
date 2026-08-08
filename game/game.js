@@ -93,6 +93,8 @@
     if (path.includes("/game") && !/lantern\.html$/i.test(path)) return "assets/ancient-relic.png";
     return "game/assets/ancient-relic.png";
   })();
+  // Matches CGI form levelRollDeg — levels the art without editing the PNG.
+  const PLAYER_VISUAL_LEVEL_ROLL = (-8.8 * Math.PI) / 180;
   const playerVisualImg = new Image();
   let playerVisualReady = false;
   playerVisualImg.onload = () => {
@@ -1845,7 +1847,13 @@
       const drawH = 104;
       const drawW = drawH * (playerVisualImg.naturalWidth / playerVisualImg.naturalHeight || 1024 / 1536);
       // Center on hitbox; slight upward bias so the relic reads as hovering.
-      ctx.drawImage(playerVisualImg, ps.x - drawW / 2, ps.y - drawH / 2 + bob - 10, drawW, drawH);
+      // Canvas rotate is CW-positive; negate so the roll matches CGI (CCW level).
+      const cy = ps.y + bob - 10;
+      ctx.save();
+      ctx.translate(ps.x, cy);
+      ctx.rotate(PLAYER_VISUAL_LEVEL_ROLL);
+      ctx.drawImage(playerVisualImg, -drawW / 2, -drawH / 2, drawW, drawH);
+      ctx.restore();
     } else {
       // Tiny fallback while the exact asset loads
       const flame = ctx.createRadialGradient(ps.x, ps.y + bob, 1, ps.x, ps.y + bob, 16);

@@ -1231,6 +1231,8 @@ h2 {
       coreY: 0.02,
       // Keeps the stone body hovering above the forest floor.
       hoverY: 1.72,
+      // CCW degrees — levels the art's inherent lean without editing the PNG.
+      levelRollDeg: 8.8,
     },
   };
 
@@ -1298,6 +1300,9 @@ h2 {
           }
         }
         billboard.material.map = tex;
+        // Orient the exact PNG so it reads level; does not alter size/position.
+        tex.center.set(0.5, 0.5);
+        tex.rotation = ((form.levelRollDeg || 0) * Math.PI) / 180;
         billboard.material.needsUpdate = true;
         const img = tex.image;
         if (img && img.width && img.height) {
@@ -1307,6 +1312,7 @@ h2 {
         group.userData.formId = form.id;
         group.userData.hoverY = form.hoverY;
         group.userData.coreY = form.coreY;
+        group.userData.levelRollDeg = form.levelRollDeg || 0;
         const core = group.getObjectByName("flame");
         if (core) core.position.y = form.coreY;
       },
@@ -1317,12 +1323,16 @@ h2 {
     );
   }
 
-  /** Keep the player PNG facing the camera (billboard). */
+  /** Keep the player PNG facing the camera (billboard), upright on screen. */
   function orientPlayerBillboard() {
     if (!lanternGroup || !camera) return;
     const billboard = lanternGroup.getObjectByName("playerSprite");
     if (!billboard) return;
+    // Match camera orientation, then yaw 180° so the plane's +Z faces the
+    // camera. Without this, DoubleSide shows the mirrored back face and the
+    // relic reads as leaning the wrong way.
     billboard.quaternion.copy(camera.quaternion);
+    billboard.rotateY(Math.PI);
   }
 
   /**
@@ -2639,6 +2649,8 @@ h2 {
     if (path.includes("/game") && !/lantern\.html$/i.test(path)) return "assets/ancient-relic.png";
     return "game/assets/ancient-relic.png";
   })();
+  // Matches CGI form levelRollDeg — levels the art without editing the PNG.
+  const PLAYER_VISUAL_LEVEL_ROLL = (-8.8 * Math.PI) / 180;
   const playerVisualImg = new Image();
   let playerVisualReady = false;
   playerVisualImg.onload = () => {
@@ -4391,7 +4403,13 @@ h2 {
       const drawH = 104;
       const drawW = drawH * (playerVisualImg.naturalWidth / playerVisualImg.naturalHeight || 1024 / 1536);
       // Center on hitbox; slight upward bias so the relic reads as hovering.
-      ctx.drawImage(playerVisualImg, ps.x - drawW / 2, ps.y - drawH / 2 + bob - 10, drawW, drawH);
+      // Canvas rotate is CW-positive; negate so the roll matches CGI (CCW level).
+      const cy = ps.y + bob - 10;
+      ctx.save();
+      ctx.translate(ps.x, cy);
+      ctx.rotate(PLAYER_VISUAL_LEVEL_ROLL);
+      ctx.drawImage(playerVisualImg, -drawW / 2, -drawH / 2, drawW, drawH);
+      ctx.restore();
     } else {
       // Tiny fallback while the exact asset loads
       const flame = ctx.createRadialGradient(ps.x, ps.y + bob, 1, ps.x, ps.y + bob, 16);

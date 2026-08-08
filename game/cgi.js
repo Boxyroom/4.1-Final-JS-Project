@@ -408,6 +408,8 @@
       coreY: 0.02,
       // Keeps the stone body hovering above the forest floor.
       hoverY: 1.72,
+      // CCW degrees — levels the art's inherent lean without editing the PNG.
+      levelRollDeg: 8.8,
     },
   };
 
@@ -475,6 +477,9 @@
           }
         }
         billboard.material.map = tex;
+        // Orient the exact PNG so it reads level; does not alter size/position.
+        tex.center.set(0.5, 0.5);
+        tex.rotation = ((form.levelRollDeg || 0) * Math.PI) / 180;
         billboard.material.needsUpdate = true;
         const img = tex.image;
         if (img && img.width && img.height) {
@@ -484,6 +489,7 @@
         group.userData.formId = form.id;
         group.userData.hoverY = form.hoverY;
         group.userData.coreY = form.coreY;
+        group.userData.levelRollDeg = form.levelRollDeg || 0;
         const core = group.getObjectByName("flame");
         if (core) core.position.y = form.coreY;
       },
@@ -494,12 +500,16 @@
     );
   }
 
-  /** Keep the player PNG facing the camera (billboard). */
+  /** Keep the player PNG facing the camera (billboard), upright on screen. */
   function orientPlayerBillboard() {
     if (!lanternGroup || !camera) return;
     const billboard = lanternGroup.getObjectByName("playerSprite");
     if (!billboard) return;
+    // Match camera orientation, then yaw 180° so the plane's +Z faces the
+    // camera. Without this, DoubleSide shows the mirrored back face and the
+    // relic reads as leaning the wrong way.
     billboard.quaternion.copy(camera.quaternion);
+    billboard.rotateY(Math.PI);
   }
 
   /**
