@@ -1281,8 +1281,8 @@ h2 {
   }
 
   function loadPlayerFormTexture(group, form) {
-    const sprite = group.getObjectByName("playerSprite");
-    if (!sprite || !sprite.material) return;
+    const billboard = group.getObjectByName("playerSprite");
+    if (!billboard || !billboard.material) return;
     const loader = new THREE.TextureLoader();
     loader.load(
       gameAssetSrc(form.file),
@@ -1290,19 +1290,19 @@ h2 {
         if ("colorSpace" in tex && THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
         else if ("encoding" in tex && THREE.sRGBEncoding) tex.encoding = THREE.sRGBEncoding;
         tex.needsUpdate = true;
-        if (sprite.material.map && sprite.material.map.dispose) {
+        if (billboard.material.map && billboard.material.map.dispose) {
           try {
-            sprite.material.map.dispose();
+            billboard.material.map.dispose();
           } catch (_) {
             /* ignore */
           }
         }
-        sprite.material.map = tex;
-        sprite.material.needsUpdate = true;
+        billboard.material.map = tex;
+        billboard.material.needsUpdate = true;
         const img = tex.image;
         if (img && img.width && img.height) {
           const h = form.height;
-          sprite.scale.set(h * (img.width / img.height), h, 1);
+          billboard.scale.set(h * (img.width / img.height), h, 1);
         }
         group.userData.formId = form.id;
         group.userData.hoverY = form.hoverY;
@@ -1317,7 +1317,19 @@ h2 {
     );
   }
 
-  /** Floating Ancient Relic sprite — Level 0 base player visual. */
+  /** Keep the player PNG facing the camera (billboard). */
+  function orientPlayerBillboard() {
+    if (!lanternGroup || !camera) return;
+    const billboard = lanternGroup.getObjectByName("playerSprite");
+    if (!billboard) return;
+    billboard.quaternion.copy(camera.quaternion);
+  }
+
+  /**
+   * Floating Ancient Relic billboard — Level 0 base player visual.
+   * Uses a camera-facing plane (not a ground fixture) so the exact PNG
+   * stays readable under the chase camera / software WebGL.
+   */
   function createPlayerVisual() {
     const form = PLAYER_VISUAL_FORMS[0];
     const group = new THREE.Group();
@@ -1327,21 +1339,22 @@ h2 {
     group.userData.hoverY = form.hoverY;
     group.userData.coreY = form.coreY;
 
-    const mat = new THREE.SpriteMaterial({
+    const mat = new THREE.MeshBasicMaterial({
       transparent: true,
       depthWrite: false,
       depthTest: true,
       opacity: 1,
-      // Keep the exact PNG readable against dark forest + ACES tonemap.
+      side: THREE.DoubleSide,
       fog: false,
+      alphaTest: 0.04,
     });
     if ("toneMapped" in mat) mat.toneMapped = false;
-    const sprite = new THREE.Sprite(mat);
-    sprite.name = "playerSprite";
-    sprite.renderOrder = 2;
+    const billboard = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
+    billboard.name = "playerSprite";
+    billboard.renderOrder = 3;
     const aspect = 1024 / 1536;
-    sprite.scale.set(form.height * aspect, form.height, 1);
-    group.add(sprite);
+    billboard.scale.set(form.height * aspect, form.height, 1);
+    group.add(billboard);
 
     // Light anchor at the glowing orange core (near image center)
     const core = new THREE.Object3D();
@@ -2155,6 +2168,7 @@ h2 {
       const coreY = lanternGroup.userData.coreY || 0.02;
       lanternGroup.position.set(0, hover + bob, 0);
       lanternGroup.rotation.set(0, 0, 0);
+      orientPlayerBillboard();
       lanternLight.position.set(0, hover + bob + coreY, 0);
       flameLight.position.set(0, hover + bob + coreY, 0);
       glowSprite.position.set(0, hover + bob + coreY, 0);
@@ -2188,6 +2202,7 @@ h2 {
     const coreY = lanternGroup.userData.coreY || 0.02;
     lanternGroup.position.set(pp.x, hover, pp.z);
     lanternGroup.rotation.set(0, 0, 0);
+    orientPlayerBillboard();
 
     const flick = 0.88 + Math.sin(state.time * 18) * 0.08 + Math.sin(state.time * 41) * 0.03;
     const lightMul = evo.light != null ? evo.light : 1;
@@ -2499,6 +2514,30 @@ h2 {
     sync,
     ready: function () {
       return ready;
+    },
+    /** Debug helper — inspect the Level 0 player billboard. */
+    debugPlayerVisual: function () {
+      if (!lanternGroup) return { ok: false, reason: "no group" };
+      const billboard = lanternGroup.getObjectByName("playerSprite");
+      const map = billboard && billboard.material && billboard.material.map;
+      const img = map && map.image;
+      return {
+        ok: true,
+        useSprite: !!lanternGroup.userData.useSprite,
+        formId: lanternGroup.userData.formId,
+        hoverY: lanternGroup.userData.hoverY,
+        coreY: lanternGroup.userData.coreY,
+        groupPos: lanternGroup.position.toArray(),
+        groupScale: lanternGroup.scale.toArray(),
+        spriteScale: billboard ? billboard.scale.toArray() : null,
+        isMesh: !!(billboard && billboard.isMesh),
+        hasMap: !!map,
+        mapSize: img ? [img.width || img.videoWidth || 0, img.height || img.videoHeight || 0] : null,
+        opacity: billboard && billboard.material ? billboard.material.opacity : null,
+        visible: billboard ? billboard.visible : null,
+        fog: billboard && billboard.material ? billboard.material.fog : null,
+        toneMapped: billboard && billboard.material ? billboard.material.toneMapped : null,
+      };
     },
   };
 })();
