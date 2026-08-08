@@ -152,16 +152,19 @@
 
   function createLanternModel() {
     const group = new THREE.Group();
+    group.userData.baseScale = 1.85;
 
     const handle = new THREE.Mesh(
       new THREE.TorusGeometry(0.18, 0.028, 12, 28, Math.PI),
       brassMat(),
     );
+    handle.name = "handle";
     handle.position.y = 0.72;
     handle.rotation.x = Math.PI;
     group.add(handle);
 
     const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.26, 0.14, 24), brassMat());
+    cap.name = "cap";
     cap.position.y = 0.55;
     group.add(cap);
 
@@ -169,6 +172,7 @@
       new THREE.CylinderGeometry(0.08, 0.12, 0.08, 12),
       brassMat(),
     );
+    vent.name = "vent";
     vent.position.y = 0.64;
     group.add(vent);
 
@@ -194,10 +198,12 @@
       new THREE.CylinderGeometry(0.015, 0.02, 0.08, 8),
       new THREE.MeshStandardMaterial({ color: 0x2a1a10, roughness: 1 }),
     );
+    wick.name = "wick";
     wick.position.y = 0.2;
     group.add(wick);
 
     const base = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.28, 0.14, 24), brassMat());
+    base.name = "base";
     base.position.y = 0.02;
     group.add(base);
 
@@ -209,18 +215,58 @@
         roughness: 0.42,
       }),
     );
+    foot.name = "foot";
     foot.position.y = -0.08;
     group.add(foot);
 
     for (let i = 0; i < 6; i++) {
       const bar = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.42, 0.025), brassMat());
+      bar.name = "bar";
       const a = (i / 6) * Math.PI * 2;
       bar.position.set(Math.cos(a) * 0.205, 0.28, Math.sin(a) * 0.205);
       group.add(bar);
     }
 
-    group.scale.setScalar(1.85);
+    group.scale.setScalar(group.userData.baseScale);
     return group;
+  }
+
+  /** Show/hide lantern parts and scale by evolution stage (title always full). */
+  function applyLanternEvolution(level, full = false) {
+    if (!lanternGroup) return { stage: 4, scale: 1, light: 1 };
+    const evo =
+      window.LanternForm && typeof window.LanternForm.of === "function"
+        ? window.LanternForm.of(full ? 99 : level || 1)
+        : { stage: 4, scale: 1, light: 1, name: "Hollow Lantern" };
+    const stage = full ? 4 : evo.stage;
+    const scale = full ? 1 : evo.scale;
+    const baseScale = lanternGroup.userData.baseScale || 1.85;
+    lanternGroup.scale.setScalar(baseScale * scale);
+
+    const vis = {
+      flame: true,
+      wick: stage >= 1,
+      glass: stage >= 2,
+      base: stage >= 2,
+      foot: stage >= 2,
+      bar: stage >= 3,
+      cap: stage >= 3,
+      vent: stage >= 4,
+      handle: stage >= 4,
+    };
+    lanternGroup.traverse((o) => {
+      if (o.name && Object.prototype.hasOwnProperty.call(vis, o.name)) {
+        o.visible = vis[o.name];
+      }
+    });
+
+    const flame = lanternGroup.getObjectByName("flame");
+    if (flame) {
+      // Early forms: flame sits lower as a free spark; later it rides inside the glass.
+      flame.position.y = stage <= 1 ? 0.12 + stage * 0.08 : 0.3;
+      flame.scale.setScalar(stage === 0 ? 1.35 : 1);
+    }
+    return evo;
   }
 
   function createEnemyMesh(kind) {
@@ -743,6 +789,7 @@
       // lower heroic angle so the brass lantern reads behind the title UI
       camera.position.set(Math.sin(t) * 4.5, 7.2, 8.8 + Math.cos(t) * 1.8);
       camera.lookAt(0, 0.85, 0);
+      applyLanternEvolution(99, true);
       lanternGroup.position.set(0, 0.2, 0);
       lanternGroup.rotation.y = t * 0.6;
       lanternLight.position.set(0, 1.35, 0);
@@ -777,30 +824,37 @@
     }
 
     const p = state.player;
+    const evo = applyLanternEvolution(p.level, false);
     const pp = worldTo3D(p.x, p.y);
     const bob = Math.sin(state.time * 6) * 0.05;
-    lanternGroup.position.set(pp.x, 0.15 + bob, pp.z);
+    const formLift = evo.stage <= 1 ? 0.05 : 0.15;
+    lanternGroup.position.set(pp.x, formLift + bob, pp.z);
     lanternGroup.rotation.z = 0;
     lanternGroup.rotation.y += 0.012;
 
     const flame = lanternGroup.getObjectByName("flame");
     const flick = 0.88 + Math.sin(state.time * 18) * 0.08 + Math.sin(state.time * 41) * 0.03;
+    const lightMul = evo.light != null ? evo.light : 1;
     if (flame) {
-      flame.scale.setScalar(0.9 + flick * 0.28);
-      flame.material.emissiveIntensity = 3.0 + flick * 2.2;
+      const baseFlame = evo.stage === 0 ? 1.25 : 0.9;
+      flame.scale.setScalar(baseFlame + flick * 0.28);
+      flame.material.emissiveIntensity = (2.4 + evo.stage * 0.25 + flick * 2.2) * lightMul;
     }
     const glass = lanternGroup.getObjectByName("glass");
     if (glass && glass.material && glass.material.emissiveIntensity != null) {
-      glass.material.emissiveIntensity = 0.65 + flick * 0.35;
+      glass.material.emissiveIntensity = (0.65 + flick * 0.35) * lightMul;
     }
 
-    lanternLight.position.set(pp.x, 1.35 + bob, pp.z);
-    lanternLight.intensity = 52 * flick;
-    flameLight.position.set(pp.x, 1.08 + bob, pp.z);
-    flameLight.intensity = 12 * flick;
-    glowSprite.position.set(pp.x, 1.05 + bob, pp.z);
-    glowSprite.material.opacity = 0.55 + flick * 0.35;
-    glowSprite.scale.setScalar(4.2 + flick * 0.8);
+    const lightH = evo.stage <= 1 ? 0.55 : 1.35;
+    const flameH = evo.stage <= 1 ? 0.45 : 1.08;
+    const glowH = evo.stage <= 1 ? 0.4 : 1.05;
+    lanternLight.position.set(pp.x, lightH + bob, pp.z);
+    lanternLight.intensity = 52 * flick * lightMul;
+    flameLight.position.set(pp.x, flameH + bob, pp.z);
+    flameLight.intensity = 12 * flick * lightMul;
+    glowSprite.position.set(pp.x, glowH + bob, pp.z);
+    glowSprite.material.opacity = (0.4 + flick * 0.35) * lightMul;
+    glowSprite.scale.setScalar((2.2 + evo.stage * 0.5 + flick * 0.8) * (0.7 + lightMul * 0.3));
 
     ringMesh.position.set(pp.x, 0.06, pp.z);
     const hp = Math.max(0.05, p.hp / p.maxHp);

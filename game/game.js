@@ -730,12 +730,16 @@
     state.baseMagnet = state.player.magnet;
     state.player.x = 0;
     state.player.y = 0;
+    {
+      const evo = lanternEvolution(1);
+      state.player.r = evo.r;
+    }
     setMode("play");
     refreshWeaponUi();
     showCoach(
       isTouchPrimary()
-        ? "You are the glowing lantern. Drive through weapon crates, then tap Fire."
-        : "You are the glowing lantern. WASD move · pick up weapons · Space to fire",
+        ? "You start as a Tiny Light — level up to grow into a full lantern."
+        : "You start as a Tiny Light. WASD move · level up to evolve · Space fires weapons",
     );
     lastTs = performance.now();
     cancelAnimationFrame(animId);
@@ -763,6 +767,26 @@
   function xpForLevel(level) {
     return Math.floor(10 + level * 7 + level * level * 1.4);
   }
+
+  /** Visual evolution of the player lantern by level. */
+  function lanternEvolution(level) {
+    const lv = Math.max(1, level || 1);
+    if (lv >= 10) {
+      return { stage: 4, name: "Hollow Lantern", scale: 1, r: 14, light: 1, minLevel: 10 };
+    }
+    if (lv >= 7) {
+      return { stage: 3, name: "Brass Cage", scale: 0.82, r: 13, light: 0.9, minLevel: 7 };
+    }
+    if (lv >= 5) {
+      return { stage: 2, name: "Glass Ember", scale: 0.64, r: 12, light: 0.78, minLevel: 5 };
+    }
+    if (lv >= 3) {
+      return { stage: 1, name: "Kindled Flame", scale: 0.45, r: 11, light: 0.62, minLevel: 3 };
+    }
+    return { stage: 0, name: "Tiny Light", scale: 0.3, r: 10, light: 0.5, minLevel: 1 };
+  }
+
+  window.LanternForm = { of: lanternEvolution };
 
   function spawnEnemy(kind = null) {
     const angle = rand(0, TAU);
@@ -1038,6 +1062,7 @@
     const p = state.player;
     p.xp += amount;
     let leveled = 0;
+    const stageBefore = lanternEvolution(p.level).stage;
     while (p.xp >= p.nextXp) {
       p.xp -= p.nextXp;
       p.level += 1;
@@ -1046,6 +1071,14 @@
       leveled += 1;
     }
     if (leveled > 0) {
+      const evo = lanternEvolution(p.level);
+      p.r = evo.r;
+      if (evo.stage > stageBefore) {
+        showBanner(`Lantern evolves — ${evo.name}!`, 2.2);
+        floatText(p.x, p.y - 40, evo.name, "#ffe08a", 1.4, true);
+        addParticles(p.x, p.y, "#f0b429", 28, 240);
+        addParticles(p.x, p.y, "#fff2c0", 18, 180);
+      }
       state.levelUpsQueued = (state.levelUpsQueued || 0) + leveled;
       sfx.level();
       if (!state.pausedChoice) offerLevelUp();
@@ -1769,115 +1802,138 @@
   }
 
   function drawLantern(ps, p) {
+    const evo = lanternEvolution(p.level);
     const flicker = 0.88 + Math.sin(state.time * 18) * 0.07 + Math.sin(state.time * 29) * 0.04;
+    const lightMul = evo.light;
+    const poolR = (90 + evo.stage * 30) * flicker;
 
-    // big warm ground pool so you always spot yourself
-    const pool = ctx.createRadialGradient(ps.x, ps.y + 18, 6, ps.x, ps.y + 18, 210 * flicker);
-    pool.addColorStop(0, `rgba(255, 210, 110, ${0.55 * flicker})`);
-    pool.addColorStop(0.25, `rgba(255, 170, 60, ${0.22 * flicker})`);
-    pool.addColorStop(0.65, `rgba(255, 140, 40, 0.08)`);
+    // warm ground pool — grows with evolution
+    const pool = ctx.createRadialGradient(ps.x, ps.y + 18, 4, ps.x, ps.y + 18, poolR);
+    pool.addColorStop(0, `rgba(255, 210, 110, ${0.55 * flicker * lightMul})`);
+    pool.addColorStop(0.25, `rgba(255, 170, 60, ${0.22 * flicker * lightMul})`);
+    pool.addColorStop(0.65, `rgba(255, 140, 40, ${0.08 * lightMul})`);
     pool.addColorStop(1, "rgba(255,140,40,0)");
     ctx.fillStyle = pool;
     ctx.beginPath();
-    ctx.arc(ps.x, ps.y + 18, 210 * flicker, 0, TAU);
+    ctx.arc(ps.x, ps.y + 18, poolR, 0, TAU);
     ctx.fill();
 
-    drawShadow(ps.x, ps.y + 22, 28, 14, 0.45);
+    const shadowScale = 0.55 + evo.scale * 0.45;
+    drawShadow(ps.x, ps.y + 22 * shadowScale, 28 * shadowScale, 14 * shadowScale, 0.35 + evo.stage * 0.025);
 
     ctx.save();
     ctx.translate(ps.x, ps.y);
-    ctx.scale(2.1, 2.1);
+    ctx.scale(2.1 * evo.scale, 2.1 * evo.scale);
 
-    // ring plate under lantern
-    ctx.fillStyle = "rgba(255, 200, 90, 0.2)";
-    safeEllipse(0, 16, 14, 5, 0);
-    ctx.fill();
+    if (evo.stage >= 2) {
+      ctx.fillStyle = "rgba(255, 200, 90, 0.2)";
+      safeEllipse(0, 16, 14, 5, 0);
+      ctx.fill();
+    }
 
-    // handle
-    ctx.strokeStyle = "#5a3a16";
-    ctx.lineWidth = 2.8;
-    ctx.beginPath();
-    ctx.arc(0, -13, 8, Math.PI * 1.05, Math.PI * 1.95);
-    ctx.stroke();
+    if (evo.stage >= 4) {
+      // handle
+      ctx.strokeStyle = "#5a3a16";
+      ctx.lineWidth = 2.8;
+      ctx.beginPath();
+      ctx.arc(0, -13, 8, Math.PI * 1.05, Math.PI * 1.95);
+      ctx.stroke();
+    }
 
-    // top cap
-    const cap = ctx.createLinearGradient(-9, -10, 9, 0);
-    cap.addColorStop(0, "#6e4518");
-    cap.addColorStop(0.5, "#e0a84a");
-    cap.addColorStop(1, "#7a4a1a");
-    ctx.fillStyle = cap;
-    ctx.beginPath();
-    ctx.moveTo(-9, -9);
-    ctx.lineTo(9, -9);
-    ctx.lineTo(7, -2);
-    ctx.lineTo(-7, -2);
-    ctx.closePath();
-    ctx.fill();
+    if (evo.stage >= 3) {
+      // top cap
+      const cap = ctx.createLinearGradient(-9, -10, 9, 0);
+      cap.addColorStop(0, "#6e4518");
+      cap.addColorStop(0.5, "#e0a84a");
+      cap.addColorStop(1, "#7a4a1a");
+      ctx.fillStyle = cap;
+      ctx.beginPath();
+      ctx.moveTo(-9, -9);
+      ctx.lineTo(9, -9);
+      ctx.lineTo(7, -2);
+      ctx.lineTo(-7, -2);
+      ctx.closePath();
+      ctx.fill();
+    }
 
-    // glass
-    const glass = ctx.createLinearGradient(-8, -1, 9, 14);
-    glass.addColorStop(0, "rgba(255,245,200,0.75)");
-    glass.addColorStop(0.45, "rgba(255,190,80,0.45)");
-    glass.addColorStop(1, "rgba(160,90,30,0.55)");
-    ctx.fillStyle = glass;
-    ctx.beginPath();
-    ctx.moveTo(-8, -1);
-    ctx.lineTo(8, -1);
-    ctx.lineTo(7, 13);
-    ctx.lineTo(-7, 13);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = "rgba(255,255,230,0.55)";
-    ctx.lineWidth = 1.2;
-    ctx.stroke();
+    if (evo.stage >= 2) {
+      // glass
+      const glass = ctx.createLinearGradient(-8, -1, 9, 14);
+      glass.addColorStop(0, "rgba(255,245,200,0.75)");
+      glass.addColorStop(0.45, "rgba(255,190,80,0.45)");
+      glass.addColorStop(1, "rgba(160,90,30,0.55)");
+      ctx.fillStyle = glass;
+      ctx.beginPath();
+      ctx.moveTo(-8, -1);
+      ctx.lineTo(8, -1);
+      ctx.lineTo(7, 13);
+      ctx.lineTo(-7, 13);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255,255,230,0.55)";
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+    }
 
-    // bright flame core
-    const flameH = 9 + flicker * 5;
-    const flame = ctx.createRadialGradient(0, 3, 0.4, 0, 3, flameH);
+    if (evo.stage >= 1) {
+      // wick under the flame
+      ctx.fillStyle = "#2a1a10";
+      ctx.fillRect(-1.2, evo.stage >= 2 ? 6 : 4, 2.4, 5);
+    }
+
+    // bright flame core (always — this is you at stage 0)
+    const flameY = evo.stage >= 2 ? 3 : evo.stage === 1 ? 2 : 0;
+    const flameH = (evo.stage === 0 ? 12 : 9) + flicker * 5;
+    const flame = ctx.createRadialGradient(0, flameY, 0.4, 0, flameY, flameH);
     flame.addColorStop(0, "#fffce8");
     flame.addColorStop(0.35, "#ffd056");
     flame.addColorStop(0.75, "#ff8a2a");
     flame.addColorStop(1, "rgba(255,80,0,0)");
     ctx.fillStyle = flame;
     ctx.beginPath();
-    ctx.moveTo(0, 3 - flameH);
-    ctx.quadraticCurveTo(5, 3, 0, 8);
-    ctx.quadraticCurveTo(-5, 3, 0, 3 - flameH);
+    ctx.moveTo(0, flameY - flameH);
+    ctx.quadraticCurveTo(5 + (evo.stage === 0 ? 2 : 0), flameY, 0, flameY + 5);
+    ctx.quadraticCurveTo(-(5 + (evo.stage === 0 ? 2 : 0)), flameY, 0, flameY - flameH);
     ctx.fill();
 
-    // brass cage lines
-    ctx.strokeStyle = "rgba(90, 55, 20, 0.65)";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(0, -1);
-    ctx.lineTo(0, 13);
-    ctx.moveTo(-4, -1);
-    ctx.lineTo(-3.5, 13);
-    ctx.moveTo(4, -1);
-    ctx.lineTo(3.5, 13);
-    ctx.stroke();
+    if (evo.stage >= 3) {
+      // brass cage lines
+      ctx.strokeStyle = "rgba(90, 55, 20, 0.65)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, -1);
+      ctx.lineTo(0, 13);
+      ctx.moveTo(-4, -1);
+      ctx.lineTo(-3.5, 13);
+      ctx.moveTo(4, -1);
+      ctx.lineTo(3.5, 13);
+      ctx.stroke();
+    }
 
-    // base
-    const base = ctx.createLinearGradient(-8, 13, 8, 20);
-    base.addColorStop(0, "#5a3612");
-    base.addColorStop(0.5, "#c48932");
-    base.addColorStop(1, "#4a2c10");
-    ctx.fillStyle = base;
-    ctx.fillRect(-8, 13, 16, 5);
-    ctx.fillStyle = "#3a220c";
-    ctx.fillRect(-6, 18, 12, 3);
+    if (evo.stage >= 2) {
+      // base
+      const base = ctx.createLinearGradient(-8, 13, 8, 20);
+      base.addColorStop(0, "#5a3612");
+      base.addColorStop(0.5, "#c48932");
+      base.addColorStop(1, "#4a2c10");
+      ctx.fillStyle = base;
+      ctx.fillRect(-8, 13, 16, 5);
+      ctx.fillStyle = "#3a220c";
+      ctx.fillRect(-6, 18, 12, 3);
+    }
 
     ctx.restore();
 
-    // hp ring
+    // hp ring — slightly tighter when tiny
+    const ringR = 22 + evo.stage * 3;
     ctx.strokeStyle = "rgba(215,228,213,0.25)";
     ctx.lineWidth = 4;
     ctx.beginPath();
-    ctx.arc(ps.x, ps.y, 34, 0, TAU);
+    ctx.arc(ps.x, ps.y, ringR, 0, TAU);
     ctx.stroke();
     ctx.strokeStyle = "#f0b429";
     ctx.beginPath();
-    ctx.arc(ps.x, ps.y, 34, -Math.PI / 2, -Math.PI / 2 + TAU * (p.hp / p.maxHp));
+    ctx.arc(ps.x, ps.y, ringR, -Math.PI / 2, -Math.PI / 2 + TAU * (p.hp / p.maxHp));
     ctx.stroke();
 
     drawCrateDirectionHints(ps, p);
@@ -1885,7 +1941,7 @@
 
   function drawCrateDirectionHints(ps, p) {
     if (!state.weaponPickups || !state.weaponPickups.length) return;
-    const ringR = 38;
+    const ringR = 26 + lanternEvolution(p.level).stage * 3;
     for (let i = 0; i < state.weaponPickups.length; i++) {
       const w = state.weaponPickups[i];
       const ang = Math.atan2(w.y - p.y, w.x - p.x);
