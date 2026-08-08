@@ -1,0 +1,2552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Lantern Hollow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%231a2f24'/%3E%3Ccircle cx='32' cy='28' r='12' fill='%23f0b429'/%3E%3Cpath d='M26 40h12l-2 14h-8z' fill='%23c9842a'/%3E%3C/svg%3E" />
+  <style>
+:root {
+  --ink: #142019;
+  --moss: #1f3b2d;
+  --fern: #2f6a45;
+  --mist: #d7e4d5;
+  --amber: #f0b429;
+  --ember: #e07a2f;
+  --cream: #f4efe4;
+  --panel: rgba(18, 32, 24, 0.86);
+  --line: rgba(240, 180, 41, 0.35);
+  --shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  --font-display: "Fraunces", Georgia, serif;
+  --font-body: "Outfit", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 20% 15%, rgba(240, 180, 41, 0.18), transparent 35%),
+    radial-gradient(circle at 80% 80%, rgba(47, 106, 69, 0.35), transparent 40%),
+    linear-gradient(160deg, #0d1712 0%, #1a2f24 45%, #0b1210 100%);
+  color: var(--cream);
+  font-family: var(--font-body);
+}
+
+#app {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+#game {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  background: #0b1210;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.panel {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 20px;
+  text-align: center;
+  background:
+    radial-gradient(circle at 50% 20%, rgba(240, 180, 41, 0.16), transparent 42%),
+    linear-gradient(180deg, rgba(10, 16, 13, 0.55), rgba(10, 16, 13, 0.82));
+  backdrop-filter: blur(4px);
+  animation: fade-in 420ms ease both;
+}
+
+.panel-glow {
+  position: absolute;
+  width: min(520px, 80vw);
+  height: min(520px, 80vw);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(240, 180, 41, 0.2), transparent 65%);
+  filter: blur(8px);
+  animation: pulse 4.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.eyebrow {
+  position: relative;
+  z-index: 1;
+  font-size: 0.85rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 10px;
+}
+
+h1,
+h2 {
+  position: relative;
+  z-index: 1;
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1.05;
+  color: var(--cream);
+  text-shadow: 0 2px 24px rgba(240, 180, 41, 0.25);
+}
+
+h1 {
+  font-size: clamp(3rem, 10vw, 5.5rem);
+  margin-bottom: 14px;
+}
+
+h2 {
+  font-size: clamp(2rem, 6vw, 3rem);
+  margin-bottom: 10px;
+}
+
+.lede {
+  position: relative;
+  z-index: 1;
+  max-width: 34rem;
+  color: var(--mist);
+  font-size: 1.05rem;
+  line-height: 1.5;
+  margin-bottom: 22px;
+}
+
+.coach {
+  margin-top: 10px;
+  display: inline-block;
+  max-width: min(520px, 92vw);
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  background: rgba(20, 32, 25, 0.88);
+  color: var(--cream);
+  font-weight: 600;
+  font-size: 0.95rem;
+  animation: fade-in 280ms ease both;
+}
+
+.tut-card {
+  position: relative;
+  z-index: 1;
+  width: min(520px, 100%);
+  text-align: left;
+  margin: 0 auto 20px;
+  padding: 18px 18px;
+  border: 1px solid var(--line);
+  background: rgba(20, 32, 25, 0.88);
+  color: var(--mist);
+  line-height: 1.5;
+  box-shadow: var(--shadow);
+}
+
+.tut-card .key {
+  display: inline-block;
+  margin: 2px 2px;
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  background: rgba(240, 180, 41, 0.12);
+  color: var(--amber);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.tut-card ul {
+  margin: 10px 0 0 18px;
+}
+
+.tut-card li {
+  margin: 6px 0;
+}
+
+.control-cheat {
+  position: relative;
+  z-index: 1;
+  width: min(520px, 100%);
+  text-align: left;
+  margin: 0 auto 20px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  background: rgba(20, 32, 25, 0.8);
+  color: var(--mist);
+  display: grid;
+  gap: 8px;
+  font-size: 0.95rem;
+}
+
+.control-cheat strong {
+  color: var(--amber);
+}
+
+.linkish {
+  position: relative;
+  z-index: 1;
+  margin-top: 14px;
+  background: none;
+  border: none;
+  color: rgba(215, 228, 213, 0.75);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.hud-pause {
+  pointer-events: auto;
+  border: 1px solid var(--line);
+  background: rgba(20, 32, 25, 0.85);
+  color: var(--cream);
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.touch-label {
+  position: absolute;
+  color: var(--cream);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+  max-width: 140px;
+  line-height: 1.25;
+}
+
+.move-label {
+  left: 28px;
+  bottom: 148px;
+}
+
+.dash-label {
+  right: 18px;
+  bottom: 148px;
+  text-align: right;
+  max-width: 150px;
+}
+
+.footnote {
+  position: relative;
+  z-index: 1;
+  margin-top: 18px;
+  color: rgba(215, 228, 213, 0.7);
+  font-size: 0.9rem;
+}
+
+.meta-row {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 22px;
+}
+
+.meta-chip {
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  background: rgba(20, 32, 25, 0.75);
+  color: var(--mist);
+  font-size: 0.92rem;
+}
+
+.meta-chip strong {
+  color: var(--amber);
+  font-weight: 700;
+}
+
+.btn-row {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+}
+
+.btn {
+  appearance: none;
+  border: 1px solid rgba(215, 228, 213, 0.35);
+  background: rgba(20, 40, 28, 0.9);
+  color: var(--cream);
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 1rem;
+  padding: 14px 22px;
+  cursor: pointer;
+  transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
+}
+
+.btn:hover,
+.btn:focus-visible {
+  transform: translateY(-2px);
+  border-color: var(--amber);
+  outline: none;
+}
+
+.btn.primary {
+  background: linear-gradient(135deg, var(--amber), var(--ember));
+  color: var(--ink);
+  border-color: transparent;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+#hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  padding: 14px 16px 0;
+  pointer-events: none;
+}
+
+.hud-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+}
+
+.hud-brand {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  color: var(--amber);
+}
+
+.hud-stats {
+  display: flex;
+  gap: 14px;
+  color: var(--mist);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.xp-track {
+  margin-top: 8px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.dash-track {
+  margin-top: 6px;
+  height: 5px;
+  max-width: 220px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+#xp-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--fern), var(--amber));
+  transition: width 120ms linear;
+}
+
+#dash-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, var(--ember), var(--amber));
+  transition: width 80ms linear;
+}
+
+.banner {
+  margin-top: 12px;
+  display: inline-block;
+  padding: 10px 16px;
+  border: 1px solid rgba(224, 122, 47, 0.55);
+  background: rgba(40, 18, 10, 0.82);
+  color: #ffd39a;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  animation: fade-in 240ms ease both;
+}
+
+#hud-hp.danger {
+  color: #e07a2f;
+}
+
+#hud-dash.ready {
+  color: var(--amber);
+}
+
+.hud-focus {
+  color: #ffd39a;
+  border: 1px solid rgba(224, 122, 47, 0.7);
+  padding: 2px 8px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+.hud-hint {
+  margin-top: 8px;
+  font-size: 0.78rem;
+  color: rgba(215, 228, 213, 0.55);
+}
+
+.shop-balance {
+  margin-bottom: 16px;
+  color: var(--mist);
+}
+
+.shop-list,
+.choice-list {
+  position: relative;
+  z-index: 1;
+  width: min(720px, 100%);
+  display: grid;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.shop-list {
+  max-height: min(50vh, 420px);
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.choice-list {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.card {
+  text-align: left;
+  padding: 16px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+  box-shadow: var(--shadow);
+}
+
+.card:hover,
+.card:focus-visible {
+  transform: translateY(-3px);
+  border-color: var(--amber);
+  outline: none;
+}
+
+.card h3 {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  margin-bottom: 6px;
+  color: var(--amber);
+}
+
+.card p {
+  color: var(--mist);
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+
+.card .price {
+  margin-top: 10px;
+  color: var(--cream);
+  font-weight: 700;
+}
+
+.card .strategy {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(240, 180, 41, 0.25);
+  color: #ffd39a;
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.card .tag {
+  display: inline-block;
+  margin-bottom: 6px;
+  color: var(--amber);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.build-chip {
+  display: inline-block;
+  margin: 3px 4px 0 0;
+  padding: 3px 8px;
+  border: 1px solid var(--line);
+  color: var(--cream);
+  font-size: 0.82rem;
+}
+
+.unlock-list {
+  list-style: none;
+  margin-bottom: 18px;
+  color: var(--amber);
+  font-weight: 600;
+}
+
+#touch-zone {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.stick {
+  position: absolute;
+  left: 28px;
+  bottom: 28px;
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  border: 1px solid rgba(240, 180, 41, 0.35);
+  background: rgba(12, 20, 16, 0.35);
+  pointer-events: auto;
+}
+
+.stick-knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 48px;
+  height: 48px;
+  margin: -24px 0 0 -24px;
+  border-radius: 50%;
+  background: rgba(240, 180, 41, 0.8);
+}
+
+.dash-btn {
+  position: absolute;
+  right: 28px;
+  bottom: 40px;
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  border: 1px solid rgba(240, 180, 41, 0.45);
+  background: rgba(224, 122, 47, 0.85);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 1rem;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.1;
+  gap: 2px;
+}
+
+.dash-btn .dash-sub {
+  font-size: 0.65rem;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.dash-btn:disabled,
+.dash-btn.cooling {
+  opacity: 0.45;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.08); opacity: 1; }
+}
+
+@media (max-width: 700px) {
+  .hud-hint { display: none; }
+  .lede { font-size: 0.98rem; }
+}
+
+  </style>
+</head>
+<body>
+<div id="app">
+    <canvas id="game" aria-label="Lantern Hollow game canvas"></canvas>
+
+    <div id="hud" class="hidden">
+      <div class="hud-top">
+        <div class="hud-brand">Lantern Hollow</div>
+        <div class="hud-stats">
+          <span id="hud-time" title="How long you have survived">0:00</span>
+          <span id="hud-hp" title="Your health. Reach 0 and the run ends.">100 light</span>
+          <span id="hud-dash" title="Dash cooldown. Ready means you can burst away.">Dash ready</span>
+          <span id="hud-focus" class="hud-focus hidden" title="Holding F: prioritizing brutes and bosses">FOCUS</span>
+          <span id="hud-kills">0 kills</span>
+          <span id="hud-level">Lv 1</span>
+          <button type="button" id="btn-mute" class="hud-pause" title="Mute or unmute sounds">Sound</button>
+          <button type="button" id="btn-hud-pause" class="hud-pause" title="Pause the game">Pause</button>
+        </div>
+      </div>
+      <div class="xp-track" title="XP bar — fill it to level up">
+        <div id="xp-fill"></div>
+      </div>
+      <div class="dash-track" title="Dash cooldown">
+        <div id="dash-fill"></div>
+      </div>
+      <div class="hud-hint">Yellow = XP · Amber bar = Dash cooldown · Space to dash</div>
+      <div id="banner" class="banner hidden"></div>
+      <div id="coach" class="coach hidden"></div>
+    </div>
+
+    <div id="touch-zone" class="hidden" aria-hidden="true">
+      <div class="touch-label move-label">Move</div>
+      <div id="stick" class="stick" aria-label="Move stick">
+        <div id="stick-knob" class="stick-knob"></div>
+      </div>
+      <div class="touch-label dash-label">Dash = quick burst of speed to escape</div>
+      <button type="button" id="dash-btn" class="dash-btn" title="Dash: short burst of speed. You also become briefly safe while dashing.">
+        Dash
+        <span class="dash-sub">speed burst</span>
+      </button>
+    </div>
+
+    <section id="title" class="panel">
+      <div class="panel-glow"></div>
+      <p class="eyebrow">A marsh of endless nights</p>
+      <h1>Lantern Hollow</h1>
+      <p class="lede">Survive as long as you can. Your lantern fights for you — you just steer and dash.</p>
+
+      <div class="meta-row">
+        <div class="meta-chip"><strong id="meta-embers">0</strong> embers</div>
+        <div class="meta-chip">Best <strong id="meta-best">0:00</strong></div>
+        <div class="meta-chip">Runs <strong id="meta-runs">0</strong></div>
+      </div>
+      <div class="btn-row">
+        <button type="button" id="btn-start" class="btn primary">PLAY</button>
+      </div>
+      <div class="btn-row" style="margin-top:10px">
+        <button type="button" id="btn-tutorial" class="btn">How to play</button>
+        <button type="button" id="btn-upgrades" class="btn">Ember shop</button>
+        <button type="button" id="btn-mute-title" class="btn">Sound on</button>
+      </div>
+      <p class="footnote">Tap <strong>PLAY</strong> to start immediately. Use How to play if you want the tutorial first.</p>
+    </section>
+
+    <section id="tutorial" class="panel hidden">
+      <p class="eyebrow" id="tut-step-label">Step 1 of 6</p>
+      <h2 id="tut-title">Welcome</h2>
+      <p class="lede" id="tut-body">Learn the controls before your first night.</p>
+      <div class="tut-card" id="tut-card"></div>
+      <div class="btn-row">
+        <button type="button" id="btn-tut-back" class="btn">Back</button>
+        <button type="button" id="btn-tut-next" class="btn primary">Next</button>
+      </div>
+      <button type="button" id="btn-tut-skip" class="linkish">Skip tutorial</button>
+    </section>
+
+    <section id="shop" class="panel hidden">
+      <h2>Ember shop</h2>
+      <p class="lede">
+        <strong>Embers</strong> are the coins you earn after each run.
+        Spending them here makes every future run permanently stronger on this device.
+      </p>
+      <p class="shop-balance">You have <strong id="shop-embers">0</strong> embers</p>
+      <div id="shop-list" class="shop-list"></div>
+      <button type="button" id="btn-shop-back" class="btn">Back</button>
+    </section>
+
+    <section id="levelup" class="panel hidden">
+      <h2>Level up!</h2>
+      <p class="lede">Pick a <strong>strategy</strong> for this run. Read the tip under each option.</p>
+      <div id="upgrade-choices" class="choice-list"></div>
+    </section>
+
+    <section id="tactic" class="panel hidden">
+      <h2 id="tactic-title">Tactical choice</h2>
+      <p class="lede" id="tactic-body">A fork in the marsh. Only one path.</p>
+      <div id="tactic-choices" class="choice-list"></div>
+    </section>
+
+    <section id="pause" class="panel hidden">
+      <h2>Paused</h2>
+      <p class="lede">Game is frozen. Check your build, then resume.</p>
+      <div class="control-cheat">
+        <div><strong>Move</strong> — WASD / arrows / left stick</div>
+        <div><strong>Dash</strong> — Space / Shift / orange button: escape <em>and</em> damage enemies you rush through</div>
+        <div><strong>Focus</strong> — hold <span class="key">F</span> to prioritize brutes/bosses</div>
+        <div><strong>Attack</strong> — automatic</div>
+        <div><strong>Pause</strong> — P / Escape / Pause button</div>
+      </div>
+      <div class="control-cheat">
+        <div><strong>Your build this run</strong></div>
+        <div id="pause-build">No upgrades yet.</div>
+      </div>
+      <div class="btn-row">
+        <button type="button" id="btn-resume" class="btn primary">Resume</button>
+        <button type="button" id="btn-pause-help" class="btn">How to play</button>
+        <button type="button" id="btn-quit" class="btn">End run</button>
+      </div>
+    </section>
+
+    <section id="gameover" class="panel hidden">
+      <h2 id="over-title">Light snuffed</h2>
+      <p class="lede" id="over-summary">You lasted 0:00.</p>
+      <div class="meta-row">
+        <div class="meta-chip">Kills <strong id="over-kills">0</strong></div>
+        <div class="meta-chip">Level <strong id="over-level">1</strong></div>
+        <div class="meta-chip">Embers +<strong id="over-embers">0</strong></div>
+      </div>
+      <ul id="over-unlocks" class="unlock-list"></ul>
+      <div class="btn-row">
+        <button type="button" id="btn-again" class="btn primary">Play again</button>
+        <button type="button" id="btn-menu" class="btn">Main menu</button>
+      </div>
+    </section>
+  </div>
+  <script>
+(() => {
+  "use strict";
+
+  const STORAGE_KEY = "lantern-hollow-v1";
+  const TAU = Math.PI * 2;
+
+  let audioCtx = null;
+  function ensureAudio() {
+    if (!audioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      audioCtx = new AC();
+    }
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    return audioCtx;
+  }
+
+  function beep(freq, dur = 0.08, type = "square", gain = 0.04, slide = 0) {
+    if (meta && meta.muted) return;
+    const ctxA = ensureAudio();
+    if (!ctxA) return;
+    const osc = ctxA.createOscillator();
+    const g = ctxA.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, ctxA.currentTime);
+    if (slide) {
+      osc.frequency.exponentialRampToValueAtTime(
+        Math.max(40, freq + slide),
+        ctxA.currentTime + dur,
+      );
+    }
+    g.gain.setValueAtTime(gain, ctxA.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctxA.currentTime + dur);
+    osc.connect(g);
+    g.connect(ctxA.destination);
+    osc.start();
+    osc.stop(ctxA.currentTime + dur + 0.02);
+  }
+
+  const sfx = {
+    shoot: () => beep(520, 0.05, "square", 0.025, -180),
+    hit: () => beep(180, 0.05, "triangle", 0.03, -60),
+    kill: () => beep(340, 0.07, "sawtooth", 0.03, 220),
+    xp: () => beep(760, 0.06, "sine", 0.025, 200),
+    level: () => { beep(440, 0.08, "sine", 0.04, 200); setTimeout(() => beep(660, 0.1, "sine", 0.04), 80); },
+    hurt: () => beep(120, 0.14, "sawtooth", 0.05, -40),
+    dash: () => beep(280, 0.1, "square", 0.035, 260),
+    boss: () => { beep(90, 0.2, "sawtooth", 0.05); setTimeout(() => beep(70, 0.25, "sawtooth", 0.05), 120); },
+    death: () => beep(70, 0.35, "sawtooth", 0.06, -30),
+  };
+
+
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+
+  const ui = {
+    title: document.getElementById("title"),
+    tutorial: document.getElementById("tutorial"),
+    shop: document.getElementById("shop"),
+    levelup: document.getElementById("levelup"),
+    pause: document.getElementById("pause"),
+    gameover: document.getElementById("gameover"),
+    hud: document.getElementById("hud"),
+    touch: document.getElementById("touch-zone"),
+    xpFill: document.getElementById("xp-fill"),
+    hudTime: document.getElementById("hud-time"),
+    hudHp: document.getElementById("hud-hp"),
+    hudKills: document.getElementById("hud-kills"),
+    hudLevel: document.getElementById("hud-level"),
+    coach: document.getElementById("coach"),
+    banner: document.getElementById("banner"),
+    hudDash: document.getElementById("hud-dash"),
+    hudFocus: document.getElementById("hud-focus"),
+    dashFill: document.getElementById("dash-fill"),
+    metaEmbers: document.getElementById("meta-embers"),
+    metaBest: document.getElementById("meta-best"),
+    metaRuns: document.getElementById("meta-runs"),
+    shopEmbers: document.getElementById("shop-embers"),
+    shopList: document.getElementById("shop-list"),
+    upgradeChoices: document.getElementById("upgrade-choices"),
+    overTitle: document.getElementById("over-title"),
+    overSummary: document.getElementById("over-summary"),
+    overKills: document.getElementById("over-kills"),
+    overLevel: document.getElementById("over-level"),
+    overEmbers: document.getElementById("over-embers"),
+    overUnlocks: document.getElementById("over-unlocks"),
+    stick: document.getElementById("stick"),
+    stickKnob: document.getElementById("stick-knob"),
+    dashBtn: document.getElementById("dash-btn"),
+    tutStepLabel: document.getElementById("tut-step-label"),
+    tutTitle: document.getElementById("tut-title"),
+    tutBody: document.getElementById("tut-body"),
+    tutCard: document.getElementById("tut-card"),
+    tutBack: document.getElementById("btn-tut-back"),
+    tutNext: document.getElementById("btn-tut-next"),
+    tactic: document.getElementById("tactic"),
+    tacticTitle: document.getElementById("tactic-title"),
+    tacticBody: document.getElementById("tactic-body"),
+    tacticChoices: document.getElementById("tactic-choices"),
+    pauseBuild: document.getElementById("pause-build"),
+  };
+
+  const TUTORIAL_STEPS = [
+    {
+      title: "You are the lantern",
+      body: "Your job is simple: stay alive as long as possible.",
+      card: `
+        <p>The glowing circle in the middle is <strong>you</strong>.</p>
+        <ul>
+          <li><strong>Light</strong> (top bar number) is your health.</li>
+          <li>If light hits <strong>0</strong>, the run ends.</li>
+          <li>You do <strong>not</strong> click to attack — your lantern shoots by itself.</li>
+        </ul>
+      `,
+    },
+    {
+      title: "Move",
+      body: "Steering is your main job.",
+      card: `
+        <p><strong>Keyboard:</strong> hold <span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span> or the arrow keys.</p>
+        <p><strong>Phone / tablet:</strong> drag the left <strong>Move</strong> stick.</p>
+        <ul>
+          <li>Keep moving so green enemies don’t pile on you.</li>
+          <li>There is no jump and no special move stick combo — just direction.</li>
+        </ul>
+      `,
+    },
+    {
+      title: "What Dash does",
+      body: "Dash is both escape and a tactical weapon.",
+      card: `
+        <p><strong>Dash</strong> surges you forward for a moment.</p>
+        <ul>
+          <li><strong>Keyboard:</strong> <span class="key">Space</span> or <span class="key">Shift</span></li>
+          <li><strong>Phone:</strong> orange <strong>Dash</strong> button</li>
+          <li>You are briefly safe while dashing</li>
+          <li><strong>Strategy:</strong> dash <em>through</em> a pack to damage them, or dash <em>away</em> when surrounded</li>
+        </ul>
+      `,
+    },
+    {
+      title: "Think in builds",
+      body: "Upgrades are choices, not just power-ups.",
+      card: `
+        <ul>
+          <li><strong>Offense</strong> (Lash Beam, Quick Flash, Split Wick): clear packs faster, but you must stay aggressive for XP.</li>
+          <li><strong>Close-range</strong> (Orbit Sparks, Burst Nova, Bramble): strong if you dare to stay near enemies.</li>
+          <li><strong>Survival</strong> (Warm Core, Glass Shade, Reed Boots): live longer, usually slower clears.</li>
+          <li><strong>Pickup</strong> (Moth Charm): safer XP collection so you can kite farther away.</li>
+        </ul>
+        <p>Pick a lane and stack it. Mixing randomly feels weaker.</p>
+      `,
+    },
+    {
+      title: "Focus fire & tactics",
+      body: "You get real decisions mid-run.",
+      card: `
+        <ul>
+          <li>Hold <span class="key">F</span> to <strong>focus</strong> brutes and bosses instead of the nearest weak wisp.</li>
+          <li>Every so often you’ll get a <strong>Tactical choice</strong>: risk vs reward (heal, damage amp, magnet, etc.).</li>
+          <li>Pause anytime to review <strong>your build this run</strong>.</li>
+        </ul>
+      `,
+    },
+    {
+      title: "You’re ready",
+      body: "Survive with a plan.",
+      card: `
+        <ul>
+          <li>Move with WASD / stick</li>
+          <li>Dash through OR away — choose intentionally</li>
+          <li>Hold F to focus big threats</li>
+          <li>Stack upgrades toward one strategy</li>
+          <li>Take tactical choices when they appear</li>
+        </ul>
+        <p>Next: <strong>Start run</strong>.</p>
+      `,
+    },
+  ];
+
+  let tutorialIndex = 0;
+
+  const SHOP = [
+    {
+      id: "vitality",
+      name: "Deep Roots",
+      desc: "+12 max light (HP) per rank.",
+      max: 8,
+      cost: (r) => 12 + r * 10,
+      apply: (p, r) => {
+        p.maxHp += 12 * r;
+      },
+    },
+    {
+      id: "swift",
+      name: "Marsh Stride",
+      desc: "+6% move speed per rank.",
+      max: 6,
+      cost: (r) => 14 + r * 12,
+      apply: (p, r) => {
+        p.speed *= 1 + 0.06 * r;
+      },
+    },
+    {
+      id: "spark",
+      name: "Kindling Spark",
+      desc: "+8% attack damage per rank.",
+      max: 8,
+      cost: (r) => 15 + r * 13,
+      apply: (p, r) => {
+        p.damage *= 1 + 0.08 * r;
+      },
+    },
+    {
+      id: "pickup",
+      name: "Wide Wick",
+      desc: "+18% XP magnet range per rank.",
+      max: 5,
+      cost: (r) => 10 + r * 9,
+      apply: (p, r) => {
+        p.magnet *= 1 + 0.18 * r;
+      },
+    },
+    {
+      id: "dash",
+      name: "Blink Ember",
+      desc: "Shorter dash cooldown per rank.",
+      max: 4,
+      cost: (r) => 18 + r * 16,
+      apply: (p, r) => {
+        p.dashCooldown *= 1 - 0.12 * r;
+      },
+    },
+    {
+      id: "fortune",
+      name: "Lucky Moth",
+      desc: "+10% embers earned per rank.",
+      max: 5,
+      cost: (r) => 20 + r * 18,
+      apply: (p, r) => {
+        p.emberMult *= 1 + 0.1 * r;
+      },
+    },
+  ];
+
+  const RUN_UPGRADES = [
+    {
+      id: "beam",
+      name: "Lash Beam",
+      tag: "Offense",
+      desc: "Stronger lantern bolts.",
+      strategy: "Take when packs feel spongy. Best with Quick Flash.",
+      apply: (s) => {
+        s.player.damage *= 1.22;
+      },
+    },
+    {
+      id: "rate",
+      name: "Quick Flash",
+      tag: "Offense",
+      desc: "Fire more often.",
+      strategy: "Great early. Helps delete wisps before they touch you.",
+      apply: (s) => {
+        s.player.fireCooldown *= 0.84;
+      },
+    },
+    {
+      id: "multi",
+      name: "Split Wick",
+      tag: "Offense",
+      desc: "Extra projectile.",
+      strategy: "Pick when surrounded from many angles.",
+      apply: (s) => {
+        s.player.projectiles += 1;
+      },
+    },
+    {
+      id: "orbit",
+      name: "Orbit Sparks",
+      tag: "Close-range",
+      desc: "Spinning sparks that hit nearby foes.",
+      strategy: "Rewards staying close. Pair with armor/regen.",
+      apply: (s) => {
+        s.player.orbit += 1;
+      },
+    },
+    {
+      id: "nova",
+      name: "Burst Nova",
+      tag: "Close-range",
+      desc: "Periodic shockwave around you.",
+      strategy: "Anti-swarm. Strong if you kite in circles through packs.",
+      apply: (s) => {
+        s.player.nova += 1;
+      },
+    },
+    {
+      id: "regen",
+      name: "Warm Core",
+      tag: "Survival",
+      desc: "Slowly restore light.",
+      strategy: "Take after a rough fight or if you get hit often.",
+      apply: (s) => {
+        s.player.regen += 0.45;
+      },
+    },
+    {
+      id: "armor",
+      name: "Glass Shade",
+      tag: "Survival",
+      desc: "Take less damage.",
+      strategy: "Enables aggressive dash-through play.",
+      apply: (s) => {
+        s.player.armor += 0.12;
+      },
+    },
+    {
+      id: "boots",
+      name: "Reed Boots",
+      tag: "Survival",
+      desc: "Move faster.",
+      strategy: "Kiting build. Pair with magnet and keep distance.",
+      apply: (s) => {
+        s.player.speed *= 1.12;
+      },
+    },
+    {
+      id: "magnet",
+      name: "Moth Charm",
+      tag: "Pickup",
+      desc: "Pull XP from farther away.",
+      strategy: "Lets you farm XP safely without walking into danger.",
+      apply: (s) => {
+        s.player.magnet *= 1.35;
+      },
+    },
+    {
+      id: "thorn",
+      name: "Bramble Retort",
+      tag: "Close-range",
+      desc: "Attackers take damage on hit.",
+      strategy: "Only good if you expect contact. Skip for pure kiting.",
+      apply: (s) => {
+        s.player.thorns += 5;
+      },
+    },
+    {
+      id: "dashpower",
+      name: "Cinder Rush",
+      tag: "Dash",
+      desc: "Dash hits harder and cools down faster.",
+      strategy: "Commit to dash-through tactics. Skip if you only flee.",
+      apply: (s) => {
+        s.player.dashDamage *= 1.45;
+        s.player.dashCooldown *= 0.85;
+      },
+    },
+  ];
+
+  const TACTICS = [
+    {
+      id: "mend",
+      name: "Drink the spring",
+      tag: "Safe",
+      desc: "Restore 35 light now.",
+      strategy: "Pick if you're below half light.",
+      apply: (s) => {
+        s.player.hp = Math.min(s.player.maxHp, s.player.hp + 35);
+      },
+    },
+    {
+      id: "overburn",
+      name: "Overburn",
+      tag: "Risky",
+      desc: "+30% damage for 25s, but -10 max light.",
+      strategy: "Take to burst a boss. Avoid if already fragile.",
+      apply: (s) => {
+        if (s.buffLabel === "Overburn" && s._overburnMult) {
+          s.player.damage /= s._overburnMult;
+        }
+        s._overburnMult = 1.3;
+        s.player.damage *= s._overburnMult;
+        s.player.maxHp = Math.max(40, s.player.maxHp - 10);
+        s.player.hp = Math.min(s.player.hp, s.player.maxHp);
+        s.buffTimer = 25;
+        s.buffLabel = "Overburn";
+      },
+    },
+    {
+      id: "harvest",
+      name: "Wide harvest",
+      tag: "Farm",
+      desc: "Huge XP magnet for 20s.",
+      strategy: "Best right after a big fight with lots of orbs on the ground.",
+      apply: (s) => {
+        if (s.magnetBuffTimer > 0 && s._magnetBeforeHarvest) {
+          s.player.magnet = s._magnetBeforeHarvest;
+        }
+        s._magnetBeforeHarvest = s.player.magnet;
+        s.player.magnet *= 2.2;
+        s.magnetBuffTimer = 20;
+      },
+    },
+    {
+      id: "fortify",
+      name: "Fortify wick",
+      tag: "Safe",
+      desc: "+18 max light and a little armor.",
+      strategy: "Steady value when you want fewer deaths later.",
+      apply: (s) => {
+        s.player.maxHp += 18;
+        s.player.hp += 18;
+        s.player.armor += 0.06;
+      },
+    },
+    {
+      id: "bloodrush",
+      name: "Bloodrush",
+      tag: "Risky",
+      desc: "Next 40 kills grant bonus XP. Take 12 damage now.",
+      strategy: "High reward if you can stay alive and keep clearing.",
+      apply: (s) => {
+        s.player.hp = Math.max(1, s.player.hp - 12);
+        s.bloodrushKills = 40;
+      },
+    },
+  ];
+
+  const ACHIEVEMENTS = [
+    {
+      id: "minute3",
+      name: "First Fog",
+      test: (s) => s.time >= 180,
+      reward: 15,
+    },
+    {
+      id: "minute8",
+      name: "Deep Night",
+      test: (s) => s.time >= 480,
+      reward: 40,
+    },
+    {
+      id: "kills100",
+      name: "Wisp Sweep",
+      test: (s) => s.kills >= 100,
+      reward: 20,
+    },
+    {
+      id: "kills500",
+      name: "Hollow Cleared",
+      test: (s) => s.kills >= 500,
+      reward: 60,
+    },
+    {
+      id: "level10",
+      name: "Bright Enough",
+      test: (s) => s.player.level >= 10,
+      reward: 25,
+    },
+    {
+      id: "boss",
+      name: "Bog Crown",
+      test: (s) => s.bossesDown >= 1,
+      reward: 35,
+    },
+  ];
+
+  let meta = loadMeta();
+  let state = null;
+  let mode = "title";
+  let lastTs = 0;
+  let animId = 0;
+
+  const input = {
+    up: false,
+    down: false,
+    left: false,
+    right: false,
+    dash: false,
+    pause: false,
+    focus: false,
+    ax: 0,
+    ay: 0,
+  };
+
+  function loadMeta() {
+    const defaults = {
+      embers: 0,
+      bestTime: 0,
+      runs: 0,
+      shop: {},
+      achievements: {},
+      seenTutorial: false,
+      muted: false,
+    };
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return { ...defaults };
+      return { ...defaults, ...JSON.parse(raw) };
+    } catch {
+      return { ...defaults };
+    }
+  }
+
+  function saveMeta() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(meta));
+  }
+
+  function formatTime(sec) {
+    const s = Math.floor(sec);
+    const m = Math.floor(s / 60);
+    const r = s % 60;
+    return `${m}:${String(r).padStart(2, "0")}`;
+  }
+
+  function rand(min, max) {
+    return min + Math.random() * (max - min);
+  }
+
+  function pick(arr) {
+    return arr[(Math.random() * arr.length) | 0];
+  }
+
+  function clamp(v, a, b) {
+    return Math.max(a, Math.min(b, v));
+  }
+
+  function dist(a, b) {
+    const dx = a.x - b.x;
+    const dy = a.y - b.y;
+    return Math.hypot(dx, dy);
+  }
+
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.floor(window.innerWidth * dpr);
+    canvas.height = Math.floor(window.innerHeight * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (state) {
+      state.w = window.innerWidth;
+      state.h = window.innerHeight;
+    }
+  }
+
+  function show(el) {
+    if (el) el.classList.remove("hidden");
+  }
+
+  function hide(el) {
+    if (el) el.classList.add("hidden");
+  }
+
+  function on(id, event, handler) {
+    const el = typeof id === "string" ? document.getElementById(id) : id;
+    if (!el) return null;
+    el.addEventListener(event, handler);
+    return el;
+  }
+
+  function setMode(next) {
+    mode = next;
+    hide(ui.title);
+    hide(ui.tutorial);
+    hide(ui.shop);
+    hide(ui.levelup);
+    hide(ui.tactic);
+    hide(ui.pause);
+    hide(ui.gameover);
+    if (next === "title") {
+      show(ui.title);
+      hide(ui.hud);
+      hide(ui.touch);
+      refreshMetaUi();
+    } else if (next === "tutorial") {
+      show(ui.tutorial);
+      hide(ui.hud);
+      hide(ui.touch);
+      renderTutorial();
+    } else if (next === "shop") {
+      show(ui.shop);
+      renderShop();
+    } else if (next === "play") {
+      show(ui.hud);
+      if (isTouchPrimary()) show(ui.touch);
+    } else if (next === "levelup") {
+      show(ui.levelup);
+    } else if (next === "tactic") {
+      show(ui.tactic);
+    } else if (next === "pause") {
+      show(ui.pause);
+      renderPauseBuild();
+    } else if (next === "gameover") {
+      show(ui.gameover);
+      hide(ui.hud);
+      hide(ui.touch);
+    }
+  }
+
+  function renderTutorial() {
+    const step = TUTORIAL_STEPS[tutorialIndex];
+    ui.tutStepLabel.textContent = `Step ${tutorialIndex + 1} of ${TUTORIAL_STEPS.length}`;
+    ui.tutTitle.textContent = step.title;
+    ui.tutBody.textContent = step.body;
+    ui.tutCard.innerHTML = step.card;
+    ui.tutBack.disabled = tutorialIndex === 0;
+    const last = tutorialIndex === TUTORIAL_STEPS.length - 1;
+    if (last && state && state._returnToPause) {
+      ui.tutNext.textContent = "Back to pause";
+    } else {
+      ui.tutNext.textContent = last ? "Start run" : "Next";
+    }
+  }
+
+  function openTutorial(fromStart = true) {
+    tutorialIndex = fromStart ? 0 : tutorialIndex;
+    setMode("tutorial");
+  }
+
+  function markTutorialSeen() {
+    meta.seenTutorial = true;
+    saveMeta();
+  }
+
+  function isTouchPrimary() {
+    return matchMedia("(pointer: coarse)").matches;
+  }
+
+  function refreshMetaUi() {
+    ui.metaEmbers.textContent = String(meta.embers);
+    ui.metaBest.textContent = formatTime(meta.bestTime);
+    ui.metaRuns.textContent = String(meta.runs);
+  }
+
+  function createPlayer() {
+    const p = {
+      x: 0,
+      y: 0,
+      r: 14,
+      hp: 100,
+      maxHp: 100,
+      speed: 210,
+      damage: 12,
+      fireCooldown: 0.42,
+      fireTimer: 0,
+      projectiles: 1,
+      magnet: 90,
+      xp: 0,
+      level: 1,
+      nextXp: 12,
+      invuln: 0,
+      dashTimer: 0,
+      dashCooldown: 1.5,
+      dashCd: 0,
+      dashDamage: 16,
+      orbit: 0,
+      nova: 0,
+      novaTimer: 3.5,
+      regen: 0,
+      armor: 0,
+      thorns: 0,
+      emberMult: 1,
+      facing: 0,
+    };
+
+    for (const item of SHOP) {
+      const rank = meta.shop[item.id] || 0;
+      if (rank > 0) item.apply(p, rank);
+    }
+    p.hp = p.maxHp;
+    return p;
+  }
+
+  function startRun() {
+    ensureAudio();
+    resize();
+    state = {
+      w: window.innerWidth,
+      h: window.innerHeight,
+      player: createPlayer(),
+      enemies: [],
+      bullets: [],
+      gems: [],
+      particles: [],
+      floats: [],
+      time: 0,
+      kills: 0,
+      spawnTimer: 1.2,
+      bossesDown: 0,
+      nextBossAt: 100,
+      bannerTimer: 0,
+      killFlash: 0,
+      shake: 0,
+      hurtFlash: 0,
+      pausedChoice: false,
+      levelUpsQueued: 0,
+      ended: false,
+      camera: { x: 0, y: 0 },
+      coachStep: 0,
+      coachTimer: 0,
+      buildLog: [],
+      nextTacticAt: 45,
+      spawnedFocusBrute: false,
+      buffTimer: 0,
+      buffLabel: "",
+      magnetBuffTimer: 0,
+      bloodrushKills: 0,
+      baseMagnet: 0,
+    };
+    state.baseMagnet = state.player.magnet;
+    state.player.x = 0;
+    state.player.y = 0;
+    setMode("play");
+    showCoach(
+      isTouchPrimary()
+        ? "Move with the stick. Dash through packs to hurt them — or dash away to live."
+        : "WASD move · Space dash through/away · Hold F to focus big foes",
+    );
+    lastTs = performance.now();
+    cancelAnimationFrame(animId);
+    animId = requestAnimationFrame(frame);
+  }
+
+  function showCoach(text) {
+    if (!ui.coach) return;
+    ui.coach.textContent = text;
+    ui.coach.classList.remove("hidden");
+  }
+
+  function hideCoach() {
+    if (!ui.coach) return;
+    ui.coach.classList.add("hidden");
+  }
+
+  function showBanner(text, seconds = 2.4) {
+    if (!ui.banner) return;
+    ui.banner.textContent = text;
+    ui.banner.classList.remove("hidden");
+    state.bannerTimer = seconds;
+  }
+
+  function xpForLevel(level) {
+    return Math.floor(10 + level * 7 + level * level * 1.4);
+  }
+
+  function spawnEnemy(kind = null) {
+    const angle = rand(0, TAU);
+    const distAway = Math.max(state.w, state.h) * 0.55 + rand(20, 120);
+    const x = state.player.x + Math.cos(angle) * distAway;
+    const y = state.player.y + Math.sin(angle) * distAway;
+    const t = state.time;
+    let roll = kind;
+    if (!roll) {
+      if (t < 25) roll = "wisp";
+      else if (Math.random() < Math.min(0.16, (t - 20) / 900)) roll = "brute";
+      else if (Math.random() < 0.14) roll = "dart";
+      else roll = "wisp";
+    }
+
+    if (roll === "boss") {
+      state.enemies.push({
+        kind: "boss",
+        x,
+        y,
+        r: 34,
+        hp: 180 + t * 1.35,
+        maxHp: 180 + t * 1.35,
+        speed: 66,
+        damage: 16,
+        xp: 40,
+        color: "#c45c26",
+        pulse: 0,
+      });
+      return;
+    }
+
+    if (roll === "brute") {
+      state.enemies.push({
+        kind: "brute",
+        x,
+        y,
+        r: 18,
+        hp: 28 + t * 0.1,
+        maxHp: 28 + t * 0.1,
+        speed: 72 + t * 0.018,
+        damage: 10,
+        xp: 5,
+        color: "#3f6b4f",
+        pulse: rand(0, TAU),
+      });
+      return;
+    }
+
+    if (roll === "dart") {
+      state.enemies.push({
+        kind: "dart",
+        x,
+        y,
+        r: 9,
+        hp: 10 + t * 0.05,
+        maxHp: 10 + t * 0.05,
+        speed: 170 + t * 0.05,
+        damage: 7,
+        xp: 3,
+        color: "#7ec8a3",
+        pulse: rand(0, TAU),
+      });
+      return;
+    }
+
+    state.enemies.push({
+      kind: "wisp",
+      x,
+      y,
+      r: 11,
+      hp: 12 + t * 0.06,
+      maxHp: 12 + t * 0.06,
+      speed: 95 + Math.max(0, t - 20) * 0.03,
+      damage: 7,
+      xp: 2,
+      color: "#86a37a",
+      pulse: rand(0, TAU),
+    });
+  }
+
+  function addParticles(x, y, color, count = 8, speed = 120) {
+    for (let i = 0; i < count; i++) {
+      const a = rand(0, TAU);
+      const sp = rand(speed * 0.3, speed);
+      state.particles.push({
+        x,
+        y,
+        vx: Math.cos(a) * sp,
+        vy: Math.sin(a) * sp,
+        life: rand(0.25, 0.7),
+        max: 0.7,
+        color,
+        r: rand(1.5, 3.5),
+      });
+    }
+  }
+
+  function floatText(x, y, text, color = "#f0b429", life = 0.8, big = false) {
+    state.floats.push({ x, y, text, color, life, maxLife: life, big });
+  }
+
+  function fireWeapons(dt) {
+    const p = state.player;
+    p.fireTimer -= dt;
+    if (p.fireTimer <= 0 && state.enemies.length) {
+      p.fireTimer = p.fireCooldown;
+      sfx.shoot();
+      const rank = (e) => {
+        if (!input.focus) return 0;
+        if (e.kind === "boss") return 3000;
+        if (e.kind === "brute") return 1500;
+        if (e.kind === "dart") return 200;
+        return 0;
+      };
+      const sorted = [...state.enemies].sort(
+        (a, b) => dist(p, a) - rank(a) - (dist(p, b) - rank(b)),
+      );
+      const targets = sorted.slice(0, p.projectiles);
+      for (const target of targets) {
+        const ang = Math.atan2(target.y - p.y, target.x - p.x);
+        state.bullets.push({
+          x: p.x,
+          y: p.y,
+          vx: Math.cos(ang) * 420,
+          vy: Math.sin(ang) * 420,
+          r: 5,
+          damage: p.damage,
+          life: 1.2,
+        });
+      }
+      p.facing = targets[0]
+        ? Math.atan2(targets[0].y - p.y, targets[0].x - p.x)
+        : p.facing;
+    }
+
+    if (p.orbit > 0) {
+      const orbitR = 42 + p.orbit * 8;
+      const sparks = p.orbit + 2;
+      for (let i = 0; i < sparks; i++) {
+        const a = state.time * (1.8 + p.orbit * 0.15) + (TAU * i) / sparks;
+        const ox = p.x + Math.cos(a) * orbitR;
+        const oy = p.y + Math.sin(a) * orbitR;
+        for (const e of state.enemies) {
+          if (dist({ x: ox, y: oy }, e) < e.r + 8) {
+            hurtEnemy(e, p.damage * 0.35 * dt * 8, { sfx: false });
+          }
+        }
+      }
+    }
+
+    if (p.nova > 0) {
+      p.novaTimer -= dt;
+      if (p.novaTimer <= 0) {
+        p.novaTimer = Math.max(1.8, 4.2 - p.nova * 0.35);
+        const radius = 70 + p.nova * 18;
+        for (const e of state.enemies) {
+          if (dist(p, e) < radius + e.r) hurtEnemy(e, p.damage * (1.1 + p.nova * 0.25));
+        }
+        addParticles(p.x, p.y, "#f0b429", 20, 200);
+        state.shake = 6;
+      }
+    }
+  }
+
+  function hurtEnemy(e, amount, opts = {}) {
+    if (e.hp <= 0) return;
+    e.hp -= amount;
+    e.hitFlash = 0.08;
+    if (opts.sfx !== false) {
+      const now = state.time;
+      if (!e._lastHitSfx || now - e._lastHitSfx > 0.08) {
+        sfx.hit();
+        e._lastHitSfx = now;
+      }
+    }
+    if (e.hp <= 0) {
+      killEnemy(e);
+    }
+  }
+
+  function killEnemy(e) {
+    e.hp = 0;
+    state.kills += 1;
+    state.killFlash = 0.08;
+    sfx.kill();
+    if (e.kind === "boss") {
+      state.bossesDown += 1;
+      showBanner("Bog crown fallen");
+      state._pendingBossTactic = true;
+    }
+    let xpVal = e.xp;
+    if (state.bloodrushKills > 0) {
+      state.bloodrushKills -= 1;
+      xpVal += 2;
+    }
+    state.gems.push({
+      x: e.x,
+      y: e.y,
+      r: e.kind === "boss" ? 8 : 4,
+      value: xpVal,
+      vx: rand(-30, 30),
+      vy: rand(-30, 30),
+    });
+    addParticles(e.x, e.y, e.color, e.kind === "boss" ? 24 : 10, 160);
+    floatText(e.x, e.y - 10, `+${e.xp}`, "#d7e4d5");
+  }
+
+  function gainXp(amount) {
+    const p = state.player;
+    p.xp += amount;
+    let leveled = 0;
+    while (p.xp >= p.nextXp) {
+      p.xp -= p.nextXp;
+      p.level += 1;
+      p.nextXp = xpForLevel(p.level);
+      p.hp = Math.min(p.maxHp, p.hp + 8);
+      leveled += 1;
+    }
+    if (leveled > 0) {
+      state.levelUpsQueued = (state.levelUpsQueued || 0) + leveled;
+      sfx.level();
+      if (!state.pausedChoice) offerLevelUp();
+    } else {
+      sfx.xp();
+    }
+  }
+
+  function offerLevelUp() {
+    if (!state.levelUpsQueued) return;
+    const choices = shuffle([...RUN_UPGRADES]).slice(0, 3);
+    ui.upgradeChoices.innerHTML = "";
+    for (const choice of choices) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "card";
+      btn.innerHTML = `
+        <div class="tag">${choice.tag || "Upgrade"}</div>
+        <h3>${choice.name}</h3>
+        <p>${choice.desc}</p>
+        <div class="strategy">Strategy: ${choice.strategy || "Solid general pick."}</div>
+      `;
+      btn.addEventListener("click", () => {
+        choice.apply(state);
+        state.buildLog.push(choice.name);
+        showBanner(`${choice.name} — ${choice.tag}`);
+        state.levelUpsQueued -= 1;
+        if (state.levelUpsQueued > 0) {
+          offerLevelUp();
+        } else {
+          state.pausedChoice = false;
+          hide(ui.levelup);
+          setMode("play");
+        }
+      });
+      ui.upgradeChoices.appendChild(btn);
+    }
+    state.pausedChoice = true;
+    setMode("levelup");
+  }
+
+  function offerTactic(reason) {
+    if (state.ended || state.pausedChoice) return;
+    const choices = shuffle([...TACTICS]).slice(0, 3);
+    ui.tacticTitle.textContent = "Tactical choice";
+    ui.tacticBody.textContent = reason;
+    ui.tacticChoices.innerHTML = "";
+    for (const choice of choices) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "card";
+      btn.innerHTML = `
+        <div class="tag">${choice.tag}</div>
+        <h3>${choice.name}</h3>
+        <p>${choice.desc}</p>
+        <div class="strategy">Strategy: ${choice.strategy}</div>
+      `;
+      btn.addEventListener("click", () => {
+        // revert temporary magnet buff bookkeeping before apply if needed
+        choice.apply(state);
+        state.buildLog.push(`Tactic: ${choice.name}`);
+        showBanner(choice.name);
+        state.pausedChoice = false;
+        hide(ui.tactic);
+        setMode("play");
+        sfx.level();
+      });
+      ui.tacticChoices.appendChild(btn);
+    }
+    state.pausedChoice = true;
+    setMode("tactic");
+  }
+
+  function renderPauseBuild() {
+    if (!ui.pauseBuild || !state) return;
+    if (!state.buildLog.length) {
+      ui.pauseBuild.textContent = "No upgrades yet — level up by collecting gold XP orbs.";
+      return;
+    }
+    ui.pauseBuild.innerHTML = state.buildLog
+      .map((n) => `<span class="build-chip">${n}</span>`)
+      .join(" ");
+  }
+
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = (Math.random() * (i + 1)) | 0;
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function hurtPlayer(amount, source) {
+    const p = state.player;
+    if (p.invuln > 0 || p.dashTimer > 0) return;
+    const dmg = amount * (1 - Math.min(0.55, p.armor));
+    p.hp -= dmg;
+    p.invuln = 0.65;
+    state.shake = 8;
+    state.hurtFlash = 0.22;
+    sfx.hurt();
+    floatText(p.x, p.y - 18, `-${Math.ceil(dmg)}`, "#e07a2f");
+    addParticles(p.x, p.y, "#e07a2f", 8, 90);
+    if (p.thorns > 0 && source) {
+      hurtEnemy(source, p.thorns);
+    }
+    if (p.hp <= 0) {
+      p.hp = 0;
+      sfx.death();
+      endRun(false);
+    }
+  }
+
+  function endRun(manual) {
+    if (!state || state.ended) return;
+    state.ended = true;
+    meta.runs += 1;
+    meta.bestTime = Math.max(meta.bestTime, state.time);
+
+    let embers = Math.floor(
+      (state.time * 0.35 + state.kills * 0.12 + state.player.level * 1.5) *
+        state.player.emberMult,
+    );
+    if (manual) embers = Math.floor(embers * 0.65);
+
+    const unlocks = [];
+    for (const ach of ACHIEVEMENTS) {
+      if (!meta.achievements[ach.id] && ach.test(state)) {
+        meta.achievements[ach.id] = true;
+        embers += ach.reward;
+        unlocks.push(`${ach.name} (+${ach.reward} embers)`);
+      }
+    }
+
+    meta.embers += embers;
+    saveMeta();
+
+    ui.overTitle.textContent = manual ? "Lantern banked" : "Light snuffed";
+    ui.overSummary.textContent = `You lasted ${formatTime(state.time)} in the hollow.`;
+    ui.overKills.textContent = String(state.kills);
+    ui.overLevel.textContent = String(state.player.level);
+    ui.overEmbers.textContent = String(embers);
+    ui.overUnlocks.innerHTML = unlocks.map((u) => `<li>${u}</li>`).join("");
+    setMode("gameover");
+  }
+
+  function update(dt) {
+    if (!state || state.ended || state.pausedChoice || mode === "pause") return;
+    const p = state.player;
+    state.time += dt;
+    state.shake = Math.max(0, state.shake - dt * 20);
+    state.hurtFlash = Math.max(0, state.hurtFlash - dt);
+
+    let mx = 0;
+    let my = 0;
+    if (input.left) mx -= 1;
+    if (input.right) mx += 1;
+    if (input.up) my -= 1;
+    if (input.down) my += 1;
+    mx += input.ax;
+    my += input.ay;
+    const mag = Math.hypot(mx, my);
+    if (mag > 1) {
+      mx /= mag;
+      my /= mag;
+    }
+
+    if (mag > 0.1) p.facing = Math.atan2(my, mx);
+
+    if (input.dash && p.dashCd <= 0) {
+      // If standing still, dash in the last facing direction
+      if (mag <= 0.1) {
+        mx = Math.cos(p.facing || 0);
+        my = Math.sin(p.facing || 0);
+      }
+      p.dashTimer = 0.2;
+      p.dashCd = p.dashCooldown;
+      addParticles(p.x, p.y, "#f0b429", 14, 160);
+      sfx.dash();
+      input.dash = false;
+    }
+
+    const speedMul = p.dashTimer > 0 ? 2.6 : 1;
+    const moveX = p.dashTimer > 0 && mag <= 0.1 ? Math.cos(p.facing || 0) : mx;
+    const moveY = p.dashTimer > 0 && mag <= 0.1 ? Math.sin(p.facing || 0) : my;
+    p.x += moveX * p.speed * speedMul * dt;
+    p.y += moveY * p.speed * speedMul * dt;
+
+    if (p.dashTimer > 0) {
+      for (const e of state.enemies) {
+        if (e.hp > 0 && dist(p, e) < p.r + e.r + 22) {
+          if (!e._dashHit || state.time - e._dashHit > 0.2) {
+            hurtEnemy(e, p.dashDamage);
+            e._dashHit = state.time;
+            floatText(e.x, e.y - 16, "DASH HIT!", "#ffd39a", 1.15, true);
+            addParticles(e.x, e.y, "#e07a2f", 10, 180);
+            if (!state._dashBannerCool || state.time - state._dashBannerCool > 0.8) {
+              showBanner("Dash strike!", 0.9);
+              state._dashBannerCool = state.time;
+            }
+          }
+        }
+      }
+    }
+
+    p.dashTimer = Math.max(0, p.dashTimer - dt);
+    p.dashCd = Math.max(0, p.dashCd - dt);
+    p.invuln = Math.max(0, p.invuln - dt);
+    if (p.regen > 0) p.hp = Math.min(p.maxHp, p.hp + p.regen * dt);
+
+    // world soft bounds so camera feels open but player isn't lost forever
+    const bound = 2200;
+    p.x = clamp(p.x, -bound, bound);
+    p.y = clamp(p.y, -bound, bound);
+
+    state.camera.x = p.x;
+    state.camera.y = p.y;
+
+    // spawning
+    const density = 1 + state.time / 70;
+    state.spawnTimer -= dt;
+    if (state.spawnTimer <= 0) {
+      const early = state.time < 35;
+      const count = early ? 1 : 1 + ((state.time / 95) | 0);
+      for (let i = 0; i < count; i++) spawnEnemy();
+      state.spawnTimer = early
+        ? 1.05
+        : Math.max(0.22, 0.95 / density);
+    }
+    if (state.time >= state.nextBossAt) {
+      spawnEnemy("boss");
+      state.nextBossAt += 90;
+      showBanner("Bog crown approaches!");
+      sfx.boss();
+      floatText(p.x, p.y - 40, "A bog crown stirs", "#e07a2f");
+    }
+    if (state.bannerTimer > 0) {
+      state.bannerTimer -= dt;
+      if (state.bannerTimer <= 0 && ui.banner) ui.banner.classList.add("hidden");
+    }
+    state.killFlash = Math.max(0, state.killFlash - dt);
+
+    if (state.buffTimer > 0) {
+      state.buffTimer -= dt;
+      if (state.buffTimer <= 0) {
+        if (state.buffLabel === "Overburn" && state._overburnMult) {
+          state.player.damage /= state._overburnMult;
+          state._overburnMult = 0;
+        }
+        state.buffLabel = "";
+      }
+    }
+    if (state.magnetBuffTimer > 0) {
+      state.magnetBuffTimer -= dt;
+      if (state.magnetBuffTimer <= 0) {
+        if (state._magnetBeforeHarvest) {
+          state.player.magnet = state._magnetBeforeHarvest;
+          state._magnetBeforeHarvest = 0;
+        }
+      }
+    }
+
+    if (!state.spawnedFocusBrute && state.time >= 18) {
+      state.spawnedFocusBrute = true;
+      spawnEnemy("brute");
+      showCoach("Triangle brute! Hold F to FOCUS it, then dash through.");
+      showBanner("Hold F — focus the brute");
+    }
+
+    if (state.time >= state.nextTacticAt && !state.pausedChoice) {
+      state.nextTacticAt += 50;
+      offerTactic("A fork in the marsh — choose a short-term plan.");
+    } else if (state._pendingBossTactic && !state.pausedChoice) {
+      state._pendingBossTactic = false;
+      offerTactic("Boss down. Claim a tactical reward.");
+    }
+
+    fireWeapons(dt);
+
+    // bullets
+    for (const b of state.bullets) {
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      b.life -= dt;
+      for (const e of state.enemies) {
+        if (e.hp > 0 && dist(b, e) < b.r + e.r) {
+          hurtEnemy(e, b.damage);
+          b.life = 0;
+          addParticles(b.x, b.y, "#f0b429", 4, 80);
+          break;
+        }
+      }
+    }
+    state.bullets = state.bullets.filter((b) => b.life > 0);
+
+    // enemies
+    for (const e of state.enemies) {
+      if (e.hp <= 0) continue;
+      e.pulse += dt * 3;
+      const ang = Math.atan2(p.y - e.y, p.x - e.x);
+      let spd = e.speed;
+      if (e.kind === "dart") spd *= 1 + Math.sin(e.pulse * 2) * 0.15;
+      e.x += Math.cos(ang) * spd * dt;
+      e.y += Math.sin(ang) * spd * dt;
+      if (dist(p, e) < p.r + e.r - 2) {
+        hurtPlayer(e.damage, e);
+      }
+    }
+    state.enemies = state.enemies.filter((e) => e.hp > 0);
+
+    // gems
+    for (const g of state.gems) {
+      g.vx *= 0.9;
+      g.vy *= 0.9;
+      g.x += g.vx * dt;
+      g.y += g.vy * dt;
+      const d = dist(p, g);
+      if (d < p.magnet) {
+        const pull = (p.magnet - d) / p.magnet;
+        const ang = Math.atan2(p.y - g.y, p.x - g.x);
+        g.x += Math.cos(ang) * 380 * pull * dt;
+        g.y += Math.sin(ang) * 380 * pull * dt;
+      }
+      if (d < p.r + g.r + 6) {
+        g._collected = true;
+        gainXp(g.value);
+      }
+    }
+    state.gems = state.gems.filter((g) => !g._collected);
+
+    for (const part of state.particles) {
+      part.x += part.vx * dt;
+      part.y += part.vy * dt;
+      part.vx *= 0.96;
+      part.vy *= 0.96;
+      part.life -= dt;
+    }
+    state.particles = state.particles.filter((p2) => p2.life > 0);
+
+    for (const f of state.floats) {
+      f.y -= 28 * dt;
+      f.life -= dt;
+    }
+    state.floats = state.floats.filter((f) => f.life > 0);
+
+    ui.hudTime.textContent = formatTime(state.time);
+    ui.hudHp.textContent = `${Math.ceil(p.hp)} / ${Math.ceil(p.maxHp)} light`;
+    ui.hudHp.classList.toggle("danger", p.hp / p.maxHp < 0.3);
+    ui.hudKills.textContent = `${state.kills} kills`;
+    ui.hudLevel.textContent = `Lv ${p.level}`;
+    ui.xpFill.style.width = `${(p.xp / p.nextXp) * 100}%`;
+    const dashReady = p.dashCd <= 0;
+    if (ui.hudDash) {
+      ui.hudDash.textContent = dashReady ? "Dash ready" : `Dash ${p.dashCd.toFixed(1)}s`;
+      ui.hudDash.classList.toggle("ready", dashReady);
+    }
+    if (ui.hudFocus) {
+      ui.hudFocus.classList.toggle("hidden", !input.focus);
+    }
+    if (ui.dashFill) {
+      const pct = dashReady ? 100 : (1 - p.dashCd / p.dashCooldown) * 100;
+      ui.dashFill.style.width = `${clamp(pct, 0, 100)}%`;
+    }
+
+    if (ui.dashBtn) {
+      ui.dashBtn.classList.toggle("cooling", p.dashCd > 0);
+      ui.dashBtn.disabled = p.dashCd > 0;
+    }
+
+    // Short onboarding tips for the first half-minute
+    if (state.coachStep === 0 && state.time > 4) {
+      state.coachStep = 1;
+      showCoach("Green hurts on touch. Dash through a pack to smash it, or dash out.");
+    } else if (state.coachStep === 1 && state.kills >= 1) {
+      state.coachStep = 2;
+      showCoach("Gold orbs = XP. Hold F to focus brutes/bosses.");
+    } else if (state.coachStep === 2 && state.player.level >= 2) {
+      state.coachStep = 3;
+      showCoach("Level up! Read the Strategy tip — stack one build path.");
+    } else if (state.coachStep === 3 && state.time > 22) {
+      state.coachStep = 4;
+      hideCoach();
+    } else if (state.coachStep < 3 && state.time > 30) {
+      state.coachStep = 4;
+      hideCoach();
+    }
+  }
+
+  function worldToScreen(x, y) {
+    const shakeX = state.shake ? rand(-state.shake, state.shake) : 0;
+    const shakeY = state.shake ? rand(-state.shake, state.shake) : 0;
+    return {
+      x: x - state.camera.x + state.w / 2 + shakeX,
+      y: y - state.camera.y + state.h / 2 + shakeY,
+    };
+  }
+
+  function draw() {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    ctx.clearRect(0, 0, w, h);
+
+    // marsh backdrop
+    const grad = ctx.createRadialGradient(w * 0.5, h * 0.45, 40, w * 0.5, h * 0.5, Math.max(w, h) * 0.7);
+    grad.addColorStop(0, "#243f31");
+    grad.addColorStop(0.45, "#15241c");
+    grad.addColorStop(1, "#0b1210");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+
+    if (!state) {
+      drawIdleDecor(w, h);
+      return;
+    }
+
+    // ground marks relative to camera
+    ctx.save();
+    const origin = worldToScreen(0, 0);
+    ctx.translate(origin.x % 80, origin.y % 80);
+    ctx.strokeStyle = "rgba(47, 106, 69, 0.12)";
+    ctx.lineWidth = 1;
+    for (let x = -80; x < w + 80; x += 80) {
+      ctx.beginPath();
+      ctx.moveTo(x, -80);
+      ctx.lineTo(x, h + 80);
+      ctx.stroke();
+    }
+    for (let y = -80; y < h + 80; y += 80) {
+      ctx.beginPath();
+      ctx.moveTo(-80, y);
+      ctx.lineTo(w + 80, y);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // ambient fireflies
+    for (let i = 0; i < 18; i++) {
+      const fx = (Math.sin(state.time * 0.4 + i * 1.7) * 0.5 + 0.5) * w;
+      const fy = (Math.cos(state.time * 0.33 + i * 2.1) * 0.5 + 0.5) * h;
+      ctx.beginPath();
+      ctx.fillStyle = `rgba(240,180,41,${0.15 + (i % 3) * 0.05})`;
+      ctx.arc(fx, fy, 2, 0, TAU);
+      ctx.fill();
+    }
+
+    // gems
+    for (const g of state.gems) {
+      const s = worldToScreen(g.x, g.y);
+      ctx.beginPath();
+      ctx.fillStyle = "#f0b429";
+      ctx.globalAlpha = 0.9;
+      ctx.arc(s.x, s.y, g.r, 0, TAU);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    // bullets
+    for (const b of state.bullets) {
+      const s = worldToScreen(b.x, b.y);
+      ctx.beginPath();
+      ctx.fillStyle = "#ffe08a";
+      ctx.shadowColor = "#f0b429";
+      ctx.shadowBlur = 10;
+      ctx.arc(s.x, s.y, b.r, 0, TAU);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+
+    // enemies
+    for (const e of state.enemies) {
+      const s = worldToScreen(e.x, e.y);
+      const flash = e.hitFlash && e.hitFlash > 0;
+      if (e.hitFlash) e.hitFlash = Math.max(0, e.hitFlash - 0.016);
+      ctx.save();
+      ctx.translate(s.x, s.y);
+      ctx.fillStyle = flash ? "#f4efe4" : e.color;
+      if (e.kind === "brute") {
+        ctx.beginPath();
+        ctx.moveTo(0, -e.r);
+        ctx.lineTo(e.r, e.r * 0.7);
+        ctx.lineTo(-e.r, e.r * 0.7);
+        ctx.closePath();
+        ctx.fill();
+      } else if (e.kind === "dart") {
+        ctx.rotate(Math.atan2(state.player.y - e.y, state.player.x - e.x));
+        ctx.beginPath();
+        ctx.moveTo(e.r, 0);
+        ctx.lineTo(-e.r * 0.8, e.r * 0.7);
+        ctx.lineTo(-e.r * 0.8, -e.r * 0.7);
+        ctx.closePath();
+        ctx.fill();
+      } else if (e.kind === "boss") {
+        ctx.beginPath();
+        ctx.arc(0, 0, e.r, 0, TAU);
+        ctx.fill();
+        ctx.strokeStyle = "rgba(224,122,47,0.9)";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(0, 0, e.r + 5 + Math.sin(e.pulse) * 3, 0, TAU);
+        ctx.stroke();
+        ctx.fillStyle = "#f0b429";
+        ctx.beginPath();
+        ctx.arc(0, -e.r * 0.2, 5, 0, TAU);
+        ctx.fill();
+      } else {
+        ctx.beginPath();
+        ctx.arc(0, 0, e.r, 0, TAU);
+        ctx.fill();
+        ctx.globalAlpha = 0.35;
+        ctx.beginPath();
+        ctx.arc(0, 0, e.r + 4 + Math.sin(e.pulse) * 2, 0, TAU);
+        ctx.strokeStyle = e.color;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+      ctx.restore();
+      if (e.kind === "boss" || e.hp < e.maxHp) {
+        const pct = clamp(e.hp / e.maxHp, 0, 1);
+        ctx.fillStyle = "rgba(0,0,0,0.45)";
+        ctx.fillRect(s.x - e.r, s.y - e.r - 12, e.r * 2, 4);
+        ctx.fillStyle = "#f0b429";
+        ctx.fillRect(s.x - e.r, s.y - e.r - 12, e.r * 2 * pct, 4);
+      }
+    }
+
+    // orbit visuals
+    const p = state.player;
+    if (p.orbit > 0) {
+      const sparks = p.orbit + 2;
+      const orbitR = 42 + p.orbit * 8;
+      for (let i = 0; i < sparks; i++) {
+        const a = state.time * (1.8 + p.orbit * 0.15) + (TAU * i) / sparks;
+        const s = worldToScreen(p.x + Math.cos(a) * orbitR, p.y + Math.sin(a) * orbitR);
+        ctx.beginPath();
+        ctx.fillStyle = "#ffd36a";
+        ctx.arc(s.x, s.y, 4, 0, TAU);
+        ctx.fill();
+      }
+    }
+
+    // player
+    const ps = worldToScreen(p.x, p.y);
+    const glow = ctx.createRadialGradient(ps.x, ps.y, 4, ps.x, ps.y, 70);
+    glow.addColorStop(0, "rgba(240,180,41,0.45)");
+    glow.addColorStop(1, "rgba(240,180,41,0)");
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(ps.x, ps.y, 70, 0, TAU);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.fillStyle = p.invuln > 0 ? "rgba(244,239,228,0.55)" : "#f4efe4";
+    ctx.arc(ps.x, ps.y, p.r, 0, TAU);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.fillStyle = "#f0b429";
+    ctx.arc(ps.x, ps.y - 2, 7, 0, TAU);
+    ctx.fill();
+    ctx.fillStyle = "#c9842a";
+    ctx.fillRect(ps.x - 3, ps.y + 4, 6, 10);
+
+    // hp arc
+    ctx.strokeStyle = "rgba(215,228,213,0.25)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(ps.x, ps.y, p.r + 8, 0, TAU);
+    ctx.stroke();
+    ctx.strokeStyle = "#f0b429";
+    ctx.beginPath();
+    ctx.arc(ps.x, ps.y, p.r + 8, -Math.PI / 2, -Math.PI / 2 + TAU * (p.hp / p.maxHp));
+    ctx.stroke();
+
+    if (input.focus) {
+      ctx.strokeStyle = "rgba(224,122,47,0.95)";
+      ctx.lineWidth = 4;
+      ctx.setLineDash([6, 4]);
+      ctx.beginPath();
+      ctx.arc(ps.x, ps.y, p.r + 20, 0, TAU);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(ps.x, ps.y, p.r + 28, 0, TAU);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.font = "800 16px Outfit, sans-serif";
+      ctx.fillStyle = "#ffd39a";
+      ctx.fillText("FOCUS", ps.x, ps.y - p.r - 28);
+      // mark focused target
+      const focusTarget = [...state.enemies]
+        .filter((e) => e.hp > 0)
+        .sort((a, b) => {
+          const rank = (e) => (e.kind === "boss" ? 3000 : e.kind === "brute" ? 1500 : 0);
+          return dist(p, a) - rank(a) - (dist(p, b) - rank(b));
+        })[0];
+      if (focusTarget) {
+        const ts = worldToScreen(focusTarget.x, focusTarget.y);
+        ctx.strokeStyle = "#f0b429";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(ts.x, ts.y, focusTarget.r + 10, 0, TAU);
+        ctx.stroke();
+        ctx.font = "700 13px Outfit, sans-serif";
+        ctx.fillStyle = "#f0b429";
+        ctx.fillText("TARGET", ts.x, ts.y - focusTarget.r - 14);
+      }
+    }
+
+    // particles / floats
+    for (const part of state.particles) {
+      const s = worldToScreen(part.x, part.y);
+      ctx.globalAlpha = clamp(part.life / part.max, 0, 1);
+      ctx.fillStyle = part.color;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, part.r, 0, TAU);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    ctx.textAlign = "center";
+    for (const f of state.floats) {
+      const s = worldToScreen(f.x, f.y);
+      const maxL = f.maxLife || 0.8;
+      ctx.globalAlpha = clamp(f.life / maxL, 0, 1);
+      ctx.font = f.big ? "800 20px Outfit, sans-serif" : "600 14px Outfit, sans-serif";
+      ctx.fillStyle = f.color;
+      ctx.fillText(f.text, s.x, s.y);
+      ctx.globalAlpha = 1;
+    }
+
+    // vignette
+    const vig = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.25, w / 2, h / 2, Math.max(w, h) * 0.7);
+    vig.addColorStop(0, "rgba(0,0,0,0)");
+    vig.addColorStop(1, "rgba(0,0,0,0.45)");
+    ctx.fillStyle = vig;
+    ctx.fillRect(0, 0, w, h);
+
+    if (state.hurtFlash > 0) {
+      ctx.fillStyle = `rgba(224, 122, 47, ${state.hurtFlash * 0.45})`;
+      ctx.fillRect(0, 0, w, h);
+    }
+    if (state.player.hp / state.player.maxHp < 0.3) {
+      ctx.fillStyle = "rgba(120, 30, 10, 0.16)";
+      ctx.fillRect(0, 0, w, h);
+    }
+  }
+
+  function drawIdleDecor(w, h) {
+    for (let i = 0; i < 30; i++) {
+      const x = (Math.sin(i * 12.1 + performance.now() * 0.0003) * 0.5 + 0.5) * w;
+      const y = (Math.cos(i * 8.4 + performance.now() * 0.0004) * 0.5 + 0.5) * h;
+      ctx.beginPath();
+      ctx.fillStyle = `rgba(240,180,41,${0.08 + (i % 4) * 0.03})`;
+      ctx.arc(x, y, 2 + (i % 3), 0, TAU);
+      ctx.fill();
+    }
+  }
+
+  function frame(ts) {
+    const dt = Math.min(0.033, (ts - lastTs) / 1000 || 0.016);
+    lastTs = ts;
+    if (mode === "play") update(dt);
+    draw();
+    animId = requestAnimationFrame(frame);
+  }
+
+  function renderShop() {
+    ui.shopEmbers.textContent = String(meta.embers);
+    ui.shopList.innerHTML = "";
+    for (const item of SHOP) {
+      const rank = meta.shop[item.id] || 0;
+      const maxed = rank >= item.max;
+      const cost = item.cost(rank);
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "card";
+      btn.disabled = maxed || meta.embers < cost;
+      btn.innerHTML = `
+        <h3>${item.name} <span style="color:#d7e4d5;font-size:0.9rem">(${rank}/${item.max})</span></h3>
+        <p>${item.desc}</p>
+        <div class="price">${maxed ? "Maxed" : `${cost} embers`}</div>
+      `;
+      btn.addEventListener("click", () => {
+        if (maxed || meta.embers < cost) return;
+        meta.embers -= cost;
+        meta.shop[item.id] = rank + 1;
+        saveMeta();
+        renderShop();
+        refreshMetaUi();
+      });
+      ui.shopList.appendChild(btn);
+    }
+  }
+
+  // input
+  window.addEventListener("keydown", (e) => {
+    const k = e.key.toLowerCase();
+    if (["arrowup", "arrowdown", "arrowleft", "arrowright", " ", "w", "a", "s", "d"].includes(k)) {
+      e.preventDefault();
+    }
+    if (k === "w" || k === "arrowup") input.up = true;
+    if (k === "s" || k === "arrowdown") input.down = true;
+    if (k === "a" || k === "arrowleft") input.left = true;
+    if (k === "d" || k === "arrowright") input.right = true;
+    if (k === " " || k === "shift") input.dash = true;
+    if (k === "f") input.focus = true;
+    if ((k === "p" || k === "escape") && state && !state.ended && !state.pausedChoice) {
+      if (mode === "play") setMode("pause");
+      else if (mode === "pause") setMode("play");
+    }
+  });
+
+  window.addEventListener("keyup", (e) => {
+    const k = e.key.toLowerCase();
+    if (k === "w" || k === "arrowup") input.up = false;
+    if (k === "s" || k === "arrowdown") input.down = false;
+    if (k === "a" || k === "arrowleft") input.left = false;
+    if (k === "d" || k === "arrowright") input.right = false;
+    if (k === "f") input.focus = false;
+  });
+
+  // touch stick
+  let stickActive = null;
+  function stickHandler(clientX, clientY) {
+    const rect = ui.stick.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    let dx = clientX - cx;
+    let dy = clientY - cy;
+    const max = rect.width * 0.35;
+    const m = Math.hypot(dx, dy) || 1;
+    if (m > max) {
+      dx = (dx / m) * max;
+      dy = (dy / m) * max;
+    }
+    input.ax = dx / max;
+    input.ay = dy / max;
+    ui.stickKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+  }
+
+  if (ui.stick) {
+    ui.stick.addEventListener("pointerdown", (e) => {
+      stickActive = e.pointerId;
+      ui.stick.setPointerCapture(e.pointerId);
+      stickHandler(e.clientX, e.clientY);
+    });
+    ui.stick.addEventListener("pointermove", (e) => {
+      if (stickActive === e.pointerId) stickHandler(e.clientX, e.clientY);
+    });
+    function endStick(e) {
+      if (stickActive === e.pointerId) {
+        stickActive = null;
+        input.ax = 0;
+        input.ay = 0;
+        if (ui.stickKnob) ui.stickKnob.style.transform = "translate(0,0)";
+      }
+    }
+    ui.stick.addEventListener("pointerup", endStick);
+    ui.stick.addEventListener("pointercancel", endStick);
+  }
+
+  on(ui.dashBtn, "click", () => {
+    input.dash = true;
+  });
+
+  // Play always starts the game. Tutorial is optional via How to play.
+  on("btn-start", "click", () => {
+    markTutorialSeen();
+    startRun();
+  });
+  on("btn-tutorial", "click", () => openTutorial(true));
+  on("btn-pause-help", "click", () => {
+    if (state) state._returnToPause = true;
+    openTutorial(true);
+  });
+  on("btn-tut-next", "click", () => {
+    if (tutorialIndex < TUTORIAL_STEPS.length - 1) {
+      tutorialIndex += 1;
+      renderTutorial();
+      return;
+    }
+    markTutorialSeen();
+    if (state && state._returnToPause && !state.ended) {
+      state._returnToPause = false;
+      setMode("pause");
+      return;
+    }
+    startRun();
+  });
+  on("btn-tut-back", "click", () => {
+    if (tutorialIndex > 0) {
+      tutorialIndex -= 1;
+      renderTutorial();
+    }
+  });
+  on("btn-tut-skip", "click", () => {
+    markTutorialSeen();
+    if (state && state._returnToPause && !state.ended) {
+      state._returnToPause = false;
+      setMode("pause");
+    } else {
+      setMode("title");
+    }
+  });
+  function refreshMuteUi() {
+    const label = meta.muted ? "Sound off" : "Sound on";
+    const hud = document.getElementById("btn-mute");
+    const title = document.getElementById("btn-mute-title");
+    if (hud) hud.textContent = meta.muted ? "Muted" : "Sound";
+    if (title) title.textContent = label;
+  }
+
+  function toggleMute() {
+    meta.muted = !meta.muted;
+    saveMeta();
+    refreshMuteUi();
+    if (!meta.muted) {
+      ensureAudio();
+      sfx.xp();
+    }
+  }
+
+  on("btn-mute", "click", toggleMute);
+  on("btn-mute-title", "click", toggleMute);
+
+  on("btn-hud-pause", "click", () => {
+    if (mode === "play" && state && !state.ended && !state.pausedChoice) {
+      setMode("pause");
+    }
+  });
+
+  window.addEventListener(
+    "pointerdown",
+    () => {
+      ensureAudio();
+    },
+    { once: true },
+  );
+  on("btn-again", "click", startRun);
+  on("btn-menu", "click", () => setMode("title"));
+  on("btn-upgrades", "click", () => setMode("shop"));
+  on("btn-shop-back", "click", () => setMode("title"));
+  on("btn-resume", "click", () => setMode("play"));
+  on("btn-quit", "click", () => endRun(true));
+
+  window.addEventListener("resize", resize);
+
+  try {
+    resize();
+    refreshMetaUi();
+    refreshMuteUi();
+    setMode("title");
+    lastTs = performance.now();
+    animId = requestAnimationFrame(frame);
+  } catch (err) {
+    console.error(err);
+    const crash = document.createElement("div");
+    crash.style.cssText =
+      "position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:24px;background:#0b1210;color:#f4efe4;font:600 18px Outfit,sans-serif;text-align:center";
+    crash.textContent = "Game failed to start. Hard refresh (Ctrl+Shift+R) and try again.";
+    document.body.appendChild(crash);
+  }
+})();
+
+  </script>
+</body>
+</html>

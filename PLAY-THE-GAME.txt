@@ -1,0 +1,9 @@
+PLAY LANTERN HOLLOW
+
+Open this link:
+
+https://boxyroom.github.io/4.1-Final-JS-Project/lantern.html
+
+1. Open the link
+2. Tap PLAY
+3. WASD to move, Space to dash
