@@ -102,6 +102,50 @@
   };
   playerVisualImg.src = PLAYER_VISUAL_SRC;
 
+  const WEAPON_CRATE_SRC = (() => {
+    const path = (location.pathname || "").replace(/\\/g, "/");
+    if (path.includes("/game") && !/lantern\.html$/i.test(path)) return "assets/weapon-crate.png";
+    return "game/assets/weapon-crate.png";
+  })();
+  const weaponCrateImg = new Image();
+  let weaponCrateReady = false;
+  weaponCrateImg.onload = () => {
+    weaponCrateReady = true;
+  };
+  weaponCrateImg.src = WEAPON_CRATE_SRC;
+
+  const CRATE_TINT_CSS = {
+    grenades: "rgba(34, 197, 94, 0.5)",
+    swarm: "rgba(225, 29, 72, 0.5)",
+    nuke: "rgba(59, 130, 246, 0.5)",
+  };
+  const CRATE_GLOW_CSS = {
+    grenades: "rgba(34, 197, 94, 0.85)",
+    swarm: "rgba(225, 29, 72, 0.9)",
+    nuke: "rgba(59, 130, 246, 0.85)",
+  };
+  const crateTintCanvas = document.createElement("canvas");
+  const crateTintCtx = crateTintCanvas.getContext("2d");
+
+  function drawTintedWeaponCrate(dx, dy, dw, dh, tint) {
+    if (!weaponCrateReady || !crateTintCtx) return false;
+    const tw = Math.max(1, Math.round(dw));
+    const th = Math.max(1, Math.round(dh));
+    if (crateTintCanvas.width !== tw || crateTintCanvas.height !== th) {
+      crateTintCanvas.width = tw;
+      crateTintCanvas.height = th;
+    }
+    crateTintCtx.clearRect(0, 0, tw, th);
+    crateTintCtx.globalCompositeOperation = "source-over";
+    crateTintCtx.drawImage(weaponCrateImg, 0, 0, tw, th);
+    crateTintCtx.globalCompositeOperation = "source-atop";
+    crateTintCtx.fillStyle = tint;
+    crateTintCtx.fillRect(0, 0, tw, th);
+    crateTintCtx.globalCompositeOperation = "source-over";
+    ctx.drawImage(crateTintCanvas, dx, dy, dw, dh);
+    return true;
+  }
+
   const ui = {
     title: document.getElementById("title"),
     tutorial: document.getElementById("tutorial"),
@@ -2089,14 +2133,9 @@
 
   function drawWeaponPickup(wpn, s) {
     const bob = Math.sin(wpn.pulse) * 4;
-    const nuke = wpn.kind === "nuke";
-    const swarm = wpn.kind === "swarm";
-    const col = nuke ? "#c084fc" : swarm ? "#e11d48" : "#e07a2f";
-    const glowCol = nuke
-      ? "rgba(220,180,255,0.85)"
-      : swarm
-        ? "rgba(255,80,100,0.9)"
-        : "rgba(255,180,90,0.85)";
+    const kind = wpn.kind === "nuke" || wpn.kind === "swarm" ? wpn.kind : "grenades";
+    const glowCol = CRATE_GLOW_CSS[kind];
+    const tint = CRATE_TINT_CSS[kind];
     drawShadow(s.x, s.y + 6, wpn.r + 4, 5, 0.3);
     const glow = ctx.createRadialGradient(s.x, s.y + bob, 2, s.x, s.y + bob, wpn.r * 3.2);
     glow.addColorStop(0, glowCol);
@@ -2105,22 +2144,26 @@
     ctx.beginPath();
     ctx.arc(s.x, s.y + bob, wpn.r * 3.2, 0, TAU);
     ctx.fill();
-    ctx.fillStyle = col;
-    ctx.beginPath();
-    if (typeof ctx.roundRect === "function") {
-      ctx.roundRect(s.x - wpn.r, s.y + bob - wpn.r, wpn.r * 2, wpn.r * 2, 4);
-    } else {
-      ctx.rect(s.x - wpn.r, s.y + bob - wpn.r, wpn.r * 2, wpn.r * 2);
+
+    const drawH = wpn.r * 2.6;
+    const drawW =
+      drawH *
+      (weaponCrateReady
+        ? weaponCrateImg.naturalWidth / weaponCrateImg.naturalHeight || 1
+        : 1);
+    const dx = s.x - drawW / 2;
+    const dy = s.y + bob - drawH / 2 - 4;
+
+    if (!drawTintedWeaponCrate(dx, dy, drawW, drawH, tint)) {
+      ctx.fillStyle = kind === "nuke" ? "#3b82f6" : kind === "swarm" ? "#e11d48" : "#22c55e";
+      ctx.beginPath();
+      if (typeof ctx.roundRect === "function") {
+        ctx.roundRect(s.x - wpn.r, s.y + bob - wpn.r, wpn.r * 2, wpn.r * 2, 4);
+      } else {
+        ctx.rect(s.x - wpn.r, s.y + bob - wpn.r, wpn.r * 2, wpn.r * 2);
+      }
+      ctx.fill();
     }
-    ctx.fill();
-    ctx.strokeStyle = "rgba(255,255,240,0.7)";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    ctx.fillStyle = nuke || swarm ? "#fff5f5" : "#142019";
-    ctx.font = `800 ${nuke || swarm ? 9 : 9}px Outfit, sans-serif`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(nuke ? "NUKE" : swarm ? "SWIRL" : "★5", s.x, s.y + bob);
   }
 
   function drawGrenade(g, s) {
