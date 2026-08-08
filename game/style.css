@@ -429,7 +429,7 @@ h2 {
 }
 
 #dash-fill.grenades {
-  background: linear-gradient(90deg, var(--ember), #ffb040);
+  background: linear-gradient(90deg, #15803d, #22c55e 55%, #86efac);
 }
 
 #dash-fill.swarm {
