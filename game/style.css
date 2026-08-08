@@ -383,6 +383,15 @@ h2 {
   color: var(--amber);
 }
 
+.hud-focus {
+  color: #ffd39a;
+  border: 1px solid rgba(224, 122, 47, 0.7);
+  padding: 2px 8px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
 .hud-hint {
   margin-top: 8px;
   font-size: 0.78rem;

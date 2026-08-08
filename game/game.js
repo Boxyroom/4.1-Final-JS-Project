@@ -70,6 +70,7 @@
     coach: document.getElementById("coach"),
     banner: document.getElementById("banner"),
     hudDash: document.getElementById("hud-dash"),
+    hudFocus: document.getElementById("hud-focus"),
     dashFill: document.getElementById("dash-fill"),
     metaEmbers: document.getElementById("meta-embers"),
     metaBest: document.getElementById("meta-best"),
@@ -595,8 +596,12 @@
     ui.tutBody.textContent = step.body;
     ui.tutCard.innerHTML = step.card;
     ui.tutBack.disabled = tutorialIndex === 0;
-    ui.tutNext.textContent =
-      tutorialIndex === TUTORIAL_STEPS.length - 1 ? "Start run" : "Next";
+    const last = tutorialIndex === TUTORIAL_STEPS.length - 1;
+    if (last && state && state._returnToPause) {
+      ui.tutNext.textContent = "Back to pause";
+    } else {
+      ui.tutNext.textContent = last ? "Start run" : "Next";
+    }
   }
 
   function openTutorial(fromStart = true) {
@@ -687,6 +692,7 @@
       coachTimer: 0,
       buildLog: [],
       nextTacticAt: 45,
+      spawnedFocusBrute: false,
       buffTimer: 0,
       buffLabel: "",
       magnetBuffTimer: 0,
@@ -826,8 +832,8 @@
     }
   }
 
-  function floatText(x, y, text, color = "#f0b429") {
-    state.floats.push({ x, y, text, color, life: 0.8 });
+  function floatText(x, y, text, color = "#f0b429", life = 0.8, big = false) {
+    state.floats.push({ x, y, text, color, life, maxLife: life, big });
   }
 
   function fireWeapons(dt) {
@@ -1138,11 +1144,16 @@
 
     if (p.dashTimer > 0) {
       for (const e of state.enemies) {
-        if (e.hp > 0 && dist(p, e) < p.r + e.r + 10) {
-          if (!e._dashHit || state.time - e._dashHit > 0.25) {
+        if (e.hp > 0 && dist(p, e) < p.r + e.r + 22) {
+          if (!e._dashHit || state.time - e._dashHit > 0.2) {
             hurtEnemy(e, p.dashDamage);
             e._dashHit = state.time;
-            floatText(e.x, e.y - 12, "Dash!", "#ffd39a");
+            floatText(e.x, e.y - 16, "DASH HIT!", "#ffd39a", 1.15, true);
+            addParticles(e.x, e.y, "#e07a2f", 10, 180);
+            if (!state._dashBannerCool || state.time - state._dashBannerCool > 0.8) {
+              showBanner("Dash strike!", 0.9);
+              state._dashBannerCool = state.time;
+            }
           }
         }
       }
@@ -1188,14 +1199,28 @@
     if (state.buffTimer > 0) {
       state.buffTimer -= dt;
       if (state.buffTimer <= 0) {
+        if (state.buffLabel === "Overburn" && state._overburnMult) {
+          state.player.damage /= state._overburnMult;
+          state._overburnMult = 0;
+        }
         state.buffLabel = "";
       }
     }
     if (state.magnetBuffTimer > 0) {
       state.magnetBuffTimer -= dt;
       if (state.magnetBuffTimer <= 0) {
-        state.player.magnet = Math.max(state.baseMagnet, state.player.magnet / 2.2);
+        if (state._magnetBeforeHarvest) {
+          state.player.magnet = state._magnetBeforeHarvest;
+          state._magnetBeforeHarvest = 0;
+        }
       }
+    }
+
+    if (!state.spawnedFocusBrute && state.time >= 18) {
+      state.spawnedFocusBrute = true;
+      spawnEnemy("brute");
+      showCoach("Triangle brute! Hold F to FOCUS it, then dash through.");
+      showBanner("Hold F — focus the brute");
     }
 
     if (state.time >= state.nextTacticAt && !state.pausedChoice) {
@@ -1284,6 +1309,9 @@
     if (ui.hudDash) {
       ui.hudDash.textContent = dashReady ? "Dash ready" : `Dash ${p.dashCd.toFixed(1)}s`;
       ui.hudDash.classList.toggle("ready", dashReady);
+    }
+    if (ui.hudFocus) {
+      ui.hudFocus.classList.toggle("hidden", !input.focus);
     }
     if (ui.dashFill) {
       const pct = dashReady ? 100 : (1 - p.dashCd / p.dashCooldown) * 100;
@@ -1500,16 +1528,37 @@
     ctx.stroke();
 
     if (input.focus) {
-      ctx.strokeStyle = "rgba(224,122,47,0.85)";
-      ctx.lineWidth = 2;
-      ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = "rgba(224,122,47,0.95)";
+      ctx.lineWidth = 4;
+      ctx.setLineDash([6, 4]);
       ctx.beginPath();
-      ctx.arc(ps.x, ps.y, p.r + 16, 0, TAU);
+      ctx.arc(ps.x, ps.y, p.r + 20, 0, TAU);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(ps.x, ps.y, p.r + 28, 0, TAU);
       ctx.stroke();
       ctx.setLineDash([]);
-      ctx.font = "700 12px Outfit, sans-serif";
+      ctx.font = "800 16px Outfit, sans-serif";
       ctx.fillStyle = "#ffd39a";
-      ctx.fillText("FOCUS", ps.x, ps.y - p.r - 22);
+      ctx.fillText("FOCUS", ps.x, ps.y - p.r - 28);
+      // mark focused target
+      const focusTarget = [...state.enemies]
+        .filter((e) => e.hp > 0)
+        .sort((a, b) => {
+          const rank = (e) => (e.kind === "boss" ? 3000 : e.kind === "brute" ? 1500 : 0);
+          return dist(p, a) - rank(a) - (dist(p, b) - rank(b));
+        })[0];
+      if (focusTarget) {
+        const ts = worldToScreen(focusTarget.x, focusTarget.y);
+        ctx.strokeStyle = "#f0b429";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(ts.x, ts.y, focusTarget.r + 10, 0, TAU);
+        ctx.stroke();
+        ctx.font = "700 13px Outfit, sans-serif";
+        ctx.fillStyle = "#f0b429";
+        ctx.fillText("TARGET", ts.x, ts.y - focusTarget.r - 14);
+      }
     }
 
     // particles / floats
@@ -1522,11 +1571,12 @@
       ctx.fill();
       ctx.globalAlpha = 1;
     }
-    ctx.font = "600 14px Outfit, sans-serif";
     ctx.textAlign = "center";
     for (const f of state.floats) {
       const s = worldToScreen(f.x, f.y);
-      ctx.globalAlpha = clamp(f.life / 0.8, 0, 1);
+      const maxL = f.maxLife || 0.8;
+      ctx.globalAlpha = clamp(f.life / maxL, 0, 1);
+      ctx.font = f.big ? "800 20px Outfit, sans-serif" : "600 14px Outfit, sans-serif";
       ctx.fillStyle = f.color;
       ctx.fillText(f.text, s.x, s.y);
       ctx.globalAlpha = 1;
@@ -1673,6 +1723,10 @@
     startRun();
   });
   document.getElementById("btn-tutorial").addEventListener("click", () => openTutorial(true));
+  document.getElementById("btn-pause-help").addEventListener("click", () => {
+    state._returnToPause = true;
+    openTutorial(true);
+  });
   document.getElementById("btn-tut-next").addEventListener("click", () => {
     if (tutorialIndex < TUTORIAL_STEPS.length - 1) {
       tutorialIndex += 1;
@@ -1680,6 +1734,11 @@
       return;
     }
     markTutorialSeen();
+    if (state && state._returnToPause && !state.ended) {
+      state._returnToPause = false;
+      setMode("pause");
+      return;
+    }
     startRun();
   });
   document.getElementById("btn-tut-back").addEventListener("click", () => {
@@ -1690,7 +1749,12 @@
   });
   document.getElementById("btn-tut-skip").addEventListener("click", () => {
     markTutorialSeen();
-    setMode("title");
+    if (state && state._returnToPause && !state.ended) {
+      state._returnToPause = false;
+      setMode("pause");
+    } else {
+      setMode("title");
+    }
   });
   function refreshMuteUi() {
     const label = meta.muted ? "Sound off" : "Sound on";
