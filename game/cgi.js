@@ -344,17 +344,40 @@
   }
 
   function createGrenadeMesh() {
-    const mesh = new THREE.Mesh(
-      new THREE.SphereGeometry(0.16, 12, 12),
+    const group = new THREE.Group();
+    const body = new THREE.Mesh(
+      new THREE.SphereGeometry(0.2, 14, 14),
       new THREE.MeshStandardMaterial({
         color: 0xffb040,
         emissive: 0xff6a20,
-        emissiveIntensity: 2.6,
+        emissiveIntensity: 2.8,
+        roughness: 0.35,
+        metalness: 0.25,
       }),
     );
-    mesh.visible = false;
-    scene.add(mesh);
-    return mesh;
+    group.add(body);
+    const pin = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.04, 0.04, 0.18, 6),
+      new THREE.MeshStandardMaterial({ color: 0x5a3612, metalness: 0.6, roughness: 0.4 }),
+    );
+    pin.position.y = 0.22;
+    group.add(pin);
+    const shadow = new THREE.Mesh(
+      new THREE.CircleGeometry(0.22, 16),
+      new THREE.MeshBasicMaterial({
+        color: 0x000000,
+        transparent: true,
+        opacity: 0.35,
+        depthWrite: false,
+      }),
+    );
+    shadow.rotation.x = -Math.PI / 2;
+    shadow.position.y = 0.02;
+    group.add(shadow);
+    group.visible = false;
+    group.userData = { body, shadow };
+    scene.add(group);
+    return group;
   }
 
   function createCrateHint() {
@@ -873,8 +896,19 @@
         continue;
       }
       const gp = worldTo3D(g.x, g.y);
+      const height = Math.max(0.15, 0.15 + (g.z || 0) * 0.045);
       m.visible = true;
-      m.position.set(gp.x, 0.55, gp.z);
+      m.position.set(gp.x, 0, gp.z);
+      if (m.userData.body) {
+        m.userData.body.position.y = height;
+        m.userData.body.rotation.x = (g.spin || 0) * 0.8;
+        m.userData.body.rotation.z = (g.spin || 0) * 1.2;
+      }
+      if (m.userData.shadow) {
+        const shrink = Math.max(0.35, 1 - (g.z || 0) / 220);
+        m.userData.shadow.scale.setScalar(shrink);
+        m.userData.shadow.material.opacity = 0.4 * shrink;
+      }
     }
 
     for (let i = 0; i < fireflies.length; i++) {
@@ -971,10 +1005,23 @@
       m.position.set(sw3.x, 0.12, sw3.z);
       m.scale.set(scale, 1, scale);
       const ud = m.userData || {};
-      if (ud.disc) ud.disc.material.opacity = 0.12 + 0.4 * alpha;
-      if (ud.mesh) ud.mesh.material.opacity = 0.35 + 0.6 * alpha;
-      if (ud.outer) ud.outer.material.opacity = 0.25 + 0.55 * alpha;
-      if (ud.inner) ud.inner.material.opacity = 0.3 + 0.55 * alpha;
+      const grenadeBoom = sw.tint === "grenade";
+      if (ud.disc) {
+        ud.disc.material.color.set(grenadeBoom ? 0xff8a2a : 0xffc050);
+        ud.disc.material.opacity = 0.18 + 0.45 * alpha;
+      }
+      if (ud.mesh) {
+        ud.mesh.material.color.set(grenadeBoom ? 0xffb040 : 0xffe08a);
+        ud.mesh.material.opacity = 0.4 + 0.55 * alpha;
+      }
+      if (ud.outer) {
+        ud.outer.material.color.set(grenadeBoom ? 0xe07a2f : 0xe07a2f);
+        ud.outer.material.opacity = 0.3 + 0.55 * alpha;
+      }
+      if (ud.inner) {
+        ud.inner.material.color.set(grenadeBoom ? 0xfff2c0 : 0xfff6d0);
+        ud.inner.material.opacity = 0.35 + 0.55 * alpha;
+      }
     }
 
     renderer.render(scene, camera);

@@ -154,7 +154,7 @@
       card: `
         <p>Colored crates on the marsh are <strong>special weapons</strong>.</p>
         <ul>
-          <li><strong>Star Grenades</strong> (orange) — spawn about every 20s. Fire 5 bombs in a star.</li>
+          <li><strong>Star Grenades</strong> (orange) — spawn about every 20s. Fire 5 bombs that arc out and explode on landing.</li>
           <li><strong>Nuke</strong> (purple, rare) — spawn about every 60s. Clears the field and sucks in all XP.</li>
           <li>Drive through a crate to equip it. The left button shows what is loaded.</li>
           <li><strong>Keyboard:</strong> <span class="key">Space</span> or <span class="key">Shift</span> to fire</li>
@@ -677,7 +677,7 @@
       invuln: 0,
       equippedWeapon: null,
       weaponDamage: 1,
-      grenadeRadius: 120,
+      grenadeRadius: 170,
       orbit: 0,
       nova: 0,
       novaTimer: 3.5,
@@ -1165,23 +1165,32 @@
       showBanner("NUKE — field cleared!", 1.8);
       floatText(p.x, p.y - 36, "NUKE", "#e9d5ff", 1.4, true);
     } else if (kind === "grenades") {
-      const damage = 95 * p.weaponDamage;
-      const speed = 340;
+      // Land in a star just inside the visible screen edge
+      const halfMin = Math.min(state.w || window.innerWidth, state.h || window.innerHeight) * 0.5;
+      const landDist = Math.max(140, halfMin * 0.72);
+      const blastR = Math.max(150, p.grenadeRadius);
       for (let i = 0; i < 5; i++) {
         const a = (TAU * i) / 5 - Math.PI / 2;
+        const flight = 0.72 + i * 0.03;
         state.grenades.push({
           x: p.x,
           y: p.y,
-          vx: Math.cos(a) * speed,
-          vy: Math.sin(a) * speed,
-          r: 8,
-          life: 0.55,
-          damage,
-          radius: p.grenadeRadius,
+          z: 0,
+          startX: p.x,
+          startY: p.y,
+          targetX: p.x + Math.cos(a) * landDist,
+          targetY: p.y + Math.sin(a) * landDist,
+          t: 0,
+          flight,
+          peak: 140 + (i % 2) * 20,
+          r: 10,
+          damage: 9999 * p.weaponDamage,
+          radius: blastR,
+          spin: rand(0, TAU),
         });
       }
       sfx.grenade();
-      showBanner("Star grenades away!", 1.2);
+      showBanner("Star grenades — arch and boom!", 1.3);
       addParticles(p.x, p.y, "#e07a2f", 18, 200);
     }
     p.equippedWeapon = null;
@@ -1190,14 +1199,25 @@
   }
 
   function explodeGrenade(g) {
-    addParticles(g.x, g.y, "#ff8a2a", 26, 260);
-    addParticles(g.x, g.y, "#f0b429", 14, 180);
-    state.shake = Math.max(state.shake, 10);
+    addParticles(g.x, g.y, "#ff8a2a", 42, 360);
+    addParticles(g.x, g.y, "#f0b429", 32, 280);
+    addParticles(g.x, g.y, "#fff2c0", 24, 200);
+    state.shockwaves.push({
+      x: g.x,
+      y: g.y,
+      r: 16,
+      maxR: g.radius,
+      life: 0.55,
+      maxLife: 0.55,
+      tint: "grenade",
+    });
+    state.shake = Math.max(state.shake, 16);
     sfx.boom();
-    floatText(g.x, g.y - 12, "BOOM", "#ffd39a", 1.05, true);
+    floatText(g.x, g.y - 18, "BOOM", "#ffd39a", 1.2, true);
     for (const e of state.enemies) {
       if (e.hp > 0 && dist(g, e) < g.radius + e.r) {
-        hurtEnemy(e, g.damage);
+        // Instant kill inside the blast radius
+        hurtEnemy(e, Math.max(9999, g.damage), { sfx: false });
       }
     }
   }
@@ -1430,21 +1450,19 @@
     }
     state.bullets = state.bullets.filter((b) => b.life > 0);
 
-    // star grenades
+    // star grenades — arc up, then detonate on ground impact
     for (const g of state.grenades) {
-      g.x += g.vx * dt;
-      g.y += g.vy * dt;
-      g.life -= dt;
-      g.vx *= 0.985;
-      g.vy *= 0.985;
-      let hit = false;
-      for (const e of state.enemies) {
-        if (e.hp > 0 && dist(g, e) < g.r + e.r) {
-          hit = true;
-          break;
-        }
-      }
-      if (hit || g.life <= 0) {
+      g.t += dt;
+      const u = Math.min(1, g.t / g.flight);
+      // ease slightly toward the landing point
+      const ease = u * u * (3 - 2 * u);
+      g.x = g.startX + (g.targetX - g.startX) * ease;
+      g.y = g.startY + (g.targetY - g.startY) * ease;
+      // parabolic height
+      g.z = 4 * (g.peak || 140) * u * (1 - u);
+      g.spin = (g.spin || 0) + dt * 10;
+      if (u >= 1) {
+        g.z = 0;
         g._boom = true;
         explodeGrenade(g);
       }
@@ -1999,18 +2017,44 @@
   }
 
   function drawGrenade(g, s) {
-    const glow = ctx.createRadialGradient(s.x, s.y, 1, s.x, s.y, 14);
+    // ground shadow under the arc
+    const ground = worldToScreen(g.x, g.y);
+    const lift = g.z || 0;
+    const shadowScale = Math.max(0.35, 1 - lift / 220);
+    drawShadow(ground.x, ground.y + 4, (g.r + 6) * shadowScale, 5 * shadowScale, 0.35 * shadowScale);
+
+    // landing marker while in flight
+    if (lift > 2) {
+      const land = worldToScreen(g.targetX, g.targetY);
+      ctx.strokeStyle = "rgba(224,122,47,0.55)";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.arc(land.x, land.y, 14, 0, TAU);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    const drawX = s.x;
+    const drawY = s.y - lift * 0.55;
+    const glow = ctx.createRadialGradient(drawX, drawY, 1, drawX, drawY, 18);
     glow.addColorStop(0, "rgba(255,220,120,0.95)");
-    glow.addColorStop(0.5, "rgba(224,122,47,0.7)");
+    glow.addColorStop(0.5, "rgba(224,122,47,0.75)");
     glow.addColorStop(1, "rgba(224,122,47,0)");
     ctx.fillStyle = glow;
     ctx.beginPath();
-    ctx.arc(s.x, s.y, 14, 0, TAU);
+    ctx.arc(drawX, drawY, 18, 0, TAU);
     ctx.fill();
+    ctx.save();
+    ctx.translate(drawX, drawY);
+    ctx.rotate(g.spin || 0);
     ctx.fillStyle = "#ffb040";
     ctx.beginPath();
-    ctx.arc(s.x, s.y, g.r, 0, TAU);
+    ctx.arc(0, 0, g.r + 2, 0, TAU);
     ctx.fill();
+    ctx.fillStyle = "#7a3a12";
+    ctx.fillRect(-2, -g.r - 4, 4, 6);
+    ctx.restore();
   }
 
   function drawDarkness(w, h, ps, p) {
