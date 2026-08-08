@@ -16,8 +16,12 @@
   let lanternGroup;
   let lanternLight;
   let flameLight;
+  let rimLight;
+  let hemi;
+  let ambient;
   let labelSprite;
   let ringMesh;
+  let glowSprite;
   let ready = false;
   let groundTexture = null;
 
@@ -25,33 +29,68 @@
   const gemPool = [];
   const bulletPool = [];
   const fireflies = [];
+  const mistPuffs = [];
+  const puddles = [];
 
-  const brassMat = () =>
-    new THREE.MeshPhysicalMaterial({
-      color: 0xb8842f,
+  function supportPhysical() {
+    try {
+      return typeof THREE.MeshPhysicalMaterial === "function";
+    } catch (_) {
+      return false;
+    }
+  }
+
+  const usePhysical = supportPhysical();
+
+  const brassMat = () => {
+    if (usePhysical) {
+      return new THREE.MeshPhysicalMaterial({
+        color: 0xc4892e,
+        metalness: 0.96,
+        roughness: 0.22,
+        clearcoat: 0.55,
+        clearcoatRoughness: 0.25,
+        reflectivity: 0.9,
+      });
+    }
+    return new THREE.MeshStandardMaterial({
+      color: 0xc4892e,
       metalness: 0.92,
       roughness: 0.28,
-      clearcoat: 0.4,
-      clearcoatRoughness: 0.3,
     });
+  };
 
-  const glassMat = () =>
-    new THREE.MeshStandardMaterial({
+  const glassMat = () => {
+    if (usePhysical) {
+      return new THREE.MeshPhysicalMaterial({
+        color: 0xffe2a0,
+        metalness: 0.05,
+        roughness: 0.08,
+        transmission: 0.35,
+        thickness: 0.4,
+        transparent: true,
+        opacity: 0.78,
+        emissive: 0xff9a28,
+        emissiveIntensity: 0.85,
+      });
+    }
+    return new THREE.MeshStandardMaterial({
       color: 0xffd27a,
       metalness: 0.05,
-      roughness: 0.15,
+      roughness: 0.12,
       transparent: true,
       opacity: 0.72,
       emissive: 0xffaa33,
-      emissiveIntensity: 0.7,
+      emissiveIntensity: 0.75,
     });
+  };
 
   function makeLabelTexture(text) {
     const c = document.createElement("canvas");
     c.width = 256;
     c.height = 64;
     const g = c.getContext("2d");
-    g.fillStyle = "rgba(0,0,0,0.6)";
+    g.fillStyle = "rgba(0,0,0,0.55)";
     g.fillRect(12, 10, 232, 44);
     g.font = "700 26px Outfit, sans-serif";
     g.fillStyle = "#ffe08a";
@@ -63,65 +102,92 @@
     return tex;
   }
 
+  function makeGlowTexture() {
+    const c = document.createElement("canvas");
+    c.width = 128;
+    c.height = 128;
+    const g = c.getContext("2d");
+    const grad = g.createRadialGradient(64, 64, 4, 64, 64, 62);
+    grad.addColorStop(0, "rgba(255,220,140,0.95)");
+    grad.addColorStop(0.35, "rgba(255,160,60,0.35)");
+    grad.addColorStop(1, "rgba(255,120,20,0)");
+    g.fillStyle = grad;
+    g.fillRect(0, 0, 128, 128);
+    const tex = new THREE.CanvasTexture(c);
+    tex.needsUpdate = true;
+    return tex;
+  }
+
   function createLanternModel() {
     const group = new THREE.Group();
 
     const handle = new THREE.Mesh(
-      new THREE.TorusGeometry(0.18, 0.03, 10, 24, Math.PI),
+      new THREE.TorusGeometry(0.18, 0.028, 12, 28, Math.PI),
       brassMat(),
     );
     handle.position.y = 0.72;
     handle.rotation.x = Math.PI;
     group.add(handle);
 
-    const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.26, 0.12, 20), brassMat());
+    const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.26, 0.14, 24), brassMat());
     cap.position.y = 0.55;
     group.add(cap);
 
-    const glass = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.22, 0.42, 20), glassMat());
+    const vent = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.08, 0.12, 0.08, 12),
+      brassMat(),
+    );
+    vent.position.y = 0.64;
+    group.add(vent);
+
+    const glass = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.22, 0.42, 24), glassMat());
     glass.position.y = 0.28;
+    glass.name = "glass";
     group.add(glass);
 
     const flame = new THREE.Mesh(
-      new THREE.SphereGeometry(0.08, 12, 12),
+      new THREE.SphereGeometry(0.09, 16, 16),
       new THREE.MeshStandardMaterial({
-        color: 0xfff0c8,
+        color: 0xfff4d0,
         emissive: 0xffb040,
-        emissiveIntensity: 3.5,
-        roughness: 0.4,
+        emissiveIntensity: 4.2,
+        roughness: 0.35,
       }),
     );
     flame.position.y = 0.3;
     flame.name = "flame";
     group.add(flame);
 
-    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.28, 0.14, 20), brassMat());
+    const wick = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.015, 0.02, 0.08, 8),
+      new THREE.MeshStandardMaterial({ color: 0x2a1a10, roughness: 1 }),
+    );
+    wick.position.y = 0.2;
+    group.add(wick);
+
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.28, 0.14, 24), brassMat());
     base.position.y = 0.02;
     group.add(base);
 
     const foot = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.18, 0.2, 0.08, 16),
-      new THREE.MeshPhysicalMaterial({
-        color: 0x5a3612,
-        metalness: 0.7,
-        roughness: 0.45,
+      new THREE.CylinderGeometry(0.18, 0.22, 0.08, 18),
+      new THREE.MeshStandardMaterial({
+        color: 0x4a2c10,
+        metalness: 0.75,
+        roughness: 0.42,
       }),
     );
     foot.position.y = -0.08;
     group.add(foot);
 
-    // bars
-    for (let i = 0; i < 4; i++) {
-      const bar = new THREE.Mesh(
-        new THREE.BoxGeometry(0.03, 0.42, 0.03),
-        brassMat(),
-      );
-      const a = (i / 4) * Math.PI * 2;
-      bar.position.set(Math.cos(a) * 0.2, 0.28, Math.sin(a) * 0.2);
+    for (let i = 0; i < 6; i++) {
+      const bar = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.42, 0.025), brassMat());
+      const a = (i / 6) * Math.PI * 2;
+      bar.position.set(Math.cos(a) * 0.205, 0.28, Math.sin(a) * 0.205);
       group.add(bar);
     }
 
-    group.scale.setScalar(1.8);
+    group.scale.setScalar(1.85);
     return group;
   }
 
@@ -132,63 +198,62 @@
         new THREE.DodecahedronGeometry(0.55, 0),
         new THREE.MeshStandardMaterial({
           color: 0x2f4f38,
-          roughness: 0.9,
-          metalness: 0.05,
+          roughness: 0.92,
+          metalness: 0.04,
         }),
       );
       g.add(body);
       const moss = new THREE.Mesh(
-        new THREE.SphereGeometry(0.28, 10, 10),
+        new THREE.SphereGeometry(0.28, 12, 12),
         new THREE.MeshStandardMaterial({ color: 0x4f7a52, roughness: 1 }),
       );
       moss.position.set(0.15, 0.2, 0.1);
       g.add(moss);
     } else if (kind === "dart") {
       const body = new THREE.Mesh(
-        new THREE.ConeGeometry(0.18, 0.7, 8),
+        new THREE.ConeGeometry(0.18, 0.7, 10),
         new THREE.MeshStandardMaterial({
           color: 0x7ec8a3,
-          roughness: 0.45,
-          metalness: 0.15,
+          roughness: 0.4,
+          metalness: 0.18,
           emissive: 0x143226,
-          emissiveIntensity: 0.2,
+          emissiveIntensity: 0.25,
         }),
       );
       body.rotation.x = Math.PI / 2;
       g.add(body);
     } else if (kind === "boss") {
       const body = new THREE.Mesh(
-        new THREE.SphereGeometry(0.95, 24, 24),
+        new THREE.SphereGeometry(0.95, 28, 28),
         new THREE.MeshStandardMaterial({
           color: 0x5a2814,
-          roughness: 0.55,
-          metalness: 0.2,
+          roughness: 0.5,
+          metalness: 0.22,
           emissive: 0x3a1408,
-          emissiveIntensity: 0.35,
+          emissiveIntensity: 0.4,
         }),
       );
       g.add(body);
       const eye = new THREE.Mesh(
-        new THREE.SphereGeometry(0.18, 12, 12),
+        new THREE.SphereGeometry(0.18, 14, 14),
         new THREE.MeshStandardMaterial({
           color: 0xf0b429,
           emissive: 0xf0b429,
-          emissiveIntensity: 2,
+          emissiveIntensity: 2.4,
         }),
       );
       eye.position.set(0, 0.25, 0.75);
       g.add(eye);
     } else {
-      // wisp
       const body = new THREE.Mesh(
-        new THREE.SphereGeometry(0.38, 18, 18),
+        new THREE.SphereGeometry(0.38, 20, 20),
         new THREE.MeshStandardMaterial({
           color: 0x86a37a,
-          roughness: 0.25,
+          roughness: 0.22,
           transparent: true,
-          opacity: 0.88,
+          opacity: 0.9,
           emissive: 0x3f6b4f,
-          emissiveIntensity: 0.9,
+          emissiveIntensity: 1.0,
         }),
       );
       g.add(body);
@@ -204,9 +269,9 @@
       new THREE.MeshStandardMaterial({
         color: 0xffd76a,
         emissive: 0xffb000,
-        emissiveIntensity: 2.2,
-        metalness: 0.4,
-        roughness: 0.2,
+        emissiveIntensity: 2.4,
+        metalness: 0.45,
+        roughness: 0.18,
       }),
     );
     mesh.visible = false;
@@ -216,11 +281,11 @@
 
   function createBulletMesh() {
     const mesh = new THREE.Mesh(
-      new THREE.SphereGeometry(0.1, 10, 10),
+      new THREE.SphereGeometry(0.1, 12, 12),
       new THREE.MeshStandardMaterial({
         color: 0xfff2c0,
         emissive: 0xffc050,
-        emissiveIntensity: 3,
+        emissiveIntensity: 3.2,
       }),
     );
     mesh.visible = false;
@@ -238,69 +303,90 @@
     renderer = new THREE.WebGLRenderer({
       antialias: true,
       powerPreference: "high-performance",
+      alpha: false,
     });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.15;
+    renderer.toneMappingExposure = 1.22;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    if ("physicallyCorrectLights" in renderer) {
+      renderer.physicallyCorrectLights = true;
+    }
     container.appendChild(renderer.domElement);
     renderer.domElement.id = "game";
-    renderer.domElement.style.cssText = "position:absolute;inset:0;width:100%;height:100%;display:block;";
+    renderer.domElement.style.cssText =
+      "position:absolute;inset:0;width:100%;height:100%;display:block;";
 
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x070b09);
-    scene.fog = new THREE.FogExp2(0x0b1210, 0.045);
+    scene.background = new THREE.Color(0x050806);
+    scene.fog = new THREE.FogExp2(0x0a1210, 0.038);
 
     camera = new THREE.PerspectiveCamera(
-      50,
+      48,
       window.innerWidth / window.innerHeight,
       0.1,
-      200,
+      220,
     );
-    camera.position.set(0, 18, 16);
+    camera.position.set(0, 17, 15.5);
     camera.lookAt(0, 0, 0);
 
-    hemi = new THREE.HemisphereLight(0xb7d0c0, 0x1a1208, 0.45);
+    hemi = new THREE.HemisphereLight(0xa8c4b4, 0x1a1208, 0.38);
     scene.add(hemi);
-    ambient = new THREE.AmbientLight(0x2a3328, 0.25);
+    ambient = new THREE.AmbientLight(0x1e2820, 0.18);
     scene.add(ambient);
 
-    // ground
-    const groundGeo = new THREE.PlaneGeometry(120, 120, 64, 64);
-    // slight height noise
+    rimLight = new THREE.DirectionalLight(0x6a8f78, 0.35);
+    rimLight.position.set(-12, 18, -8);
+    rimLight.castShadow = true;
+    rimLight.shadow.mapSize.set(1024, 1024);
+    rimLight.shadow.camera.near = 1;
+    rimLight.shadow.camera.far = 60;
+    rimLight.shadow.camera.left = -25;
+    rimLight.shadow.camera.right = 25;
+    rimLight.shadow.camera.top = 25;
+    rimLight.shadow.camera.bottom = -25;
+    rimLight.shadow.bias = -0.0003;
+    scene.add(rimLight);
+
+    const groundGeo = new THREE.PlaneGeometry(140, 140, 96, 96);
     const pos = groundGeo.attributes.position;
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i);
       const y = pos.getY(i);
-      pos.setZ(i, Math.sin(x * 0.35) * Math.cos(y * 0.3) * 0.25);
+      const ripples =
+        Math.sin(x * 0.28) * Math.cos(y * 0.24) * 0.22 +
+        Math.sin(x * 0.9 + y * 0.5) * 0.06;
+      pos.setZ(i, ripples);
     }
     groundGeo.computeVertexNormals();
 
     const groundMat = new THREE.MeshStandardMaterial({
-      color: 0x243829,
-      roughness: 0.95,
-      metalness: 0.02,
+      color: 0x1c2c22,
+      roughness: 0.92,
+      metalness: 0.04,
     });
     ground = new THREE.Mesh(groundGeo, groundMat);
     ground.rotation.x = -Math.PI / 2;
     ground.receiveShadow = true;
     scene.add(ground);
 
-    // load photo texture if available
     const src =
       document.body.dataset.ground ||
+      document.getElementById("app")?.dataset?.ground ||
       (location.pathname.includes("/game") ? "../theater.jpg" : "theater.jpg");
     new THREE.TextureLoader().load(
       src,
       (tex) => {
         tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-        tex.repeat.set(8, 8);
+        tex.repeat.set(7, 7);
         tex.colorSpace = THREE.SRGBColorSpace;
+        tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
         ground.material.map = tex;
-        ground.material.color.set(0xffffff);
+        ground.material.color.set(0xc8d2c4);
+        ground.material.roughness = 0.88;
         ground.material.needsUpdate = true;
         groundTexture = tex;
       },
@@ -308,18 +394,57 @@
       () => {},
     );
 
-    // decorative reeds as thin boxes in a grid near origin
-    const reedMat = new THREE.MeshStandardMaterial({
-      color: 0x3f6b45,
-      roughness: 0.9,
+    // wet marsh puddles
+    const puddleMat = new THREE.MeshStandardMaterial({
+      color: 0x0d1a14,
+      metalness: 0.65,
+      roughness: 0.18,
+      transparent: true,
+      opacity: 0.72,
     });
-    for (let i = 0; i < 80; i++) {
-      const h = 0.8 + Math.random() * 1.4;
-      const reed = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.03, h, 5), reedMat);
-      reed.position.set((Math.random() - 0.5) * 40, h / 2, (Math.random() - 0.5) * 40);
-      reed.rotation.z = (Math.random() - 0.5) * 0.2;
+    for (let i = 0; i < 18; i++) {
+      const puddle = new THREE.Mesh(
+        new THREE.CircleGeometry(0.8 + Math.random() * 1.8, 24),
+        puddleMat.clone(),
+      );
+      puddle.rotation.x = -Math.PI / 2;
+      puddle.position.set((Math.random() - 0.5) * 50, 0.04, (Math.random() - 0.5) * 50);
+      puddle.receiveShadow = true;
+      scene.add(puddle);
+      puddles.push(puddle);
+    }
+
+    const reedMat = new THREE.MeshStandardMaterial({
+      color: 0x3a5f40,
+      roughness: 0.95,
+    });
+    for (let i = 0; i < 110; i++) {
+      const h = 0.9 + Math.random() * 1.6;
+      const reed = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.03, h, 5), reedMat);
+      const rx = (Math.random() - 0.5) * 48;
+      const rz = (Math.random() - 0.5) * 48;
+      if (Math.hypot(rx, rz) < 3.2) continue;
+      reed.position.set(rx, h / 2, rz);
+      reed.rotation.z = (Math.random() - 0.5) * 0.25;
+      reed.rotation.x = (Math.random() - 0.5) * 0.12;
       reed.castShadow = true;
       scene.add(reed);
+    }
+
+    // soft mist volumes
+    const mistMat = new THREE.MeshStandardMaterial({
+      color: 0xb7c9b8,
+      transparent: true,
+      opacity: 0.045,
+      depthWrite: false,
+      roughness: 1,
+    });
+    for (let i = 0; i < 14; i++) {
+      const mist = new THREE.Mesh(new THREE.SphereGeometry(2.2 + Math.random() * 2, 12, 12), mistMat);
+      mist.position.set((Math.random() - 0.5) * 40, 0.9 + Math.random(), (Math.random() - 0.5) * 40);
+      mist.scale.y = 0.35;
+      scene.add(mist);
+      mistPuffs.push(mist);
     }
 
     lanternGroup = createLanternModel();
@@ -331,13 +456,26 @@
     });
     scene.add(lanternGroup);
 
-    lanternLight = new THREE.PointLight(0xffb347, 40, 28, 2);
+    lanternLight = new THREE.PointLight(0xffb347, 55, 32, 1.8);
     lanternLight.castShadow = true;
     lanternLight.shadow.mapSize.set(1024, 1024);
+    lanternLight.shadow.bias = -0.0008;
     scene.add(lanternLight);
 
-    flameLight = new THREE.PointLight(0xffe08a, 8, 8, 2);
+    flameLight = new THREE.PointLight(0xffe08a, 12, 9, 2);
     scene.add(flameLight);
+
+    glowSprite = new THREE.Sprite(
+      new THREE.SpriteMaterial({
+        map: makeGlowTexture(),
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        opacity: 0.85,
+      }),
+    );
+    glowSprite.scale.set(4.5, 4.5, 1);
+    scene.add(glowSprite);
 
     const labelMat = new THREE.SpriteMaterial({
       map: makeLabelTexture("YOUR LANTERN"),
@@ -349,7 +487,7 @@
     scene.add(labelSprite);
 
     ringMesh = new THREE.Mesh(
-      new THREE.RingGeometry(1.1, 1.25, 48),
+      new THREE.RingGeometry(1.1, 1.25, 56),
       new THREE.MeshBasicMaterial({
         color: 0xf0b429,
         transparent: true,
@@ -360,13 +498,13 @@
     ringMesh.rotation.x = -Math.PI / 2;
     scene.add(ringMesh);
 
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 48; i++) {
       const ff = new THREE.Mesh(
-        new THREE.SphereGeometry(0.05, 6, 6),
+        new THREE.SphereGeometry(0.045, 8, 8),
         new THREE.MeshStandardMaterial({
           color: 0xffd56a,
           emissive: 0xffc040,
-          emissiveIntensity: 2,
+          emissiveIntensity: 2.2,
         }),
       );
       ff.userData.phase = Math.random() * Math.PI * 2;
@@ -388,31 +526,38 @@
   }
 
   function worldTo3D(x, y, z = 0) {
-    // game uses x/y in screen-plane pixels; scale down for 3D
     return { x: x * 0.04, y: z, z: y * 0.04 };
   }
 
   function sync(state, mode) {
     if (!ready) return;
 
-    // idle title camera drift
+    const now = performance.now();
+
     if (!state || mode === "title" || mode === "tutorial" || mode === "shop") {
-      const t = performance.now() * 0.00025;
-      camera.position.set(Math.sin(t) * 10, 14, 12 + Math.cos(t) * 4);
-      camera.lookAt(0, 0.5, 0);
+      const t = now * 0.00022;
+      camera.position.set(Math.sin(t) * 9, 13.5, 11.5 + Math.cos(t) * 3.5);
+      camera.lookAt(0, 0.55, 0);
       lanternGroup.position.set(0, 0.15, 0);
-      lanternLight.position.set(0, 1.2, 0);
-      flameLight.position.set(0, 1.0, 0);
-      labelSprite.position.set(0, 2.2, 0);
+      lanternGroup.rotation.y = t * 0.6;
+      lanternLight.position.set(0, 1.25, 0);
+      flameLight.position.set(0, 1.05, 0);
+      glowSprite.position.set(0, 1.05, 0);
+      labelSprite.position.set(0, 2.25, 0);
       ringMesh.position.set(0, 0.05, 0);
       const flame = lanternGroup.getObjectByName("flame");
       if (flame) {
-        const f = 0.9 + Math.sin(performance.now() * 0.02) * 0.1;
+        const f = 0.92 + Math.sin(now * 0.018) * 0.1;
         flame.scale.setScalar(f);
-        flame.material.emissiveIntensity = 2.8 + f;
+        flame.material.emissiveIntensity = 3.2 + f;
       }
-      lanternLight.intensity = 35 + Math.sin(performance.now() * 0.02) * 4;
-      // hide pools
+      lanternLight.intensity = 42 + Math.sin(now * 0.018) * 5;
+      glowSprite.material.opacity = 0.7 + Math.sin(now * 0.015) * 0.12;
+      for (let i = 0; i < mistPuffs.length; i++) {
+        const m = mistPuffs[i];
+        m.position.x += Math.sin(now * 0.0003 + i) * 0.004;
+        m.position.z += Math.cos(now * 0.00025 + i) * 0.003;
+      }
       enemyPool.forEach((e) => (e.mesh.visible = false));
       gemPool.forEach((m) => (m.visible = false));
       bulletPool.forEach((m) => (m.visible = false));
@@ -429,34 +574,40 @@
       lanternGroup.rotation.z = Math.sin(state.time * 40) * 0.1;
     } else {
       lanternGroup.rotation.z = 0;
-      lanternGroup.rotation.y += 0.01;
+      lanternGroup.rotation.y += 0.012;
     }
 
     const flame = lanternGroup.getObjectByName("flame");
-    const flick = 0.88 + Math.sin(state.time * 18) * 0.08;
+    const flick = 0.88 + Math.sin(state.time * 18) * 0.08 + Math.sin(state.time * 41) * 0.03;
     if (flame) {
-      flame.scale.setScalar(0.9 + flick * 0.25);
-      flame.material.emissiveIntensity = 2.5 + flick * 2;
+      flame.scale.setScalar(0.9 + flick * 0.28);
+      flame.material.emissiveIntensity = 3.0 + flick * 2.2;
     }
-    lanternLight.position.set(pp.x, 1.3 + bob, pp.z);
-    lanternLight.intensity = 45 * flick;
-    flameLight.position.set(pp.x, 1.05 + bob, pp.z);
-    flameLight.intensity = 10 * flick;
+    const glass = lanternGroup.getObjectByName("glass");
+    if (glass && glass.material && glass.material.emissiveIntensity != null) {
+      glass.material.emissiveIntensity = 0.65 + flick * 0.35;
+    }
 
-    labelSprite.position.set(pp.x, 2.3 + bob, pp.z);
+    lanternLight.position.set(pp.x, 1.35 + bob, pp.z);
+    lanternLight.intensity = 52 * flick;
+    flameLight.position.set(pp.x, 1.08 + bob, pp.z);
+    flameLight.intensity = 12 * flick;
+    glowSprite.position.set(pp.x, 1.05 + bob, pp.z);
+    glowSprite.material.opacity = 0.55 + flick * 0.35;
+    glowSprite.scale.setScalar(4.2 + flick * 0.8);
+
+    labelSprite.position.set(pp.x, 2.35 + bob, pp.z);
     labelSprite.visible = state.time < 20 || state.time % 8 < 3;
     ringMesh.position.set(pp.x, 0.06, pp.z);
     const hp = Math.max(0.05, p.hp / p.maxHp);
     ringMesh.scale.setScalar(0.8 + hp * 0.5);
     ringMesh.material.opacity = 0.35 + hp * 0.5;
 
-    // camera follow
-    const camTarget = new THREE.Vector3(pp.x, 0.4, pp.z);
-    const camPos = new THREE.Vector3(pp.x + 0.5, 17, pp.z + 15);
+    const camTarget = new THREE.Vector3(pp.x, 0.45, pp.z);
+    const camPos = new THREE.Vector3(pp.x + 0.4, 16.5, pp.z + 14.5);
     camera.position.lerp(camPos, 0.12);
     camera.lookAt(camTarget);
 
-    // enemies
     ensurePool(enemyPool, state.enemies.length, () => createEnemyMesh("wisp"));
     for (let i = 0; i < enemyPool.length; i++) {
       const slot = enemyPool[i];
@@ -467,8 +618,7 @@
       }
       if (slot.kind !== e.kind) {
         scene.remove(slot.mesh);
-        const neu = createEnemyMesh(e.kind);
-        enemyPool[i] = neu;
+        enemyPool[i] = createEnemyMesh(e.kind);
       }
       const m = enemyPool[i].mesh;
       const ep = worldTo3D(e.x, e.y);
@@ -479,12 +629,11 @@
       const hit = e.hitFlash && e.hitFlash > 0;
       m.traverse((o) => {
         if (o.isMesh && o.material && o.material.emissive) {
-          o.material.emissiveIntensity = hit ? 2.5 : o.material.userData.baseEmissive || o.material.emissiveIntensity;
+          if (hit) o.material.emissiveIntensity = 2.6;
         }
       });
     }
 
-    // gems
     ensurePool(gemPool, state.gems.length, createGemMesh);
     for (let i = 0; i < gemPool.length; i++) {
       const m = gemPool[i];
@@ -500,7 +649,6 @@
       m.rotation.x = 0.4;
     }
 
-    // bullets
     ensurePool(bulletPool, state.bullets.length, createBulletMesh);
     for (let i = 0; i < bulletPool.length; i++) {
       const m = bulletPool[i];
@@ -514,20 +662,24 @@
       m.position.set(bp.x, 0.7, bp.z);
     }
 
-    // fireflies around player
     for (let i = 0; i < fireflies.length; i++) {
       const ff = fireflies[i];
       const a = state.time * 0.4 + ff.userData.phase;
       const r = 3 + (i % 5);
       ff.position.set(
         pp.x + Math.cos(a) * r,
-        0.6 + Math.sin(a * 1.7) * 0.8,
+        0.55 + Math.sin(a * 1.7) * 0.85,
         pp.z + Math.sin(a * 0.9) * r,
       );
-      ff.material.emissiveIntensity = 1.2 + Math.sin(state.time * 4 + i) * 0.8;
+      ff.material.emissiveIntensity = 1.3 + Math.sin(state.time * 4 + i) * 0.9;
     }
 
-    // focus ring color
+    for (let i = 0; i < mistPuffs.length; i++) {
+      const m = mistPuffs[i];
+      m.position.x += Math.sin(state.time * 0.2 + i) * 0.01;
+      m.position.z += Math.cos(state.time * 0.17 + i) * 0.008;
+    }
+
     if (window.__lanternFocus) {
       ringMesh.material.color.set(0xe07a2f);
     } else {
@@ -538,8 +690,6 @@
   }
 
   function hideCanvas2D() {
-    const old = document.querySelector("canvas#game:not([data-cgi])");
-    // three canvas gets id game; mark it
     if (renderer && renderer.domElement) {
       renderer.domElement.dataset.cgi = "1";
     }
@@ -547,11 +697,15 @@
 
   window.LanternCGI = {
     init: function (el) {
-      init(el || document.getElementById("app"));
-      hideCanvas2D();
-      // hide original 2d canvas if present
-      const c2 = document.querySelector("canvas#game:not([data-cgi])");
-      if (c2) c2.style.display = "none";
+      try {
+        init(el || document.getElementById("app"));
+        hideCanvas2D();
+        const c2 = document.querySelector("canvas#game:not([data-cgi])");
+        if (c2) c2.style.display = "none";
+      } catch (err) {
+        console.error("LanternCGI init failed", err);
+        ready = false;
+      }
     },
     sync,
     ready: function () {
