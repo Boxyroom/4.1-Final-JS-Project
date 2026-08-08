@@ -227,14 +227,15 @@ h2 {
 }
 
 .move-label {
-  left: 28px;
+  right: 28px;
   bottom: 148px;
+  text-align: right;
 }
 
 .dash-label {
-  right: 18px;
+  left: 18px;
   bottom: 148px;
-  text-align: right;
+  text-align: left;
   max-width: 150px;
 }
 
@@ -512,7 +513,7 @@ h2 {
 
 .stick {
   position: absolute;
-  left: 28px;
+  right: 28px;
   bottom: 28px;
   width: 110px;
   height: 110px;
@@ -535,7 +536,7 @@ h2 {
 
 .dash-btn {
   position: absolute;
-  right: 28px;
+  left: 28px;
   bottom: 40px;
   width: 92px;
   height: 92px;
