@@ -25,9 +25,10 @@ body {
   height: 100%;
   overflow: hidden;
   background:
-    radial-gradient(circle at 20% 15%, rgba(240, 180, 41, 0.18), transparent 35%),
-    radial-gradient(circle at 80% 80%, rgba(47, 106, 69, 0.35), transparent 40%),
-    linear-gradient(160deg, #0d1712 0%, #1a2f24 45%, #0b1210 100%);
+    radial-gradient(circle at 50% 30%, rgba(240, 180, 41, 0.14), transparent 28%),
+    radial-gradient(circle at 20% 80%, rgba(28, 60, 42, 0.45), transparent 40%),
+    radial-gradient(circle at 80% 20%, rgba(18, 36, 28, 0.8), transparent 42%),
+    linear-gradient(165deg, #08110d 0%, #14241b 42%, #0a100d 100%);
   color: var(--cream);
   font-family: var(--font-body);
 }
