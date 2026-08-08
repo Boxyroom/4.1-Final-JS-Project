@@ -1753,40 +1753,28 @@
         const s = worldToScreen(wx, wy);
         if (s.x < -120 || s.y < -140 || s.x > w + 120 || s.y > h + 120) continue;
 
-        // stone / soil patches
+        // Flat top-down detail only — no tall silhouettes that fake obstacles
         if (n > 0.52) {
-          ctx.fillStyle = n > 0.82 ? "rgba(48, 48, 42, 0.45)" : "rgba(52, 40, 24, 0.38)";
-          safeEllipse(s.x, s.y, 18 + n * 28, 10 + n * 12, n * 2);
+          ctx.fillStyle = n > 0.82 ? "rgba(48, 48, 42, 0.4)" : "rgba(52, 40, 24, 0.32)";
+          safeEllipse(s.x, s.y, 16 + n * 24, 9 + n * 10, n * 2);
           ctx.fill();
         }
 
-        // tree silhouettes (far props in 2D fallback)
-        if (n > 0.9 && Math.hypot(wx - camX, wy - camY) > 140) {
-          const th = 48 + n * 40;
-          ctx.fillStyle = "rgba(12, 18, 14, 0.75)";
-          ctx.fillRect(s.x - 4, s.y - th, 8, th);
+        // moss / leaf patches
+        if (n < 0.28) {
+          ctx.fillStyle = `rgba(40, ${70 + ((n * 80) | 0)}, 38, 0.28)`;
+          safeEllipse(s.x + 4, s.y - 2, 10 + n * 18, 7 + n * 10, n);
+          ctx.fill();
+        }
+
+        // short ground litter strokes (not tall reeds)
+        if (n > 0.88) {
+          ctx.strokeStyle = `rgba(60, 44, 24, 0.45)`;
+          ctx.lineWidth = 1.5;
           ctx.beginPath();
-          ctx.moveTo(s.x, s.y - th - 28);
-          ctx.lineTo(s.x + 22, s.y - th + 10);
-          ctx.lineTo(s.x - 22, s.y - th + 10);
-          ctx.closePath();
-          ctx.fill();
-        }
-
-        // low brush / reeds
-        if (n < 0.38 || n > 0.88) {
-          const blades = 4 + ((n * 10) | 0) % 3;
-          for (let b = 0; b < blades; b++) {
-            const sway = Math.sin(state.time * 1.2 + tx + b) * 4;
-            const bx = s.x - 10 + b * 5;
-            const by = s.y + 8;
-            ctx.strokeStyle = `rgba(${30 + b * 8}, ${70 + b * 10}, ${40 + b * 6}, 0.7)`;
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(bx, by);
-            ctx.quadraticCurveTo(bx + sway, by - 16, bx + sway * 1.4, by - 30 - (b % 3) * 5);
-            ctx.stroke();
-          }
+          ctx.moveTo(s.x - 8, s.y);
+          ctx.quadraticCurveTo(s.x, s.y + Math.sin(state.time + tx) * 2, s.x + 10, s.y + 2);
+          ctx.stroke();
         }
       }
     }
