@@ -353,6 +353,58 @@ h2 {
   font-weight: 600;
 }
 
+.life-row {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 420px;
+}
+
+.life-label {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #7dcea0;
+  min-width: 2.6rem;
+}
+
+.life-track {
+  flex: 1;
+  height: 12px;
+  border: 1px solid rgba(125, 206, 160, 0.35);
+  background: rgba(8, 16, 12, 0.65);
+  overflow: hidden;
+}
+
+#life-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #2f6a45, #7dcea0 55%, #d7e4d5);
+  transition: width 100ms linear;
+}
+
+.life-row.danger .life-label,
+.life-row.danger #hud-hp {
+  color: #e07a2f;
+}
+
+.life-row.danger .life-track {
+  border-color: rgba(224, 122, 47, 0.55);
+}
+
+.life-row.danger #life-fill {
+  background: linear-gradient(90deg, #8a3a18, #e07a2f 60%, #f0b429);
+}
+
+#hud-hp {
+  min-width: 4.8rem;
+  text-align: right;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #d7e4d5;
+}
+
 .xp-track {
   margin-top: 8px;
   height: 8px;
@@ -625,7 +677,6 @@ h2 {
         <div class="hud-brand">Lantern Hollow</div>
         <div class="hud-stats">
           <span id="hud-time" title="How long you have survived">0:00</span>
-          <span id="hud-hp" title="Your health. Reach 0 and the run ends.">100 light</span>
           <span id="hud-dash" title="Equipped special weapon. Empty until you drive through a crate.">No weapon</span>
           <span id="hud-focus" class="hud-focus hidden" title="Holding F: prioritizing brutes and bosses">FOCUS</span>
           <span id="hud-kills">0 kills</span>
@@ -634,13 +685,20 @@ h2 {
           <button type="button" id="btn-hud-pause" class="hud-pause" title="Pause the game">Pause</button>
         </div>
       </div>
+      <div class="life-row" title="Your life. When this hits 0, the run ends.">
+        <span class="life-label">LIFE</span>
+        <div class="life-track">
+          <div id="life-fill"></div>
+        </div>
+        <span id="hud-hp">100 / 100</span>
+      </div>
       <div class="xp-track" title="XP bar — fill it to level up">
         <div id="xp-fill"></div>
       </div>
       <div class="dash-track" title="Special weapon loaded">
         <div id="dash-fill"></div>
       </div>
-      <div class="hud-hint">Yellow = XP · Green ring mark = grenades · Blue = nuke · Drive through crates · Space / Fire</div>
+      <div class="hud-hint">Green LIFE bar = your health · Yellow = XP · Green ring mark = grenades · Blue = nuke</div>
       <div id="banner" class="banner hidden"></div>
       <div id="coach" class="coach hidden"></div>
     </div>
@@ -1896,6 +1954,8 @@ h2 {
     hud: document.getElementById("hud"),
     touch: document.getElementById("touch-zone"),
     xpFill: document.getElementById("xp-fill"),
+    lifeFill: document.getElementById("life-fill"),
+    lifeRow: document.querySelector(".life-row"),
     hudTime: document.getElementById("hud-time"),
     hudHp: document.getElementById("hud-hp"),
     hudKills: document.getElementById("hud-kills"),
@@ -1940,8 +2000,8 @@ h2 {
       card: `
         <p>The glowing circle in the middle is <strong>you</strong>.</p>
         <ul>
-          <li><strong>Light</strong> (top bar number) is your health.</li>
-          <li>If light hits <strong>0</strong>, the run ends.</li>
+          <li>The green <strong>LIFE</strong> bar at the top is your health.</li>
+          <li>If life hits <strong>0</strong>, the run ends.</li>
           <li>You do <strong>not</strong> click to attack — your lantern shoots by itself.</li>
         </ul>
       `,
@@ -3363,8 +3423,11 @@ h2 {
     state.floats = state.floats.filter((f) => f.life > 0);
 
     ui.hudTime.textContent = formatTime(state.time);
-    ui.hudHp.textContent = `${Math.ceil(p.hp)} / ${Math.ceil(p.maxHp)} light`;
-    ui.hudHp.classList.toggle("danger", p.hp / p.maxHp < 0.3);
+    const hpPct = clamp(p.hp / p.maxHp, 0, 1);
+    ui.hudHp.textContent = `${Math.ceil(p.hp)} / ${Math.ceil(p.maxHp)}`;
+    if (ui.lifeFill) ui.lifeFill.style.width = `${hpPct * 100}%`;
+    if (ui.lifeRow) ui.lifeRow.classList.toggle("danger", hpPct < 0.3);
+    ui.hudHp.classList.toggle("danger", hpPct < 0.3);
     ui.hudKills.textContent = `${state.kills} kills`;
     ui.hudLevel.textContent = `Lv ${p.level}`;
     ui.xpFill.style.width = `${(p.xp / p.nextXp) * 100}%`;
