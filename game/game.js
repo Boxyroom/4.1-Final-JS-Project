@@ -1427,9 +1427,8 @@
         if (s.x < -90 || s.y < -90 || s.x > w + 90 || s.y > h + 90) continue;
 
         if (n > 0.5) {
-          ctx.beginPath();
           ctx.fillStyle = n > 0.8 ? "rgba(40, 70, 78, 0.55)" : "rgba(70, 52, 28, 0.4)";
-          ctx.ellipse(s.x, s.y, 22 + n * 30, 12 + n * 14, n * 2, 0, TAU);
+          safeEllipse(s.x, s.y, 22 + n * 30, 12 + n * 14, n * 2);
           ctx.fill();
         }
 
@@ -1446,8 +1445,7 @@
             ctx.quadraticCurveTo(bx + sway, by - 20, bx + sway * 1.6, by - 40 - (b % 3) * 6);
             ctx.stroke();
             ctx.fillStyle = "rgba(150, 110, 45, 0.85)";
-            ctx.beginPath();
-            ctx.ellipse(bx + sway * 1.6, by - 40 - (b % 3) * 6, 2, 4, 0, 0, TAU);
+            safeEllipse(bx + sway * 1.6, by - 40 - (b % 3) * 6, 2, 4, 0);
             ctx.fill();
           }
         }
@@ -1455,10 +1453,23 @@
     }
   }
 
-  function drawShadow(x, y, rx, ry, alpha = 0.35) {
+  function safeEllipse(x, y, rx, ry, rot = 0) {
     ctx.beginPath();
+    if (typeof ctx.ellipse === "function") {
+      ctx.ellipse(x, y, rx, ry, rot, 0, TAU);
+    } else {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(rot);
+      ctx.scale(rx, ry);
+      ctx.arc(0, 0, 1, 0, TAU);
+      ctx.restore();
+    }
+  }
+
+  function drawShadow(x, y, rx, ry, alpha = 0.35) {
     ctx.fillStyle = `rgba(0,0,0,${alpha})`;
-    ctx.ellipse(x, y + ry * 0.9, rx, ry * 0.35, 0, 0, TAU);
+    safeEllipse(x, y + ry * 0.9, rx, ry * 0.35, 0);
     ctx.fill();
   }
 
@@ -1484,9 +1495,8 @@
     if (p.dashTimer > 0) ctx.rotate(Math.sin(state.time * 40) * 0.1);
 
     // ring plate under lantern
-    ctx.beginPath();
     ctx.fillStyle = "rgba(255, 200, 90, 0.2)";
-    ctx.ellipse(0, 16, 14, 5, 0, 0, TAU);
+    safeEllipse(0, 16, 14, 5, 0);
     ctx.fill();
 
     // handle
@@ -1634,19 +1644,16 @@
     } else if (e.kind === "dart") {
       const ang = Math.atan2(state.player.y - e.y, state.player.x - e.x);
       ctx.rotate(ang);
-      // wings
-      ctx.fillStyle = "rgba(180,220,190,0.35)";
-      ctx.beginPath();
-      ctx.ellipse(-2, -5, 7, 3, -0.4, 0, TAU);
-      ctx.ellipse(-2, 5, 7, 3, 0.4, 0, TAU);
+      ctx.fillStyle = "rgba(180,220,190,0.4)";
+      safeEllipse(-2, -5, 7, 3, -0.4);
       ctx.fill();
-      // body
+      safeEllipse(-2, 5, 7, 3, 0.4);
+      ctx.fill();
       const body = ctx.createLinearGradient(-8, 0, 10, 0);
       body.addColorStop(0, flash ? "#f4efe4" : "#3d6b52");
       body.addColorStop(1, flash ? "#ddd" : "#8fd0a8");
       ctx.fillStyle = body;
-      ctx.beginPath();
-      ctx.ellipse(0, 0, e.r + 2, e.r * 0.55, 0, 0, TAU);
+      safeEllipse(0, 0, e.r + 2, e.r * 0.55, 0);
       ctx.fill();
       ctx.fillStyle = "#163226";
       ctx.beginPath();
@@ -1757,29 +1764,22 @@
     streak.addColorStop(0.6, "rgba(255,220,120,0.85)");
     streak.addColorStop(1, "#fff6d0");
     ctx.fillStyle = streak;
-    ctx.beginPath();
-    ctx.ellipse(0, 0, 10, 3.2, 0, 0, TAU);
+    safeEllipse(0, 0, 10, 3.2, 0);
     ctx.fill();
     ctx.restore();
   }
 
   function drawDarkness(w, h, ps, p) {
-    // night veil with lantern cutout
-    ctx.save();
-    ctx.fillStyle = "rgba(4, 8, 6, 0.28)";
+    // Soft night veil without destination-out (more reliable on iOS)
+    const flicker = 0.92 + Math.sin(state.time * 19) * 0.04;
+    const r = (240 + p.orbit * 12) * flicker;
+    const veil = ctx.createRadialGradient(ps.x, ps.y, r * 0.15, ps.x, ps.y, r);
+    veil.addColorStop(0, "rgba(4, 8, 6, 0)");
+    veil.addColorStop(0.45, "rgba(4, 8, 6, 0.08)");
+    veil.addColorStop(0.75, "rgba(4, 8, 6, 0.34)");
+    veil.addColorStop(1, "rgba(4, 8, 6, 0.58)");
+    ctx.fillStyle = veil;
     ctx.fillRect(0, 0, w, h);
-    ctx.globalCompositeOperation = "destination-out";
-    const flicker = 0.9 + Math.sin(state.time * 19) * 0.05;
-    const r = (230 + p.orbit * 12) * flicker;
-    const cut = ctx.createRadialGradient(ps.x, ps.y, 20, ps.x, ps.y, r);
-    cut.addColorStop(0, "rgba(0,0,0,1)");
-    cut.addColorStop(0.55, "rgba(0,0,0,0.75)");
-    cut.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.fillStyle = cut;
-    ctx.beginPath();
-    ctx.arc(ps.x, ps.y, r, 0, TAU);
-    ctx.fill();
-    ctx.restore();
   }
 
   function draw() {
@@ -1860,9 +1860,39 @@
     }
 
     // night wash first...
-    drawDarkness(w, h, ps, p);
+    try {
+      drawDarkness(w, h, ps, p);
+    } catch (err) {
+      console.error("darkness", err);
+    }
     // ...then lantern on TOP so you can always see yourself
-    drawLantern(ps, p);
+    try {
+      drawLantern(ps, p);
+    } catch (err) {
+      console.error("lantern", err);
+      // failsafe beacon
+      ctx.fillStyle = "#f0b429";
+      ctx.beginPath();
+      ctx.arc(ps.x, ps.y, 26, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = "#fff";
+      ctx.font = "800 16px Outfit, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("YOU", ps.x, ps.y - 36);
+    }
+
+    // ultra-visible center marker (first 12s)
+    if (state.time < 12) {
+      ctx.save();
+      ctx.strokeStyle = "rgba(255, 220, 120, 0.85)";
+      ctx.lineWidth = 3;
+      ctx.setLineDash([8, 6]);
+      ctx.beginPath();
+      ctx.arc(ps.x, ps.y, 48 + Math.sin(state.time * 6) * 4, 0, TAU);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
 
     // floats above everything
     ctx.textAlign = "center";
