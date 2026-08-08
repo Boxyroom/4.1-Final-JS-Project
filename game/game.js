@@ -1973,7 +1973,12 @@
     const dt = Math.min(0.033, (ts - lastTs) / 1000 || 0.016);
     lastTs = ts;
     if (mode === "play") update(dt);
-    draw();
+    window.__lanternFocus = !!(input && input.focus);
+    if (window.LanternCGI && window.LanternCGI.ready()) {
+      window.LanternCGI.sync(state, mode);
+    } else {
+      draw();
+    }
     animId = requestAnimationFrame(frame);
   }
 
@@ -2159,6 +2164,9 @@
   window.addEventListener("resize", resize);
 
   try {
+    if (window.LanternCGI) {
+      window.LanternCGI.init(document.getElementById("app"));
+    }
     resize();
     refreshMetaUi();
     refreshMuteUi();

@@ -47,6 +47,12 @@ body {
   background: #0b1210;
 }
 
+#app > canvas#game {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
 .hidden {
   display: none !important;
 }
