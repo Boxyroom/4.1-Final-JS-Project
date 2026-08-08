@@ -86,6 +86,8 @@
     hud: document.getElementById("hud"),
     touch: document.getElementById("touch-zone"),
     xpFill: document.getElementById("xp-fill"),
+    lifeFill: document.getElementById("life-fill"),
+    lifeRow: document.querySelector(".life-row"),
     hudTime: document.getElementById("hud-time"),
     hudHp: document.getElementById("hud-hp"),
     hudKills: document.getElementById("hud-kills"),
