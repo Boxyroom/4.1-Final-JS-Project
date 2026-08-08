@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Lantern Hollow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%231a2f24'/%3E%3Ccircle cx='32' cy='28' r='12' fill='%23f0b429'/%3E%3Cpath d='M26 40h12l-2 14h-8z' fill='%23c9842a'/%3E%3C/svg%3E" />
+</head>
+<body>
+  <div id="app">
+    <canvas id="game" aria-label="Lantern Hollow game canvas"></canvas>
+
+    <div id="hud" class="hidden">
+      <div class="hud-top">
+        <div class="hud-brand">Lantern Hollow</div>
+        <div class="hud-stats">
+          <span id="hud-time">0:00</span>
+          <span id="hud-kills">0 kills</span>
+          <span id="hud-level">Lv 1</span>
+        </div>
+      </div>
+      <div class="xp-track"><div id="xp-fill"></div></div>
+      <div class="hud-hint">WASD / arrows to move · Space to dash · P to pause</div>
+    </div>
+
+    <div id="touch-zone" class="hidden" aria-hidden="true">
+      <div id="stick" class="stick">
+        <div id="stick-knob" class="stick-knob"></div>
+      </div>
+      <button type="button" id="dash-btn" class="dash-btn">Dash</button>
+    </div>
+
+    <section id="title" class="panel">
+      <div class="panel-glow"></div>
+      <p class="eyebrow">A marsh of endless nights</p>
+      <h1>Lantern Hollow</h1>
+      <p class="lede">Keep your light alive. Harvest wisps. Grow stronger. Come back wiser.</p>
+      <div class="meta-row">
+        <div class="meta-chip"><strong id="meta-embers">0</strong> embers</div>
+        <div class="meta-chip">Best <strong id="meta-best">0:00</strong></div>
+        <div class="meta-chip">Runs <strong id="meta-runs">0</strong></div>
+      </div>
+      <div class="btn-row">
+        <button type="button" id="btn-start" class="btn primary">Light the lantern</button>
+        <button type="button" id="btn-upgrades" class="btn">Ember shop</button>
+      </div>
+      <p class="footnote">One run is a story. Meta unlocks make the next one stranger.</p>
+    </section>
+
+    <section id="shop" class="panel hidden">
+      <h2>Ember shop</h2>
+      <p class="lede">Spend embers between runs. Bonuses stack forever on this device.</p>
+      <p class="shop-balance">You have <strong id="shop-embers">0</strong> embers</p>
+      <div id="shop-list" class="shop-list"></div>
+      <button type="button" id="btn-shop-back" class="btn">Back</button>
+    </section>
+
+    <section id="levelup" class="panel hidden">
+      <h2>The lantern brightens</h2>
+      <p class="lede">Choose a gift.</p>
+      <div id="upgrade-choices" class="choice-list"></div>
+    </section>
+
+    <section id="pause" class="panel hidden">
+      <h2>Paused</h2>
+      <p class="lede">The marsh waits.</p>
+      <div class="btn-row">
+        <button type="button" id="btn-resume" class="btn primary">Resume</button>
+        <button type="button" id="btn-quit" class="btn">End run</button>
+      </div>
+    </section>
+
+    <section id="gameover" class="panel hidden">
+      <h2 id="over-title">Light snuffed</h2>
+      <p class="lede" id="over-summary">You lasted 0:00.</p>
+      <div class="meta-row">
+        <div class="meta-chip">Kills <strong id="over-kills">0</strong></div>
+        <div class="meta-chip">Level <strong id="over-level">1</strong></div>
+        <div class="meta-chip">Embers +<strong id="over-embers">0</strong></div>
+      </div>
+      <ul id="over-unlocks" class="unlock-list"></ul>
+      <div class="btn-row">
+        <button type="button" id="btn-again" class="btn primary">Another night</button>
+        <button type="button" id="btn-menu" class="btn">Menu</button>
+      </div>
+    </section>
+  </div>
+  <script src="game.js"></script>
+</body>
+</html>
