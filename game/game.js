@@ -158,7 +158,7 @@
       }
     },
     hit: () => {
-      if (!playSample("hit", { gain: 0.55, rate: jitter(1, 0.06) })) {
+      if (!playSample("hit", { gain: 0.5, rate: jitter(0.92, 0.04) })) {
         playTone({ freq: 220, endFreq: 90, dur: 0.08, type: "triangle", gain: 0.03 });
       }
     },
@@ -217,7 +217,7 @@
       }
     },
     spark: () => {
-      if (!playSample("spark", { gain: 0.32, rate: jitter(1, 0.06) })) {
+      if (!playSample("spark", { gain: 0.28, rate: jitter(0.9, 0.04) })) {
         playTone({ freq: 1200, endFreq: 1800, dur: 0.04, type: "sine", gain: 0.016 });
       }
     },
