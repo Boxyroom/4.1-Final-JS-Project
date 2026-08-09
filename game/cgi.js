@@ -19,7 +19,6 @@
   let rimLight;
   let hemi;
   let ambient;
-  let ringMesh;
   let glowSprite;
   let ready = false;
   let groundTexture = null;
@@ -35,7 +34,6 @@
   const crateHintPool = [];
   const orbitSparkPool = [];
   const shockwavePool = [];
-  let orbitRing = null;
   const fireflies = [];
   const mistPuffs = [];
   const puddles = [];
@@ -1341,32 +1339,7 @@
     glowSprite.scale.set(5.2, 5.2, 1);
     scene.add(glowSprite);
 
-    ringMesh = new THREE.Mesh(
-      new THREE.RingGeometry(1.1, 1.25, 56),
-      new THREE.MeshBasicMaterial({
-        color: 0xf0b429,
-        transparent: true,
-        opacity: 0.85,
-        side: THREE.DoubleSide,
-      }),
-    );
-    ringMesh.rotation.x = -Math.PI / 2;
-    scene.add(ringMesh);
-
-    orbitRing = new THREE.Mesh(
-      new THREE.RingGeometry(1.9, 2.15, 72),
-      new THREE.MeshBasicMaterial({
-        color: 0xffc050,
-        transparent: true,
-        opacity: 0.45,
-        side: THREE.DoubleSide,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
-      }),
-    );
-    orbitRing.rotation.x = -Math.PI / 2;
-    orbitRing.visible = false;
-    scene.add(orbitRing);
+    
 
     for (let i = 0; i < 48; i++) {
       const ff = new THREE.Mesh(
@@ -1468,7 +1441,6 @@
       flameLight.position.set(0, hover + bob + coreY, 0);
       glowSprite.position.set(0, hover + bob + coreY, 0);
       glowSprite.scale.setScalar(3.4);
-      ringMesh.position.set(0, 0.05, 0);
       lanternLight.intensity = 70 + Math.sin(now * 0.018) * 6;
       lanternLight.distance = 28;
       flameLight.intensity = 18;
@@ -1483,7 +1455,6 @@
       orbitSparkPool.forEach((m) => (m.visible = false));
       shockwavePool.forEach((m) => (m.visible = false));
       particlePool.forEach((m) => (m.visible = false));
-      if (orbitRing) orbitRing.visible = false;
       renderer.render(scene, camera);
       return;
     }
@@ -1513,10 +1484,7 @@
     glowSprite.material.opacity = (0.16 + flick * 0.1) * lightMul;
     glowSprite.scale.setScalar(1.8 + flick * 0.35);
 
-    ringMesh.position.set(pp.x, 0.06, pp.z);
     const hp = Math.max(0.05, p.hp / p.maxHp);
-    ringMesh.scale.setScalar(0.8 + hp * 0.5);
-    ringMesh.material.opacity = 0.35 + hp * 0.5;
 
     const camTarget = new THREE.Vector3(pp.x, 0.45, pp.z);
     const camPos = new THREE.Vector3(pp.x + 0.4, 16.5, pp.z + 14.5);
@@ -1709,12 +1677,6 @@
       }
     }
 
-    if (window.__lanternFocus) {
-      ringMesh.material.color.set(0xe07a2f);
-    } else {
-      ringMesh.material.color.set(0xf0b429);
-    }
-
     // colored ring hints pointing at weapon crates
     ensurePool(crateHintPool, pickups.length, createCrateHint);
     const ringScale = 0.8 + hp * 0.5;
@@ -1739,17 +1701,6 @@
     // orbit sparks — small swirling embers
     const sparks = state.orbitSparks || [];
     ensurePool(orbitSparkPool, sparks.length, createOrbitSparkMesh);
-    if (orbitRing) {
-      if (sparks.length) {
-        const orbitR = (44 + (p.orbit || 1) * 8) * 0.04;
-        orbitRing.visible = true;
-        orbitRing.position.set(pp.x, 0.14, pp.z);
-        orbitRing.scale.setScalar(orbitR / 2.05);
-        orbitRing.material.opacity = 0.18 + Math.sin(state.time * 7) * 0.06;
-      } else {
-        orbitRing.visible = false;
-      }
-    }
     for (let i = 0; i < orbitSparkPool.length; i++) {
       const m = orbitSparkPool[i];
       const sp = sparks[i];
