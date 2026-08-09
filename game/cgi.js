@@ -926,20 +926,38 @@
     const body = new THREE.Mesh(
       new THREE.SphereGeometry(0.2, 14, 14),
       new THREE.MeshStandardMaterial({
-        color: 0xffb040,
-        emissive: 0xff6a20,
-        emissiveIntensity: 2.8,
-        roughness: 0.35,
-        metalness: 0.25,
+        color: 0x86efac,
+        emissive: 0x22c55e,
+        emissiveIntensity: 3.4,
+        roughness: 0.3,
+        metalness: 0.2,
       }),
     );
     group.add(body);
     const pin = new THREE.Mesh(
       new THREE.CylinderGeometry(0.04, 0.04, 0.18, 6),
-      new THREE.MeshStandardMaterial({ color: 0x5a3612, metalness: 0.6, roughness: 0.4 }),
+      new THREE.MeshStandardMaterial({
+        color: 0x14532d,
+        emissive: 0x16a34a,
+        emissiveIntensity: 1.2,
+        metalness: 0.55,
+        roughness: 0.4,
+      }),
     );
     pin.position.y = 0.22;
     group.add(pin);
+    const glow = new THREE.Sprite(
+      new THREE.SpriteMaterial({
+        map: makeGlowTexture(),
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        opacity: 0.85,
+        color: 0x22c55e,
+      }),
+    );
+    glow.scale.set(1.35, 1.35, 1);
+    group.add(glow);
     const shadow = new THREE.Mesh(
       new THREE.CircleGeometry(0.22, 16),
       new THREE.MeshBasicMaterial({
@@ -953,7 +971,7 @@
     shadow.position.y = 0.02;
     group.add(shadow);
     group.visible = false;
-    group.userData = { body, shadow };
+    group.userData = { body, shadow, glow };
     scene.add(group);
     return group;
   }
@@ -1640,6 +1658,12 @@
         m.userData.body.rotation.x = (g.spin || 0) * 0.8;
         m.userData.body.rotation.z = (g.spin || 0) * 1.2;
       }
+      if (m.userData.glow) {
+        m.userData.glow.position.y = height;
+        const pulse = 0.75 + Math.sin(state.time * 14 + i) * 0.25;
+        m.userData.glow.material.opacity = 0.7 + pulse * 0.3;
+        m.userData.glow.scale.setScalar(1.15 + pulse * 0.45);
+      }
       if (m.userData.shadow) {
         const shrink = Math.max(0.35, 1 - (g.z || 0) / 220);
         m.userData.shadow.scale.setScalar(shrink);
@@ -1761,22 +1785,28 @@
       m.position.set(sw3.x, 0.12, sw3.z);
       m.scale.set(scale, 1, scale);
       const ud = m.userData || {};
-      const grenadeBoom = sw.tint === "grenade";
+      const tint = sw.tint;
+      const colors =
+        tint === "grenade"
+          ? { disc: 0x4ade80, ring: 0x22c55e, outer: 0x16a34a, inner: 0xbbf7d0 }
+          : tint === "nuke"
+            ? { disc: 0x60a5fa, ring: 0x3b82f6, outer: 0x2563eb, inner: 0xdbeafe }
+            : { disc: 0xffc050, ring: 0xffe08a, outer: 0xe07a2f, inner: 0xfff6d0 };
       if (ud.disc) {
-        ud.disc.material.color.set(grenadeBoom ? 0xff8a2a : 0xffc050);
-        ud.disc.material.opacity = 0.18 + 0.45 * alpha;
+        ud.disc.material.color.set(colors.disc);
+        ud.disc.material.opacity = 0.2 + 0.5 * alpha;
       }
       if (ud.mesh) {
-        ud.mesh.material.color.set(grenadeBoom ? 0xffb040 : 0xffe08a);
-        ud.mesh.material.opacity = 0.4 + 0.55 * alpha;
+        ud.mesh.material.color.set(colors.ring);
+        ud.mesh.material.opacity = 0.45 + 0.55 * alpha;
       }
       if (ud.outer) {
-        ud.outer.material.color.set(grenadeBoom ? 0xe07a2f : 0xe07a2f);
-        ud.outer.material.opacity = 0.3 + 0.55 * alpha;
+        ud.outer.material.color.set(colors.outer);
+        ud.outer.material.opacity = 0.35 + 0.55 * alpha;
       }
       if (ud.inner) {
-        ud.inner.material.color.set(grenadeBoom ? 0xfff2c0 : 0xfff6d0);
-        ud.inner.material.opacity = 0.35 + 0.55 * alpha;
+        ud.inner.material.color.set(colors.inner);
+        ud.inner.material.opacity = 0.4 + 0.55 * alpha;
       }
     }
 
