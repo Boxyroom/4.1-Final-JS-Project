@@ -2884,8 +2884,8 @@ button.dash-btn.loaded-grenades {
       }
     },
     kill: () => {
-      if (!playSample("kill", { gain: 0.5, rate: jitter(1, 0.04) })) {
-        playTone({ freq: 280, endFreq: 520, dur: 0.1, type: "sawtooth", gain: 0.03 });
+      if (!playSample("kill", { gain: 0.28, rate: jitter(1, 0.04) })) {
+        playTone({ freq: 280, endFreq: 520, dur: 0.1, type: "sawtooth", gain: 0.018 });
       }
     },
     xp: (() => {
