@@ -557,67 +557,217 @@
     return createPlayerVisual();
   }
 
-  /**
-   * Level 10+ attachments — brass halo, band, and orbiting ember crystals
-   * bolted onto the Ancient Relic without replacing the base PNG.
-   */
-  function ensureEvolutionAttachments(level, timeSec) {
-    if (!lanternGroup) return;
-    let att = lanternGroup.getObjectByName("evoAttachments");
-    const evolved = (level || 1) >= 10;
-    if (!evolved) {
-      if (att) att.visible = false;
-      return;
-    }
-    if (!att) {
-      att = new THREE.Group();
-      att.name = "evoAttachments";
+  function evoAttachmentTier(level) {
+    const lv = level || 1;
+    if (lv >= 40) return 4;
+    if (lv >= 30) return 3;
+    if (lv >= 20) return 2;
+    if (lv >= 10) return 1;
+    return 0;
+  }
 
-      const halo = new THREE.Mesh(
-        new THREE.TorusGeometry(1.2, 0.055, 10, 48),
+  function disposeEvoGroup(att) {
+    if (!att) return;
+    att.traverse((obj) => {
+      if (obj.geometry && obj.geometry.dispose) obj.geometry.dispose();
+      if (obj.material) {
+        if (Array.isArray(obj.material)) obj.material.forEach((m) => m.dispose && m.dispose());
+        else if (obj.material.dispose) obj.material.dispose();
+      }
+    });
+    if (att.parent) att.parent.remove(att);
+  }
+
+  /**
+   * Progressive attachments on the Ancient Relic (keeps base PNG):
+   * 10 brass band+halo · 20 bound rings+blades · 30 crown spikes · 40 sovereign wreath
+   */
+  function buildEvolutionAttachments(tier) {
+    const att = new THREE.Group();
+    att.name = "evoAttachments";
+    att.userData.tier = tier;
+
+    const brass = {
+      color: 0xc9842a,
+      emissive: 0xf0b429,
+      metalness: 0.78,
+      roughness: 0.3,
+    };
+
+    // Tier 1+ — mid band + upper halo + orbiting embers
+    const band = new THREE.Mesh(
+      new THREE.TorusGeometry(0.98, 0.048, 10, 40),
+      new THREE.MeshStandardMaterial({
+        color: 0xa86b2d,
+        emissive: 0x6a4018,
+        emissiveIntensity: 0.55,
+        metalness: 0.88,
+        roughness: 0.28,
+      }),
+    );
+    band.name = "evoBand";
+    band.rotation.x = Math.PI / 2;
+    band.position.y = 0.12;
+    att.add(band);
+
+    const halo = new THREE.Mesh(
+      new THREE.TorusGeometry(1.2, 0.055, 10, 48),
+      new THREE.MeshStandardMaterial({
+        color: brass.color,
+        emissive: brass.emissive,
+        emissiveIntensity: 1.35,
+        metalness: brass.metalness,
+        roughness: brass.roughness,
+      }),
+    );
+    halo.name = "evoHalo";
+    halo.position.y = 1.55;
+    halo.rotation.x = Math.PI / 2.35;
+    att.add(halo);
+
+    const gemCount = tier >= 4 ? 7 : tier >= 2 ? 5 : 3;
+    const gemSize = tier >= 3 ? 0.18 : 0.16;
+    for (let i = 0; i < gemCount; i++) {
+      const gem = new THREE.Mesh(
+        new THREE.OctahedronGeometry(gemSize, 0),
         new THREE.MeshStandardMaterial({
-          color: 0xc9842a,
-          emissive: 0xf0b429,
-          emissiveIntensity: 1.35,
-          metalness: 0.75,
-          roughness: 0.32,
+          color: tier >= 3 ? 0xfff0c0 : 0xffe08a,
+          emissive: tier >= 4 ? 0xff9020 : 0xffb040,
+          emissiveIntensity: tier >= 3 ? 3.4 : 2.8,
+          metalness: 0.45,
+          roughness: 0.22,
         }),
       );
-      halo.name = "evoHalo";
-      halo.position.y = 1.55;
-      halo.rotation.x = Math.PI / 2.35;
-      att.add(halo);
+      gem.name = "evoGem";
+      gem.userData.orbitI = i;
+      gem.userData.orbitN = gemCount;
+      gem.userData.orbitR = tier >= 4 ? 1.65 : tier >= 2 ? 1.5 : 1.4;
+      att.add(gem);
+    }
 
-      const band = new THREE.Mesh(
-        new THREE.TorusGeometry(0.98, 0.048, 10, 40),
+    // Tier 2+ — outer binding ring + side blades
+    if (tier >= 2) {
+      const outer = new THREE.Mesh(
+        new THREE.TorusGeometry(1.55, 0.04, 10, 56),
         new THREE.MeshStandardMaterial({
-          color: 0xa86b2d,
-          emissive: 0x6a4018,
-          emissiveIntensity: 0.55,
-          metalness: 0.88,
+          color: 0xd4a04a,
+          emissive: 0xe07a2f,
+          emissiveIntensity: 0.9,
+          metalness: 0.8,
           roughness: 0.28,
         }),
       );
-      band.name = "evoBand";
-      band.rotation.x = Math.PI / 2;
-      band.position.y = 0.12;
-      att.add(band);
+      outer.name = "evoOuter";
+      outer.position.y = 0.55;
+      outer.rotation.x = Math.PI / 2.8;
+      att.add(outer);
 
-      for (let i = 0; i < 3; i++) {
-        const gem = new THREE.Mesh(
-          new THREE.OctahedronGeometry(0.16, 0),
+      for (let i = 0; i < 2; i++) {
+        const blade = new THREE.Mesh(
+          new THREE.ConeGeometry(0.12, 0.85, 6),
           new THREE.MeshStandardMaterial({
-            color: 0xffe08a,
-            emissive: 0xffb040,
-            emissiveIntensity: 2.8,
-            metalness: 0.45,
+            color: 0xb87333,
+            emissive: 0xf0b429,
+            emissiveIntensity: 0.7,
+            metalness: 0.85,
+            roughness: 0.25,
+          }),
+        );
+        blade.name = "evoBlade";
+        blade.userData.side = i === 0 ? -1 : 1;
+        blade.rotation.z = (i === 0 ? 1 : -1) * (Math.PI / 2.4);
+        blade.position.set((i === 0 ? -1 : 1) * 1.15, 0.7, 0);
+        att.add(blade);
+      }
+    }
+
+    // Tier 3+ — crown spikes + counter halo
+    if (tier >= 3) {
+      const counter = new THREE.Mesh(
+        new THREE.TorusGeometry(1.05, 0.04, 8, 40),
+        new THREE.MeshStandardMaterial({
+          color: 0xffc050,
+          emissive: 0xff8a2a,
+          emissiveIntensity: 1.5,
+          metalness: 0.7,
+          roughness: 0.25,
+        }),
+      );
+      counter.name = "evoCounter";
+      counter.position.y = 1.85;
+      counter.rotation.x = Math.PI / 1.9;
+      att.add(counter);
+
+      for (let i = 0; i < 5; i++) {
+        const spike = new THREE.Mesh(
+          new THREE.ConeGeometry(0.08, 0.55, 5),
+          new THREE.MeshStandardMaterial({
+            color: 0xe8c070,
+            emissive: 0xf0b429,
+            emissiveIntensity: 1.6,
+            metalness: 0.75,
             roughness: 0.22,
           }),
         );
-        gem.name = "evoGem";
-        gem.userData.orbitI = i;
-        att.add(gem);
+        spike.name = "evoSpike";
+        spike.userData.spikeI = i;
+        const a = (i / 5) * Math.PI * 2;
+        spike.position.set(Math.cos(a) * 0.55, 2.05, Math.sin(a) * 0.55);
+        spike.lookAt(0, 3.2, 0);
+        att.add(spike);
       }
+    }
+
+    // Tier 4 — sovereign arch + flame wreath motes
+    if (tier >= 4) {
+      const arch = new THREE.Mesh(
+        new THREE.TorusGeometry(0.85, 0.06, 10, 40, Math.PI),
+        new THREE.MeshStandardMaterial({
+          color: 0xffe08a,
+          emissive: 0xffb040,
+          emissiveIntensity: 2.2,
+          metalness: 0.65,
+          roughness: 0.2,
+        }),
+      );
+      arch.name = "evoArch";
+      arch.position.y = 2.15;
+      arch.rotation.y = Math.PI / 2;
+      arch.rotation.z = Math.PI;
+      att.add(arch);
+
+      for (let i = 0; i < 8; i++) {
+        const mote = new THREE.Mesh(
+          new THREE.SphereGeometry(0.07, 8, 8),
+          new THREE.MeshStandardMaterial({
+            color: 0xfff6d0,
+            emissive: 0xff9020,
+            emissiveIntensity: 3.5,
+            roughness: 0.15,
+          }),
+        );
+        mote.name = "evoMote";
+        mote.userData.moteI = i;
+        att.add(mote);
+      }
+    }
+
+    return att;
+  }
+
+  function ensureEvolutionAttachments(level, timeSec) {
+    if (!lanternGroup) return;
+    const tier = evoAttachmentTier(level);
+    let att = lanternGroup.getObjectByName("evoAttachments");
+    if (tier <= 0) {
+      if (att) {
+        disposeEvoGroup(att);
+      }
+      return;
+    }
+    if (!att || att.userData.tier !== tier) {
+      if (att) disposeEvoGroup(att);
+      att = buildEvolutionAttachments(tier);
       lanternGroup.add(att);
     }
     att.visible = true;
@@ -626,19 +776,36 @@
       const ch = att.children[i];
       if (ch.name === "evoGem") {
         const idx = ch.userData.orbitI || 0;
-        const a = t * 1.35 + (idx * Math.PI * 2) / 3;
-        ch.position.set(Math.cos(a) * 1.4, 0.35 + Math.sin(t * 2.2 + idx) * 0.28, Math.sin(a) * 1.4);
+        const n = ch.userData.orbitN || 3;
+        const r = ch.userData.orbitR || 1.4;
+        const a = t * 1.35 + (idx * Math.PI * 2) / n;
+        ch.position.set(Math.cos(a) * r, 0.35 + Math.sin(t * 2.2 + idx) * 0.28, Math.sin(a) * r);
         ch.rotation.y = t * 2 + idx;
         ch.rotation.x = t * 1.2;
       } else if (ch.name === "evoHalo") {
         ch.rotation.z = t * 0.35;
       } else if (ch.name === "evoBand") {
         ch.rotation.z = -t * 0.25;
+      } else if (ch.name === "evoOuter") {
+        ch.rotation.z = t * 0.55;
+      } else if (ch.name === "evoCounter") {
+        ch.rotation.z = -t * 0.7;
+      } else if (ch.name === "evoBlade") {
+        const s = ch.userData.side || 1;
+        ch.position.y = 0.7 + Math.sin(t * 2.5) * 0.06;
+        ch.rotation.y = Math.sin(t * 1.2) * 0.15 * s;
+      } else if (ch.name === "evoArch") {
+        ch.rotation.y = Math.PI / 2 + Math.sin(t * 0.8) * 0.08;
+      } else if (ch.name === "evoMote") {
+        const idx = ch.userData.moteI || 0;
+        const a = -t * 1.8 + (idx * Math.PI * 2) / 8;
+        const rr = 1.25 + Math.sin(t * 3 + idx) * 0.12;
+        ch.position.set(Math.cos(a) * rr, 1.1 + Math.cos(t * 2.4 + idx) * 0.45, Math.sin(a) * rr);
       }
     }
   }
 
-  /** Apply visual form for level. Base relic + level-10 attachments. */
+  /** Apply visual form for level. Base relic + tiered attachments at 10/20/30/40. */
   function applyLanternEvolution(level, full = false, timeSec = 0) {
     const evo =
       window.LanternForm && typeof window.LanternForm.of === "function"
