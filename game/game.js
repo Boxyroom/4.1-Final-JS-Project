@@ -153,17 +153,17 @@
   // Real Kenney CC0 samples (game/assets/sfx). Synth only if a buffer is missing.
   const sfx = {
     shoot: () => {
-      if (!playSample("shoot", { gain: 0.42, rate: jitter(1, 0.04) })) {
+      if (!playSample("shoot", { gain: 0.38, rate: jitter(1, 0.05) })) {
         playTone({ freq: 880, endFreq: 320, dur: 0.07, type: "square", gain: 0.03 });
       }
     },
     hit: () => {
-      if (!playSample("hit", { gain: 0.48, rate: jitter(1, 0.05) })) {
+      if (!playSample("hit", { gain: 0.55, rate: jitter(1, 0.06) })) {
         playTone({ freq: 220, endFreq: 90, dur: 0.08, type: "triangle", gain: 0.03 });
       }
     },
     kill: () => {
-      if (!playSample("kill", { gain: 0.52, rate: jitter(1, 0.03) })) {
+      if (!playSample("kill", { gain: 0.5, rate: jitter(1, 0.04) })) {
         playTone({ freq: 280, endFreq: 520, dur: 0.1, type: "sawtooth", gain: 0.03 });
       }
     },
@@ -193,20 +193,20 @@
       }
     },
     nuke: () => {
-      const a = playSample("nuke", { gain: 0.62 });
-      const b = playSample("nuke2", { gain: 0.45, delay: 0.02 });
+      const a = playSample("nuke", { gain: 0.7 });
+      const b = playSample("nuke2", { gain: 0.55, delay: 0.01 });
       if (!a && !b) {
         playTone({ freq: 70, endFreq: 32, dur: 0.5, type: "sine", gain: 0.07 });
       }
     },
     grenade: () => {
-      if (!playSample("grenade", { gain: 0.48, rate: jitter(1, 0.03) })) {
+      if (!playSample("grenade", { gain: 0.45, rate: jitter(1, 0.04) })) {
         playTone({ freq: 320, endFreq: 160, dur: 0.1, type: "triangle", gain: 0.035 });
       }
     },
     boom: () => {
-      const a = playSample("boom", { gain: 0.58, rate: jitter(1, 0.04) });
-      const b = playSample("boom2", { gain: 0.4, delay: 0.01 });
+      const a = playSample("boom", { gain: 0.65, rate: jitter(1, 0.04) });
+      const b = playSample("boom2", { gain: 0.5, delay: 0.01 });
       if (!a && !b) {
         playTone({ freq: 120, endFreq: 45, dur: 0.26, type: "sine", gain: 0.05 });
       }
