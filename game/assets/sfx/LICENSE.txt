@@ -1,3 +1,7 @@
-Sound samples from Kenney.nl asset packs (Sci-Fi Sounds, Digital Audio, Impact Sounds, Interface Sounds).
-License: Creative Commons CC0 1.0 Universal — https://creativecommons.org/publicdomain/zero/1.0/
-https://kenney.nl
+Sound samples:
+- Kenney.nl asset packs (Sci-Fi Sounds, Digital Audio, Impact Sounds, Interface Sounds) — CC0 1.0
+  https://kenney.nl
+- BigSoundBank / Joseph Sardin (punch, whoosh, quenching) — CC0 1.0
+  https://bigsoundbank.com
+- Mixkit (magic sparkle poof hit, used lightly layered) — Mixkit License (free for commercial use)
+  https://mixkit.co/license/#sfx

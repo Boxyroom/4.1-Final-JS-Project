@@ -168,7 +168,7 @@
         const now = typeof performance !== "undefined" ? performance.now() : Date.now();
         if (now - last < 45) return;
         last = now;
-        if (!playSample("kill", { gain: 0.34, rate: jitter(0.95, 0.03) })) {
+        if (!playSample("kill", { gain: 0.42, rate: jitter(0.96, 0.03) })) {
           playTone({ freq: 180, endFreq: 90, dur: 0.12, type: "sine", gain: 0.02 });
         }
       };
