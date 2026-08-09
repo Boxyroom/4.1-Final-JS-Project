@@ -1,5 +1,5 @@
 /* Lantern Hollow — lightweight offline cache for phone install / testing */
-const CACHE = "lantern-hollow-v4";
+const CACHE = "lantern-hollow-v5";
 const PRECACHE = [
   "./",
   "./lantern.html",

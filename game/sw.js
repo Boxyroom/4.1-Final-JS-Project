@@ -1,5 +1,5 @@
 /* Scope-limited SW when the game is opened from /game/ */
-const CACHE = "lantern-hollow-game-v4";
+const CACHE = "lantern-hollow-game-v5";
 const PRECACHE = [
   "./",
   "./play.html",
