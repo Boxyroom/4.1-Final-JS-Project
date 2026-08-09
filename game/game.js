@@ -1332,11 +1332,23 @@
         g.vy = Math.sin(ang) * 520;
       }
       state.shake = 22;
-      addParticles(p.x, p.y, "#c084fc", 48, 340);
-      addParticles(p.x, p.y, "#f0b429", 28, 260);
+      addParticles(p.x, p.y, "#60a5fa", 52, 360);
+      addParticles(p.x, p.y, "#3b82f6", 40, 300);
+      addParticles(p.x, p.y, "#dbeafe", 28, 220);
+      // Visual-only blue blast ring (enemies already cleared above)
+      state.shockwaves.push({
+        x: p.x,
+        y: p.y,
+        r: 24,
+        maxR: Math.max(state.w || 900, state.h || 900) * 0.55,
+        life: 0.7,
+        maxLife: 0.7,
+        tint: "nuke",
+        lethal: false,
+      });
       sfx.nuke();
       showBanner("NUKE — field cleared!", 1.8);
-      floatText(p.x, p.y - 36, "NUKE", "#e9d5ff", 1.4, true);
+      floatText(p.x, p.y - 36, "NUKE", "#bfdbfe", 1.4, true);
     } else if (kind === "grenades") {
       // Land in a star just inside the visible screen edge
       const halfMin = Math.min(state.w || window.innerWidth, state.h || window.innerHeight) * 0.5;
@@ -1364,7 +1376,7 @@
       }
       sfx.grenade();
       showBanner("Star grenades — arch and boom!", 1.3);
-      addParticles(p.x, p.y, "#e07a2f", 18, 200);
+      addParticles(p.x, p.y, "#22c55e", 18, 200);
     }
     p.equippedWeapon = null;
     refreshWeaponUi();
@@ -1372,9 +1384,9 @@
   }
 
   function explodeGrenade(g) {
-    addParticles(g.x, g.y, "#ff8a2a", 42, 360);
-    addParticles(g.x, g.y, "#f0b429", 32, 280);
-    addParticles(g.x, g.y, "#fff2c0", 24, 200);
+    addParticles(g.x, g.y, "#4ade80", 42, 360);
+    addParticles(g.x, g.y, "#22c55e", 32, 280);
+    addParticles(g.x, g.y, "#bbf7d0", 24, 200);
     state.shockwaves.push({
       x: g.x,
       y: g.y,
@@ -1387,7 +1399,7 @@
     });
     state.shake = Math.max(state.shake, 16);
     sfx.boom();
-    floatText(g.x, g.y - 18, "BOOM", "#ffd39a", 1.2, true);
+    floatText(g.x, g.y - 18, "BOOM", "#bbf7d0", 1.2, true);
     for (const e of state.enemies) {
       if (e.hp > 0 && dist(g, e) < g.radius + e.r) {
         // Instant kill inside the blast radius
@@ -2230,7 +2242,7 @@
     // landing marker while in flight
     if (lift > 2) {
       const land = worldToScreen(g.targetX, g.targetY);
-      ctx.strokeStyle = "rgba(224,122,47,0.55)";
+      ctx.strokeStyle = "rgba(34,197,94,0.65)";
       ctx.lineWidth = 2;
       ctx.setLineDash([4, 4]);
       ctx.beginPath();
@@ -2241,22 +2253,22 @@
 
     const drawX = s.x;
     const drawY = s.y - lift * 0.55;
-    const glow = ctx.createRadialGradient(drawX, drawY, 1, drawX, drawY, 18);
-    glow.addColorStop(0, "rgba(255,220,120,0.95)");
-    glow.addColorStop(0.5, "rgba(224,122,47,0.75)");
-    glow.addColorStop(1, "rgba(224,122,47,0)");
+    const glow = ctx.createRadialGradient(drawX, drawY, 1, drawX, drawY, 22);
+    glow.addColorStop(0, "rgba(187,247,208,0.95)");
+    glow.addColorStop(0.45, "rgba(74,222,128,0.85)");
+    glow.addColorStop(1, "rgba(34,197,94,0)");
     ctx.fillStyle = glow;
     ctx.beginPath();
-    ctx.arc(drawX, drawY, 18, 0, TAU);
+    ctx.arc(drawX, drawY, 22, 0, TAU);
     ctx.fill();
     ctx.save();
     ctx.translate(drawX, drawY);
     ctx.rotate(g.spin || 0);
-    ctx.fillStyle = "#ffb040";
+    ctx.fillStyle = "#4ade80";
     ctx.beginPath();
     ctx.arc(0, 0, g.r + 2, 0, TAU);
     ctx.fill();
-    ctx.fillStyle = "#7a3a12";
+    ctx.fillStyle = "#14532d";
     ctx.fillRect(-2, -g.r - 4, 4, 6);
     ctx.restore();
   }
@@ -2330,26 +2342,50 @@
       drawEnemy(e, worldToScreen(e.x, e.y));
     }
 
-    // nova shockwaves
+    // nova / weapon shockwaves
     const p = state.player;
     for (const sw of state.shockwaves) {
       const s = worldToScreen(sw.x, sw.y);
       const alpha = clamp(sw.life / sw.maxLife, 0, 1);
+      const palette =
+        sw.tint === "grenade"
+          ? {
+              a: `rgba(187, 247, 208, ${0.28 * alpha})`,
+              b: `rgba(74, 222, 128, ${0.28 * alpha})`,
+              c: `rgba(34, 197, 94, ${0.4 * alpha})`,
+              ring: `rgba(187, 247, 208, ${0.9 * alpha})`,
+              edge: `rgba(220, 252, 231, ${0.55 * alpha})`,
+            }
+          : sw.tint === "nuke"
+            ? {
+                a: `rgba(219, 234, 254, ${0.3 * alpha})`,
+                b: `rgba(96, 165, 250, ${0.3 * alpha})`,
+                c: `rgba(59, 130, 246, ${0.42 * alpha})`,
+                ring: `rgba(147, 197, 253, ${0.92 * alpha})`,
+                edge: `rgba(239, 246, 255, ${0.55 * alpha})`,
+              }
+            : {
+                a: `rgba(255, 242, 180, ${0.2 * alpha})`,
+                b: `rgba(240, 180, 41, ${0.18 * alpha})`,
+                c: `rgba(224, 122, 47, ${0.35 * alpha})`,
+                ring: `rgba(255, 230, 140, ${0.85 * alpha})`,
+                edge: `rgba(255, 255, 255, ${0.45 * alpha})`,
+              };
       const glow = ctx.createRadialGradient(s.x, s.y, sw.r * 0.35, s.x, s.y, sw.r);
-      glow.addColorStop(0, `rgba(255, 242, 180, ${0.2 * alpha})`);
-      glow.addColorStop(0.55, `rgba(240, 180, 41, ${0.18 * alpha})`);
-      glow.addColorStop(0.85, `rgba(224, 122, 47, ${0.35 * alpha})`);
-      glow.addColorStop(1, "rgba(224,122,47,0)");
+      glow.addColorStop(0, palette.a);
+      glow.addColorStop(0.55, palette.b);
+      glow.addColorStop(0.85, palette.c);
+      glow.addColorStop(1, "rgba(0,0,0,0)");
       ctx.fillStyle = glow;
       ctx.beginPath();
       ctx.arc(s.x, s.y, sw.r, 0, TAU);
       ctx.fill();
-      ctx.strokeStyle = `rgba(255, 230, 140, ${0.85 * alpha})`;
-      ctx.lineWidth = 5;
+      ctx.strokeStyle = palette.ring;
+      ctx.lineWidth = sw.tint === "nuke" ? 7 : 5;
       ctx.beginPath();
       ctx.arc(s.x, s.y, sw.r, 0, TAU);
       ctx.stroke();
-      ctx.strokeStyle = `rgba(255, 255, 255, ${0.45 * alpha})`;
+      ctx.strokeStyle = palette.edge;
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(s.x, s.y, Math.max(4, sw.r - 8), 0, TAU);
