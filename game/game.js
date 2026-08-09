@@ -167,11 +167,18 @@
         playTone({ freq: 280, endFreq: 520, dur: 0.1, type: "sawtooth", gain: 0.03 });
       }
     },
-    xp: () => {
-      if (!playSample("xp", { gain: 0.36, rate: jitter(1.05, 0.03) })) {
-        playTone({ freq: 740, endFreq: 980, dur: 0.07, type: "sine", gain: 0.03 });
-      }
-    },
+    xp: (() => {
+      let last = 0;
+      return () => {
+        const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+        // Rapid gem sucks stack into a whistle — keep a soft single twinkle.
+        if (now - last < 70) return;
+        last = now;
+        if (!playSample("xp", { gain: 0.32, rate: jitter(1, 0.015) })) {
+          playTone({ freq: 784, endFreq: 1046, dur: 0.1, type: "sine", gain: 0.025 });
+        }
+      };
+    })(),
     level: () => {
       if (!playSample("level", { gain: 0.55 })) {
         playTone({ freq: 392, endFreq: 659, dur: 0.22, type: "sine", gain: 0.04 });
@@ -1923,7 +1930,6 @@
       if (d < p.r + g.r + 6) {
         g._collected = true;
         gainXp(g.value);
-        if (state.nukeSuckTimer > 0) sfx.xp();
       }
     }
     state.gems = state.gems.filter((g) => !g._collected);
