@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Lantern Hollow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%231a2f24'/%3E%3Ccircle cx='32' cy='28' r='12' fill='%23f0b429'/%3E%3Cpath d='M26 40h12l-2 14h-8z' fill='%23c9842a'/%3E%3C/svg%3E" />
+</head>
+<body>
+  <div id="app" data-ground="assets/forest-floor.webp">
+    <canvas id="game" aria-label="Lantern Hollow game canvas"></canvas>
+
+    <div id="hud" class="hidden">
+      <div class="hud-top">
+        <div class="hud-brand">Lantern Hollow</div>
+        <div class="hud-stats">
+          <span id="hud-time" title="How long you have survived">0:00</span>
+          <span id="hud-dash" title="Equipped special weapon. Empty until you drive through a crate.">No weapon</span>
+          <span id="hud-focus" class="hud-focus hidden" title="Holding F: prioritizing brutes and bosses">FOCUS</span>
+          <span id="hud-kills">0 kills</span>
+          <span id="hud-level">Lv 1</span>
+          <button type="button" id="btn-mute" class="hud-pause" title="Mute or unmute sounds">Sound</button>
+          <button type="button" id="btn-hud-pause" class="hud-pause" title="Pause the game">Pause</button>
+        </div>
+      </div>
+      <div class="life-row" title="Your life. When this hits 0, the run ends.">
+        <span class="life-label">LIFE</span>
+        <div class="life-track">
+          <div id="life-fill"></div>
+        </div>
+        <span id="hud-hp">100 / 100</span>
+      </div>
+      <div class="xp-track" title="XP bar — fill it to level up">
+        <div id="xp-fill"></div>
+      </div>
+      <div class="dash-track" title="Special weapon loaded">
+        <div id="dash-fill"></div>
+      </div>
+      <div class="hud-hint">LIFE = health · Green mark = grenades · Red mark = swarm · Blue mark = nuke</div>
+      <div id="banner" class="banner hidden"></div>
+      <div id="coach" class="coach hidden"></div>
+    </div>
+
+    <div id="touch-zone" class="hidden" aria-hidden="true">
+      <div class="touch-label move-label">Move</div>
+      <div id="stick" class="stick" aria-label="Move stick">
+        <div id="stick-knob" class="stick-knob"></div>
+      </div>
+      <div class="touch-label dash-label">Fire = use equipped weapon</div>
+      <button type="button" id="dash-btn" class="dash-btn" title="Fire the equipped special weapon. Drive through a crate to load one.">
+        Empty
+        <span class="dash-sub">pick up crate</span>
+      </button>
+    </div>
+
+    <section id="title" class="panel">
+      <div class="panel-glow"></div>
+      <p class="eyebrow">A marsh of endless nights</p>
+      <h1>Lantern Hollow</h1>
+      <p class="lede">Survive the marsh in 3D light and fog. Your lantern fights for you — steer, arm special weapons, and build.</p>
+
+      <div class="meta-row">
+        <div class="meta-chip"><strong id="meta-embers">0</strong> embers</div>
+        <div class="meta-chip">Best <strong id="meta-best">0:00</strong></div>
+        <div class="meta-chip">Runs <strong id="meta-runs">0</strong></div>
+      </div>
+      <div class="btn-row">
+        <button type="button" id="btn-start" class="btn primary">PLAY</button>
+      </div>
+      <div class="btn-row" style="margin-top:10px">
+        <button type="button" id="btn-tutorial" class="btn">How to play</button>
+        <button type="button" id="btn-upgrades" class="btn">Ember shop</button>
+        <button type="button" id="btn-mute-title" class="btn">Sound on</button>
+      </div>
+      <p class="footnote">Tap <strong>PLAY</strong> to start immediately. Use How to play if you want the tutorial first.</p>
+    </section>
+
+    <section id="tutorial" class="panel hidden">
+      <p class="eyebrow" id="tut-step-label">Step 1 of 6</p>
+      <h2 id="tut-title">Welcome</h2>
+      <p class="lede" id="tut-body">Learn the controls before your first night.</p>
+      <div class="tut-card" id="tut-card"></div>
+      <div class="btn-row">
+        <button type="button" id="btn-tut-back" class="btn">Back</button>
+        <button type="button" id="btn-tut-next" class="btn primary">Next</button>
+      </div>
+      <button type="button" id="btn-tut-skip" class="linkish">Skip tutorial</button>
+    </section>
+
+    <section id="shop" class="panel hidden">
+      <h2>Ember shop</h2>
+      <p class="lede">
+        <strong>Embers</strong> are the coins you earn after each run.
+        Spending them here makes every future run permanently stronger on this device.
+      </p>
+      <p class="shop-balance">You have <strong id="shop-embers">0</strong> embers</p>
+      <div id="shop-list" class="shop-list"></div>
+      <button type="button" id="btn-shop-back" class="btn">Back</button>
+    </section>
+
+    <section id="levelup" class="panel hidden">
+      <h2>Level up!</h2>
+      <p class="lede">Pick a <strong>strategy</strong> for this run. Read the tip under each option.</p>
+      <div id="upgrade-choices" class="choice-list"></div>
+    </section>
+
+    <section id="tactic" class="panel hidden">
+      <h2 id="tactic-title">Tactical choice</h2>
+      <p class="lede" id="tactic-body">A fork in the marsh. Only one path.</p>
+      <div id="tactic-choices" class="choice-list"></div>
+    </section>
+
+    <section id="pause" class="panel hidden">
+      <h2>Paused</h2>
+      <p class="lede">Game is frozen. Check your build, then resume.</p>
+      <div class="control-cheat">
+        <div><strong>Move</strong> — WASD / arrows / center stick</div>
+        <div><strong>Weapons</strong> — drive through crates to equip; Space / Shift / Fire button to shoot</div>
+        <div><strong>Grenades</strong> — orange ~20s · <strong>Swarm</strong> — red ~30s (instant 8s fire) · <strong>Nuke</strong> — purple ~60s</div>
+        <div><strong>Focus</strong> — hold <span class="key">F</span> to prioritize brutes/bosses</div>
+        <div><strong>Attack</strong> — automatic</div>
+        <div><strong>Pause</strong> — P / Escape / Pause button</div>
+      </div>
+      <div class="control-cheat">
+        <div><strong>Your build this run</strong></div>
+        <div id="pause-build">No upgrades yet.</div>
+      </div>
+      <div class="btn-row">
+        <button type="button" id="btn-resume" class="btn primary">Resume</button>
+        <button type="button" id="btn-pause-help" class="btn">How to play</button>
+        <button type="button" id="btn-quit" class="btn">End run</button>
+      </div>
+    </section>
+
+    <section id="gameover" class="panel hidden">
+      <h2 id="over-title">Light snuffed</h2>
+      <p class="lede" id="over-summary">You lasted 0:00.</p>
+      <div class="meta-row">
+        <div class="meta-chip">Kills <strong id="over-kills">0</strong></div>
+        <div class="meta-chip">Level <strong id="over-level">1</strong></div>
+        <div class="meta-chip">Embers +<strong id="over-embers">0</strong></div>
+      </div>
+      <ul id="over-unlocks" class="unlock-list"></ul>
+      <div class="btn-row">
+        <button type="button" id="btn-again" class="btn primary">Play again</button>
+        <button type="button" id="btn-menu" class="btn">Main menu</button>
+      </div>
+    </section>
+  </div>
+  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+  <script src="cgi.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
