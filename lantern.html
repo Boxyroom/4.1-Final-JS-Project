@@ -2801,12 +2801,31 @@ button.dash-btn.loaded-grenades {
 
   prefetchSfx();
 
+  function playHtmlSample(name, { gain = 0.5, rate = 1, delay = 0 } = {}) {
+    const run = () => {
+      try {
+        const a = new Audio(sfxDir() + name + ".ogg");
+        a.volume = Math.max(0, Math.min(1, gain));
+        a.playbackRate = rate;
+        const p = a.play();
+        if (p && p.catch) p.catch(() => {});
+      } catch (_) {
+        /* ignore */
+      }
+    };
+    if (delay > 0) setTimeout(run, delay * 1000);
+    else run();
+    return true;
+  }
+
   function playSample(name, { gain = 0.5, rate = 1, delay = 0 } = {}) {
     if (meta && meta.muted) return false;
     const ctxA = ensureAudio();
-    if (!ctxA) return false;
     const buf = sampleBuffers[name];
-    if (!buf) return false;
+    if (!ctxA || !buf) {
+      // Buffers may still be decoding — play from URL so the first shots aren't synth beeps.
+      return playHtmlSample(name, { gain, rate, delay });
+    }
     const t0 = ctxA.currentTime + delay;
     const src = ctxA.createBufferSource();
     src.buffer = buf;
