@@ -2944,6 +2944,13 @@
     document.body.appendChild(crash);
   }
 
+  // Installable PWA for phone testing (Add to Home Screen / Install app)
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("sw.js").catch(() => {});
+    });
+  }
+
   window.__lanternDebug = {
     getState: () => state,
     spawnWeapon: (kind) => {
