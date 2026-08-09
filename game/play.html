@@ -2726,60 +2726,175 @@ button.dash-btn.loaded-grenades {
   const TAU = Math.PI * 2;
 
   let audioCtx = null;
+  let noiseBuffer = null;
+  let masterGain = null;
+
   function ensureAudio() {
     if (!audioCtx) {
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return null;
       audioCtx = new AC();
+      masterGain = audioCtx.createGain();
+      masterGain.gain.value = 0.85;
+      masterGain.connect(audioCtx.destination);
+      // Shared noise buffer for impacts / explosions
+      const len = Math.floor(audioCtx.sampleRate * 1.2);
+      noiseBuffer = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
+      const data = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
     }
     if (audioCtx.state === "suspended") audioCtx.resume();
     return audioCtx;
   }
 
-  function beep(freq, dur = 0.08, type = "square", gain = 0.04, slide = 0) {
+  function playTone({
+    freq = 440,
+    endFreq = null,
+    dur = 0.12,
+    type = "sine",
+    gain = 0.04,
+    attack = 0.005,
+    filterFreq = 0,
+    filterQ = 0.7,
+    delay = 0,
+  }) {
     if (meta && meta.muted) return;
     const ctxA = ensureAudio();
     if (!ctxA) return;
+    const t0 = ctxA.currentTime + delay;
     const osc = ctxA.createOscillator();
     const g = ctxA.createGain();
     osc.type = type;
-    osc.frequency.setValueAtTime(freq, ctxA.currentTime);
-    if (slide) {
-      osc.frequency.exponentialRampToValueAtTime(
-        Math.max(40, freq + slide),
-        ctxA.currentTime + dur,
-      );
+    osc.frequency.setValueAtTime(freq, t0);
+    if (endFreq != null) {
+      osc.frequency.exponentialRampToValueAtTime(Math.max(30, endFreq), t0 + dur);
     }
-    g.gain.setValueAtTime(gain, ctxA.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.0001, ctxA.currentTime + dur);
-    osc.connect(g);
-    g.connect(ctxA.destination);
-    osc.start();
-    osc.stop(ctxA.currentTime + dur + 0.02);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0002, gain), t0 + attack);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    let node = osc;
+    if (filterFreq > 0) {
+      const filt = ctxA.createBiquadFilter();
+      filt.type = "lowpass";
+      filt.frequency.setValueAtTime(filterFreq, t0);
+      filt.Q.value = filterQ;
+      osc.connect(filt);
+      node = filt;
+    }
+    node.connect(g);
+    g.connect(masterGain || ctxA.destination);
+    osc.start(t0);
+    osc.stop(t0 + dur + 0.03);
   }
 
+  function playNoise({
+    dur = 0.2,
+    gain = 0.05,
+    attack = 0.004,
+    filterFreq = 1200,
+    endFilter = 200,
+    type = "bandpass",
+    delay = 0,
+  }) {
+    if (meta && meta.muted) return;
+    const ctxA = ensureAudio();
+    if (!ctxA || !noiseBuffer) return;
+    const t0 = ctxA.currentTime + delay;
+    const src = ctxA.createBufferSource();
+    src.buffer = noiseBuffer;
+    const filt = ctxA.createBiquadFilter();
+    filt.type = type;
+    filt.frequency.setValueAtTime(filterFreq, t0);
+    filt.frequency.exponentialRampToValueAtTime(Math.max(40, endFilter), t0 + dur);
+    filt.Q.value = type === "bandpass" ? 0.9 : 0.5;
+    const g = ctxA.createGain();
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0002, gain), t0 + attack);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    src.connect(filt);
+    filt.connect(g);
+    g.connect(masterGain || ctxA.destination);
+    src.start(t0);
+    src.stop(t0 + dur + 0.02);
+  }
+
+  // Richer layered SFX — same API keys, better presence.
   const sfx = {
-    shoot: () => beep(520, 0.05, "square", 0.025, -180),
-    hit: () => beep(180, 0.05, "triangle", 0.03, -60),
-    kill: () => beep(340, 0.07, "sawtooth", 0.03, 220),
-    xp: () => beep(760, 0.06, "sine", 0.025, 200),
-    level: () => { beep(440, 0.08, "sine", 0.04, 200); setTimeout(() => beep(660, 0.1, "sine", 0.04), 80); },
-    hurt: () => beep(120, 0.14, "sawtooth", 0.05, -40),
-    dash: () => beep(280, 0.1, "square", 0.035, 260),
-    pickup: () => beep(620, 0.08, "sine", 0.035, 180),
+    shoot: () => {
+      playTone({ freq: 880, endFreq: 320, dur: 0.07, type: "square", gain: 0.028, filterFreq: 2400 });
+      playTone({ freq: 440, endFreq: 180, dur: 0.05, type: "triangle", gain: 0.018, delay: 0.01 });
+    },
+    hit: () => {
+      playNoise({ dur: 0.07, gain: 0.035, filterFreq: 900, endFilter: 180, type: "bandpass" });
+      playTone({ freq: 220, endFreq: 90, dur: 0.08, type: "triangle", gain: 0.03 });
+    },
+    kill: () => {
+      playTone({ freq: 280, endFreq: 520, dur: 0.1, type: "sawtooth", gain: 0.03, filterFreq: 1800 });
+      playTone({ freq: 520, endFreq: 780, dur: 0.08, type: "sine", gain: 0.022, delay: 0.04 });
+      playNoise({ dur: 0.09, gain: 0.03, filterFreq: 1400, endFilter: 300, delay: 0.02 });
+    },
+    xp: () => {
+      playTone({ freq: 740, endFreq: 980, dur: 0.07, type: "sine", gain: 0.03 });
+      playTone({ freq: 980, endFreq: 1240, dur: 0.08, type: "sine", gain: 0.022, delay: 0.04 });
+    },
+    level: () => {
+      playTone({ freq: 392, endFreq: 523, dur: 0.12, type: "sine", gain: 0.04 });
+      playTone({ freq: 523, endFreq: 659, dur: 0.14, type: "sine", gain: 0.035, delay: 0.08 });
+      playTone({ freq: 659, endFreq: 784, dur: 0.16, type: "triangle", gain: 0.03, delay: 0.16 });
+    },
+    hurt: () => {
+      playNoise({ dur: 0.16, gain: 0.05, filterFreq: 500, endFilter: 80, type: "lowpass" });
+      playTone({ freq: 140, endFreq: 60, dur: 0.18, type: "sawtooth", gain: 0.045, filterFreq: 600 });
+    },
+    dash: () => {
+      playTone({ freq: 220, endFreq: 640, dur: 0.12, type: "square", gain: 0.03, filterFreq: 2200 });
+      playNoise({ dur: 0.1, gain: 0.025, filterFreq: 2000, endFilter: 600, type: "highpass" });
+    },
+    pickup: () => {
+      playTone({ freq: 520, endFreq: 780, dur: 0.09, type: "sine", gain: 0.035 });
+      playTone({ freq: 780, endFreq: 1040, dur: 0.1, type: "triangle", gain: 0.028, delay: 0.05 });
+      playTone({ freq: 1040, endFreq: 1320, dur: 0.1, type: "sine", gain: 0.02, delay: 0.1 });
+    },
     nuke: () => {
-      beep(60, 0.28, "sawtooth", 0.07, -20);
-      setTimeout(() => beep(40, 0.35, "sawtooth", 0.06), 90);
+      // Deep blue boom — rumble + bright sparkle
+      playNoise({ dur: 0.55, gain: 0.08, filterFreq: 400, endFilter: 60, type: "lowpass" });
+      playTone({ freq: 70, endFreq: 32, dur: 0.5, type: "sine", gain: 0.08, filterFreq: 220 });
+      playTone({ freq: 110, endFreq: 40, dur: 0.4, type: "triangle", gain: 0.05, delay: 0.04 });
+      playTone({ freq: 880, endFreq: 220, dur: 0.25, type: "sine", gain: 0.03, delay: 0.08, filterFreq: 3000 });
+      playNoise({ dur: 0.35, gain: 0.04, filterFreq: 2400, endFilter: 400, type: "bandpass", delay: 0.05 });
     },
-    grenade: () => beep(240, 0.07, "square", 0.04, -120),
-    boom: () => beep(90, 0.16, "sawtooth", 0.055, -50),
+    grenade: () => {
+      // Soft green launch whoosh
+      playTone({ freq: 320, endFreq: 160, dur: 0.1, type: "triangle", gain: 0.035, filterFreq: 1600 });
+      playNoise({ dur: 0.1, gain: 0.03, filterFreq: 1800, endFilter: 500, type: "bandpass" });
+      playTone({ freq: 640, endFreq: 420, dur: 0.08, type: "sine", gain: 0.02, delay: 0.02 });
+    },
+    boom: () => {
+      // Green grenade detonation
+      playNoise({ dur: 0.28, gain: 0.07, filterFreq: 900, endFilter: 120, type: "lowpass" });
+      playTone({ freq: 120, endFreq: 45, dur: 0.26, type: "sine", gain: 0.06, filterFreq: 400 });
+      playTone({ freq: 240, endFreq: 80, dur: 0.18, type: "triangle", gain: 0.04, delay: 0.02 });
+      playNoise({ dur: 0.16, gain: 0.04, filterFreq: 2200, endFilter: 500, type: "bandpass", delay: 0.01 });
+    },
     nova: () => {
-      beep(180, 0.12, "sawtooth", 0.05, 320);
-      setTimeout(() => beep(90, 0.2, "triangle", 0.045, -40), 60);
+      playTone({ freq: 200, endFreq: 620, dur: 0.16, type: "sawtooth", gain: 0.04, filterFreq: 2000 });
+      playTone({ freq: 120, endFreq: 60, dur: 0.22, type: "sine", gain: 0.045, delay: 0.05 });
+      playNoise({ dur: 0.2, gain: 0.04, filterFreq: 1600, endFilter: 250, delay: 0.04 });
     },
-    spark: () => beep(880, 0.03, "sine", 0.012, 120),
-    boss: () => { beep(90, 0.2, "sawtooth", 0.05); setTimeout(() => beep(70, 0.25, "sawtooth", 0.05), 120); },
-    death: () => beep(70, 0.35, "sawtooth", 0.06, -30),
+    spark: () => {
+      playTone({ freq: 1200, endFreq: 1800, dur: 0.04, type: "sine", gain: 0.016 });
+      playNoise({ dur: 0.04, gain: 0.015, filterFreq: 4000, endFilter: 1500, type: "highpass" });
+    },
+    boss: () => {
+      playTone({ freq: 90, endFreq: 55, dur: 0.25, type: "sawtooth", gain: 0.05, filterFreq: 500 });
+      playTone({ freq: 70, endFreq: 40, dur: 0.3, type: "sine", gain: 0.045, delay: 0.1 });
+      playNoise({ dur: 0.28, gain: 0.04, filterFreq: 600, endFilter: 100, type: "lowpass", delay: 0.05 });
+    },
+    death: () => {
+      playTone({ freq: 180, endFreq: 40, dur: 0.45, type: "sawtooth", gain: 0.05, filterFreq: 700 });
+      playTone({ freq: 90, endFreq: 30, dur: 0.5, type: "sine", gain: 0.05, delay: 0.05 });
+      playNoise({ dur: 0.45, gain: 0.055, filterFreq: 500, endFilter: 60, type: "lowpass" });
+    },
   };
 
 
