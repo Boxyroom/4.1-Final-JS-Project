@@ -4,6 +4,9 @@
   const STORAGE_KEY = "lantern-hollow-v1";
   const TAU = Math.PI * 2;
   const KILLS_PER_ROUND = 5000;
+  /** Soft world edge — player is clamped here; pickups must spawn inside. */
+  const WORLD_BOUND = 2200;
+  const PICKUP_BOUND = WORLD_BOUND - 48;
 
   let audioCtx = null;
   let masterGain = null;
@@ -1573,12 +1576,32 @@
   }
 
   function spawnWeaponPickup(kind) {
-    const angle = rand(0, TAU);
-    const distAway = rand(160, 320);
+    const p = state.player;
+    let x = 0;
+    let y = 0;
+    let placed = false;
+    // Prefer a ring around the player, but never outside the reachable world.
+    for (let attempt = 0; attempt < 14; attempt++) {
+      const angle = rand(0, TAU);
+      const distAway = rand(160, 320);
+      x = p.x + Math.cos(angle) * distAway;
+      y = p.y + Math.sin(angle) * distAway;
+      if (x >= -PICKUP_BOUND && x <= PICKUP_BOUND && y >= -PICKUP_BOUND && y <= PICKUP_BOUND) {
+        placed = true;
+        break;
+      }
+    }
+    if (!placed) {
+      // Near an edge/corner — bias spawn toward map center so it stays reachable.
+      const inward = Math.atan2(-p.y, -p.x) + rand(-0.7, 0.7);
+      const distAway = rand(160, 260);
+      x = clamp(p.x + Math.cos(inward) * distAway, -PICKUP_BOUND, PICKUP_BOUND);
+      y = clamp(p.y + Math.sin(inward) * distAway, -PICKUP_BOUND, PICKUP_BOUND);
+    }
     state.weaponPickups.push({
       kind,
-      x: state.player.x + Math.cos(angle) * distAway,
-      y: state.player.y + Math.sin(angle) * distAway,
+      x,
+      y,
       r: kind === "nuke" ? 16 : 13,
       pulse: rand(0, TAU),
     });
@@ -1868,6 +1891,9 @@
 
     // pick up crates before firing so drive-through + Fire can land same frame
     for (const w of state.weaponPickups) {
+      // Keep already-spawned crates inside the reachable area (fixes edge spawns).
+      w.x = clamp(w.x, -PICKUP_BOUND, PICKUP_BOUND);
+      w.y = clamp(w.y, -PICKUP_BOUND, PICKUP_BOUND);
       w.pulse += dt * 4;
       if (dist(p, w) < p.r + w.r + 8) {
         w._taken = true;
@@ -1886,9 +1912,8 @@
     if (p.regen > 0) p.hp = Math.min(p.maxHp, p.hp + p.regen * dt);
 
     // world soft bounds so camera feels open but player isn't lost forever
-    const bound = 2200;
-    p.x = clamp(p.x, -bound, bound);
-    p.y = clamp(p.y, -bound, bound);
+    p.x = clamp(p.x, -WORLD_BOUND, WORLD_BOUND);
+    p.y = clamp(p.y, -WORLD_BOUND, WORLD_BOUND);
 
     state.camera.x = p.x;
     state.camera.y = p.y;
