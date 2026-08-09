@@ -3,6 +3,7 @@
 
   const STORAGE_KEY = "lantern-hollow-v1";
   const TAU = Math.PI * 2;
+  const KILLS_PER_ROUND = 5000;
 
   let audioCtx = null;
   let masterGain = null;
@@ -340,6 +341,13 @@
     title: document.getElementById("title"),
     tutorial: document.getElementById("tutorial"),
     shop: document.getElementById("shop"),
+    shopLede: document.getElementById("shop-lede"),
+    round: document.getElementById("round"),
+    roundTitle: document.getElementById("round-title"),
+    roundSummary: document.getElementById("round-summary"),
+    roundNumber: document.getElementById("round-number"),
+    roundEmbers: document.getElementById("round-embers"),
+    roundTotalKills: document.getElementById("round-total-kills"),
     levelup: document.getElementById("levelup"),
     pause: document.getElementById("pause"),
     gameover: document.getElementById("gameover"),
@@ -351,6 +359,7 @@
     hudTime: document.getElementById("hud-time"),
     hudHp: document.getElementById("hud-hp"),
     hudKills: document.getElementById("hud-kills"),
+    hudRound: document.getElementById("hud-round"),
     hudLevel: document.getElementById("hud-level"),
     coach: document.getElementById("coach"),
     banner: document.getElementById("banner"),
@@ -835,10 +844,12 @@
     hide(ui.tactic);
     hide(ui.pause);
     hide(ui.gameover);
+    hide(ui.round);
     if (next === "title") {
       show(ui.title);
       hide(ui.hud);
       hide(ui.touch);
+      if (state) state.shopReturnMode = null;
       refreshMetaUi();
     } else if (next === "tutorial") {
       show(ui.tutorial);
@@ -848,6 +859,10 @@
     } else if (next === "shop") {
       show(ui.shop);
       renderShop();
+    } else if (next === "round") {
+      show(ui.round);
+      show(ui.hud);
+      if (isTouchPrimary()) show(ui.touch);
     } else if (next === "play") {
       show(ui.hud);
       if (isTouchPrimary()) show(ui.touch);
@@ -862,6 +877,7 @@
       show(ui.gameover);
       hide(ui.hud);
       hide(ui.touch);
+      if (state) state.shopReturnMode = null;
     }
   }
 
@@ -962,6 +978,10 @@
       floats: [],
       time: 0,
       kills: 0,
+      round: 1,
+      roundKills: 0,
+      roundCompletePending: false,
+      shopReturnMode: null,
       spawnTimer: 1.2,
       nextGrenadePickupAt: 20,
       nextSwarmPickupAt: 30,
@@ -1054,6 +1074,8 @@
     const x = state.player.x + Math.cos(angle) * distAway;
     const y = state.player.y + Math.sin(angle) * distAway;
     const t = state.time;
+    const roundMul = 1 + Math.max(0, (state.round || 1) - 1) * 0.18;
+    const speedMul = 1 + Math.max(0, (state.round || 1) - 1) * 0.08;
     let roll = kind;
     if (!roll) {
       if (t < 25) roll = "wisp";
@@ -1068,9 +1090,9 @@
         x,
         y,
         r: 34,
-        hp: 180 + t * 1.35,
-        maxHp: 180 + t * 1.35,
-        speed: 66,
+        hp: (180 + t * 1.35) * roundMul,
+        maxHp: (180 + t * 1.35) * roundMul,
+        speed: 66 * speedMul,
         damage: 16,
         xp: 40,
         color: "#c45c26",
@@ -1085,9 +1107,9 @@
         x,
         y,
         r: 18,
-        hp: 28 + t * 0.1,
-        maxHp: 28 + t * 0.1,
-        speed: 72 + t * 0.018,
+        hp: (28 + t * 0.1) * roundMul,
+        maxHp: (28 + t * 0.1) * roundMul,
+        speed: (72 + t * 0.018) * speedMul,
         damage: 10,
         xp: 5,
         color: "#3f6b4f",
@@ -1102,9 +1124,9 @@
         x,
         y,
         r: 9,
-        hp: 10 + t * 0.05,
-        maxHp: 10 + t * 0.05,
-        speed: 170 + t * 0.05,
+        hp: (10 + t * 0.05) * roundMul,
+        maxHp: (10 + t * 0.05) * roundMul,
+        speed: (170 + t * 0.05) * speedMul,
         damage: 7,
         xp: 3,
         color: "#7ec8a3",
@@ -1118,9 +1140,9 @@
       x,
       y,
       r: 11,
-      hp: 12 + t * 0.06,
-      maxHp: 12 + t * 0.06,
-      speed: 95 + Math.max(0, t - 20) * 0.03,
+      hp: (12 + t * 0.06) * roundMul,
+      maxHp: (12 + t * 0.06) * roundMul,
+      speed: (95 + Math.max(0, t - 20) * 0.03) * speedMul,
       damage: 7,
       xp: 2,
       color: "#86a37a",
@@ -1294,6 +1316,7 @@
   function killEnemy(e) {
     e.hp = 0;
     state.kills += 1;
+    state.roundKills = (state.roundKills || 0) + 1;
     state.killFlash = 0.08;
     sfx.kill();
     if (e.kind === "boss") {
@@ -1316,6 +1339,90 @@
     });
     addParticles(e.x, e.y, e.color, e.kind === "boss" ? 24 : 10, 160);
     floatText(e.x, e.y - 10, `+${e.xp}`, "#d7e4d5");
+    if (
+      !state.roundCompletePending &&
+      !state.ended &&
+      state.roundKills >= KILLS_PER_ROUND
+    ) {
+      completeRound();
+    }
+  }
+
+  function completeRound() {
+    if (!state || state.roundCompletePending || state.ended) return;
+    state.roundCompletePending = true;
+    state.pausedChoice = true;
+    const roundBonus = Math.floor(
+      (90 + state.round * 45 + state.player.level * 2.5) * state.player.emberMult,
+    );
+    state.lastRoundEmbers = roundBonus;
+    meta.embers += roundBonus;
+    saveMeta();
+    refreshMetaUi();
+    if (ui.roundTitle) ui.roundTitle.textContent = `Round ${state.round} complete`;
+    if (ui.roundSummary) {
+      ui.roundSummary.textContent =
+        `5,000 foes fallen. You earned ${roundBonus} embers — buy a permanent skill, then continue to the next round.`;
+    }
+    if (ui.roundNumber) ui.roundNumber.textContent = String(state.round);
+    if (ui.roundEmbers) ui.roundEmbers.textContent = String(roundBonus);
+    if (ui.roundTotalKills) ui.roundTotalKills.textContent = String(state.kills);
+    const cont = document.getElementById("btn-round-continue");
+    if (cont) cont.textContent = `Continue to Round ${state.round + 1}`;
+    showBanner(`Round ${state.round} complete!`, 2.4);
+    sfx.level();
+    setMode("round");
+  }
+
+  function continueNextRound() {
+    if (!state || state.ended) return;
+    state.round += 1;
+    state.roundKills = 0;
+    state.roundCompletePending = false;
+    state.pausedChoice = false;
+    state.shopReturnMode = null;
+    const p = state.player;
+    p.hp = Math.min(p.maxHp, p.hp + p.maxHp * 0.4);
+    state.enemies = [];
+    state.bullets = [];
+    state.grenades = [];
+    state.shockwaves = [];
+    showBanner(`Round ${state.round} begins — the marsh thickens`, 2.6);
+    showCoach(`Round ${state.round}: another ${KILLS_PER_ROUND} kills to clear.`);
+    setMode("play");
+  }
+
+  function openRoundShop() {
+    if (!state) return;
+    state.shopReturnMode = "round";
+    setMode("shop");
+  }
+
+  function applyShopPurchaseToPlayer(item, fromRank, toRank) {
+    if (!state || !state.player || toRank <= fromRank) return;
+    const p = state.player;
+    const d = toRank - fromRank;
+    if (item.id === "vitality") {
+      p.maxHp += 12 * d;
+      p.hp += 12 * d;
+    } else if (item.id === "swift") {
+      const before = 1 + 0.06 * fromRank;
+      const after = 1 + 0.06 * toRank;
+      p.speed *= after / Math.max(0.01, before);
+    } else if (item.id === "spark") {
+      const before = 1 + 0.08 * fromRank;
+      const after = 1 + 0.08 * toRank;
+      p.damage *= after / Math.max(0.01, before);
+    } else if (item.id === "pickup") {
+      const before = 1 + 0.18 * fromRank;
+      const after = 1 + 0.18 * toRank;
+      p.magnet *= after / Math.max(0.01, before);
+      state.baseMagnet = p.magnet;
+    } else if (item.id === "fortune") {
+      const before = 1 + 0.1 * fromRank;
+      const after = 1 + 0.1 * toRank;
+      p.emberMult *= after / Math.max(0.01, before);
+    }
   }
 
   function gainXp(amount) {
@@ -1716,7 +1823,7 @@
     saveMeta();
 
     ui.overTitle.textContent = manual ? "Lantern banked" : "Light snuffed";
-    ui.overSummary.textContent = `You lasted ${formatTime(state.time)} in the hollow.`;
+    ui.overSummary.textContent = `You lasted ${formatTime(state.time)} — reached Round ${state.round} (${state.kills} kills).`;
     ui.overKills.textContent = String(state.kills);
     ui.overLevel.textContent = String(state.player.level);
     ui.overEmbers.textContent = String(embers);
@@ -1725,7 +1832,7 @@
   }
 
   function update(dt) {
-    if (!state || state.ended || state.pausedChoice || mode === "pause") return;
+    if (!state || state.ended || state.pausedChoice || mode === "pause" || mode === "round" || mode === "shop") return;
     const p = state.player;
     state.time += dt;
     state.shake = Math.max(0, state.shake - dt * 20);
@@ -1778,7 +1885,7 @@
     state.camera.y = p.y;
 
     // spawning
-    const density = 1 + state.time / 70;
+    const density = 1 + state.time / 70 + Math.max(0, (state.round || 1) - 1) * 0.2;
     state.spawnTimer -= dt;
     if (state.spawnTimer <= 0) {
       const early = state.time < 35;
@@ -1962,6 +2069,9 @@
     if (ui.lifeRow) ui.lifeRow.classList.toggle("danger", hpPct < 0.3);
     ui.hudHp.classList.toggle("danger", hpPct < 0.3);
     ui.hudKills.textContent = `${state.kills} kills`;
+    if (ui.hudRound) {
+      ui.hudRound.textContent = `R${state.round} ${state.roundKills}/${KILLS_PER_ROUND}`;
+    }
     ui.hudLevel.textContent = `Lv ${p.level}`;
     ui.xpFill.style.width = `${(p.xp / p.nextXp) * 100}%`;
     if (ui.hudFocus) {
@@ -2137,6 +2247,36 @@
       ctx.beginPath();
       ctx.arc(ps.x, ps.y + bob, 16, 0, TAU);
       ctx.fill();
+    }
+
+    // Level 10+ — brass attachments (halo + orbiting embers)
+    if (p.level >= 10) {
+      const cy = ps.y + bob - 10;
+      ctx.save();
+      ctx.strokeStyle = "rgba(201, 132, 42, 0.9)";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.ellipse(ps.x, cy + 28, 34, 10, 0, 0, TAU);
+      ctx.stroke();
+      ctx.strokeStyle = "rgba(240, 180, 41, 0.85)";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.ellipse(ps.x, cy - 40, 30, 9, 0.15, 0, TAU);
+      ctx.stroke();
+      for (let i = 0; i < 3; i++) {
+        const a = state.time * 1.35 + (i * TAU) / 3;
+        const gx = ps.x + Math.cos(a) * 40;
+        const gy = cy + Math.sin(a * 0.9) * 12 + Math.sin(state.time * 2 + i) * 6;
+        const g = ctx.createRadialGradient(gx, gy, 1, gx, gy, 8);
+        g.addColorStop(0, "#fff6d0");
+        g.addColorStop(0.45, "#ffb040");
+        g.addColorStop(1, "rgba(255,140,40,0)");
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(gx, gy, 8, 0, TAU);
+        ctx.fill();
+      }
+      ctx.restore();
     }
 
     drawCrateDirectionHints(ps, p);
@@ -2746,6 +2886,17 @@
 
   function renderShop() {
     ui.shopEmbers.textContent = String(meta.embers);
+    if (ui.shopLede) {
+      ui.shopLede.innerHTML =
+        state && state.shopReturnMode === "round"
+          ? "<strong>Embers</strong> from this round. Buy a permanent skill — it applies now and to every future run — then head back and continue."
+          : "<strong>Embers</strong> are the coins you earn after each run. Spending them here makes every future run permanently stronger on this device.";
+    }
+    const back = document.getElementById("btn-shop-back");
+    if (back) {
+      back.textContent =
+        state && state.shopReturnMode === "round" ? "Back to round" : "Back";
+    }
     ui.shopList.innerHTML = "";
     for (const item of SHOP) {
       const rank = meta.shop[item.id] || 0;
@@ -2764,6 +2915,7 @@
         if (maxed || meta.embers < cost) return;
         meta.embers -= cost;
         meta.shop[item.id] = rank + 1;
+        applyShopPurchaseToPlayer(item, rank, rank + 1);
         saveMeta();
         renderShop();
         refreshMetaUi();
@@ -2918,8 +3070,19 @@
   );
   on("btn-again", "click", startRun);
   on("btn-menu", "click", () => setMode("title"));
-  on("btn-upgrades", "click", () => setMode("shop"));
-  on("btn-shop-back", "click", () => setMode("title"));
+  on("btn-upgrades", "click", () => {
+    if (state) state.shopReturnMode = null;
+    setMode("shop");
+  });
+  on("btn-shop-back", "click", () => {
+    if (state && state.shopReturnMode === "round") {
+      setMode("round");
+      return;
+    }
+    setMode("title");
+  });
+  on("btn-round-shop", "click", () => openRoundShop());
+  on("btn-round-continue", "click", () => continueNextRound());
   on("btn-resume", "click", () => setMode("play"));
   on("btn-quit", "click", () => endRun(true));
 
@@ -2968,5 +3131,20 @@
       return true;
     },
     fire: () => fireEquippedWeapon(),
+    /** Testing helpers */
+    completeRound: () => {
+      if (!state || state.ended) return false;
+      state.roundKills = KILLS_PER_ROUND;
+      completeRound();
+      return true;
+    },
+    setLevel: (n) => {
+      if (!state || !state.player) return false;
+      const lv = Math.max(1, n | 0);
+      state.player.level = lv;
+      state.player.nextXp = xpForLevel(lv);
+      state.player.r = lanternEvolution(lv).r;
+      return true;
+    },
   };
 })();

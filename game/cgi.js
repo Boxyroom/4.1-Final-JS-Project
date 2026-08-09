@@ -557,8 +557,89 @@
     return createPlayerVisual();
   }
 
-  /** Apply visual form for level. Currently always Level 0 Ancient Relic. */
-  function applyLanternEvolution(level, full = false) {
+  /**
+   * Level 10+ attachments — brass halo, band, and orbiting ember crystals
+   * bolted onto the Ancient Relic without replacing the base PNG.
+   */
+  function ensureEvolutionAttachments(level, timeSec) {
+    if (!lanternGroup) return;
+    let att = lanternGroup.getObjectByName("evoAttachments");
+    const evolved = (level || 1) >= 10;
+    if (!evolved) {
+      if (att) att.visible = false;
+      return;
+    }
+    if (!att) {
+      att = new THREE.Group();
+      att.name = "evoAttachments";
+
+      const halo = new THREE.Mesh(
+        new THREE.TorusGeometry(1.2, 0.055, 10, 48),
+        new THREE.MeshStandardMaterial({
+          color: 0xc9842a,
+          emissive: 0xf0b429,
+          emissiveIntensity: 1.35,
+          metalness: 0.75,
+          roughness: 0.32,
+        }),
+      );
+      halo.name = "evoHalo";
+      halo.position.y = 1.55;
+      halo.rotation.x = Math.PI / 2.35;
+      att.add(halo);
+
+      const band = new THREE.Mesh(
+        new THREE.TorusGeometry(0.98, 0.048, 10, 40),
+        new THREE.MeshStandardMaterial({
+          color: 0xa86b2d,
+          emissive: 0x6a4018,
+          emissiveIntensity: 0.55,
+          metalness: 0.88,
+          roughness: 0.28,
+        }),
+      );
+      band.name = "evoBand";
+      band.rotation.x = Math.PI / 2;
+      band.position.y = 0.12;
+      att.add(band);
+
+      for (let i = 0; i < 3; i++) {
+        const gem = new THREE.Mesh(
+          new THREE.OctahedronGeometry(0.16, 0),
+          new THREE.MeshStandardMaterial({
+            color: 0xffe08a,
+            emissive: 0xffb040,
+            emissiveIntensity: 2.8,
+            metalness: 0.45,
+            roughness: 0.22,
+          }),
+        );
+        gem.name = "evoGem";
+        gem.userData.orbitI = i;
+        att.add(gem);
+      }
+      lanternGroup.add(att);
+    }
+    att.visible = true;
+    const t = timeSec || 0;
+    for (let i = 0; i < att.children.length; i++) {
+      const ch = att.children[i];
+      if (ch.name === "evoGem") {
+        const idx = ch.userData.orbitI || 0;
+        const a = t * 1.35 + (idx * Math.PI * 2) / 3;
+        ch.position.set(Math.cos(a) * 1.4, 0.35 + Math.sin(t * 2.2 + idx) * 0.28, Math.sin(a) * 1.4);
+        ch.rotation.y = t * 2 + idx;
+        ch.rotation.x = t * 1.2;
+      } else if (ch.name === "evoHalo") {
+        ch.rotation.z = t * 0.35;
+      } else if (ch.name === "evoBand") {
+        ch.rotation.z = -t * 0.25;
+      }
+    }
+  }
+
+  /** Apply visual form for level. Base relic + level-10 attachments. */
+  function applyLanternEvolution(level, full = false, timeSec = 0) {
     const evo =
       window.LanternForm && typeof window.LanternForm.of === "function"
         ? window.LanternForm.of(full ? 99 : level || 1)
@@ -571,6 +652,7 @@
         loadPlayerFormTexture(lanternGroup, form);
       }
       lanternGroup.scale.setScalar(1);
+      ensureEvolutionAttachments(full ? 99 : level, timeSec);
       return evo;
     }
     return evo;
@@ -1423,7 +1505,9 @@
 
     const now = performance.now();
 
-    if (!state || mode === "title" || mode === "tutorial" || mode === "shop") {
+    // Mid-run shop (after a round) keeps the battlefield; title shop uses idle scene.
+    const shopIdle = mode === "shop" && !(state && state.shopReturnMode);
+    if (!state || mode === "title" || mode === "tutorial" || shopIdle) {
       const t = now * 0.00022;
       // Heroic angle for the floating Ancient Relic behind the title UI
       camera.position.set(Math.sin(t) * 4.5, 7.2, 8.8 + Math.cos(t) * 1.8);
@@ -1460,7 +1544,7 @@
     }
 
     const p = state.player;
-    const evo = applyLanternEvolution(p.level, false);
+    const evo = applyLanternEvolution(p.level, false, state.time || 0);
     const pp = worldTo3D(p.x, p.y);
     followGround(pp);
     const bob = Math.sin(state.time * 6) * 0.04;

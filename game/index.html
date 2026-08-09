@@ -29,6 +29,7 @@
           <span id="hud-time" title="How long you have survived">0:00</span>
           <span id="hud-dash" title="Equipped special weapon. Empty until you drive through a crate.">No weapon</span>
           <span id="hud-focus" class="hud-focus hidden" title="Holding F: prioritizing brutes and bosses">FOCUS</span>
+          <span id="hud-round" title="Current round and kills toward the next milestone">R1 0/5000</span>
           <span id="hud-kills">0 kills</span>
           <span id="hud-level">Lv 1</span>
           <button type="button" id="btn-mute" class="hud-pause" title="Mute or unmute sounds">Sound</button>
@@ -102,13 +103,29 @@
 
     <section id="shop" class="panel hidden">
       <h2>Ember shop</h2>
-      <p class="lede">
+      <p class="lede" id="shop-lede">
         <strong>Embers</strong> are the coins you earn after each run.
         Spending them here makes every future run permanently stronger on this device.
       </p>
       <p class="shop-balance">You have <strong id="shop-embers">0</strong> embers</p>
       <div id="shop-list" class="shop-list"></div>
       <button type="button" id="btn-shop-back" class="btn">Back</button>
+    </section>
+
+    <section id="round" class="panel hidden">
+      <h2 id="round-title">Round 1 complete</h2>
+      <p class="lede" id="round-summary">
+        5,000 foes fallen. Spend your embers on a permanent skill, then continue.
+      </p>
+      <div class="meta-row">
+        <div class="meta-chip">Round <strong id="round-number">1</strong></div>
+        <div class="meta-chip">Embers +<strong id="round-embers">0</strong></div>
+        <div class="meta-chip">Total kills <strong id="round-total-kills">0</strong></div>
+      </div>
+      <div class="btn-row">
+        <button type="button" id="btn-round-shop" class="btn primary">Ember shop</button>
+        <button type="button" id="btn-round-continue" class="btn">Continue to Round 2</button>
+      </div>
     </section>
 
     <section id="levelup" class="panel hidden">
