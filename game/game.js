@@ -2139,18 +2139,6 @@
       ctx.fill();
     }
 
-    // hp ring
-    const ringR = 34;
-    ctx.strokeStyle = "rgba(215,228,213,0.25)";
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.arc(ps.x, ps.y, ringR, 0, TAU);
-    ctx.stroke();
-    ctx.strokeStyle = "#f0b429";
-    ctx.beginPath();
-    ctx.arc(ps.x, ps.y, ringR, -Math.PI / 2, -Math.PI / 2 + TAU * (p.hp / p.maxHp));
-    ctx.stroke();
-
     drawCrateDirectionHints(ps, p);
   }
 
