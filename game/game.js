@@ -168,7 +168,7 @@
       }
     },
     xp: () => {
-      if (!playSample("xp", { gain: 0.4, rate: jitter(1, 0.02) })) {
+      if (!playSample("xp", { gain: 0.36, rate: jitter(1.05, 0.03) })) {
         playTone({ freq: 740, endFreq: 980, dur: 0.07, type: "sine", gain: 0.03 });
       }
     },
