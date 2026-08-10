@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=5" />
+  <link rel="stylesheet" href="style.css?v=6" />
 </head>
 <body>
   <div id="app">
@@ -55,9 +55,14 @@
           <span class="boost-flame">▲</span>
           <span>Boost</span>
         </button>
-        <button type="button" id="btn-lift" class="lift-btn" title="Lift up" aria-label="Lift">
-          <span class="lift-arrow">↑</span>
-        </button>
+        <div class="vert-controls">
+          <button type="button" id="btn-lift" class="lift-btn" title="Lift up" aria-label="Lift">
+            <span class="lift-arrow">↑</span>
+          </button>
+          <button type="button" id="btn-descend" class="descend-btn" title="Descend" aria-label="Descend">
+            <span class="lift-arrow">↓</span>
+          </button>
+        </div>
       </div>
       <div id="stick" class="stick" aria-label="Move stick">
         <div id="stick-knob" class="stick-knob"></div>
@@ -95,7 +100,7 @@
       <h2>How to fly</h2>
       <ul class="howto-list">
         <li><strong>Stick</strong> (right) — move forward, back, left, right</li>
-        <li><strong>Lift ↑</strong> (left) — climb. Release to hover in place</li>
+        <li><strong>↑ / ↓</strong> (left) — climb or descend. Release either to hover</li>
         <li><strong>Boost</strong> — hold for a jet burst (uses battery)</li>
         <li><strong>Radar</strong> — pulse to reveal nearby gems</li>
         <li><strong>Scan</strong> — cone-scan the ground for supply crates</li>
@@ -151,6 +156,6 @@
   </div>
 
   <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
-  <script src="game.js?v=5"></script>
+  <script src="game.js?v=6"></script>
 </body>
 </html>

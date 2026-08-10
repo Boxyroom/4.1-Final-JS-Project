@@ -268,16 +268,12 @@ body {
   line-height: 1;
 }
 
-.boost-btn,
-.lift-btn {
+.boost-btn {
   pointer-events: auto;
   border: 0;
   font-family: inherit;
   cursor: pointer;
   color: var(--foam);
-}
-
-.boost-btn {
   width: 86px;
   height: 56px;
   border-radius: 18px;
@@ -302,26 +298,49 @@ body {
   font-size: 14px;
 }
 
-.lift-btn {
-  width: 92px;
-  height: 92px;
+.vert-controls {
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.lift-btn,
+.descend-btn {
+  pointer-events: auto;
+  width: 84px;
+  height: 84px;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 28%, #ffffff, #ffe0b0 45%, var(--orange));
-  box-shadow: 0 10px 24px rgba(255, 120, 40, 0.4);
+  border: 0;
+  font-family: inherit;
+  cursor: pointer;
+  color: var(--foam);
   display: grid;
   place-items: center;
 }
 
-.lift-btn.active {
+.lift-btn {
+  background: radial-gradient(circle at 35% 28%, #ffffff, #ffe0b0 45%, var(--orange));
+  box-shadow: 0 10px 24px rgba(255, 120, 40, 0.4);
+}
+
+.descend-btn {
+  background: radial-gradient(circle at 35% 28%, #ffffff, #b8e4ff 45%, #3a8dff);
+  box-shadow: 0 10px 24px rgba(40, 120, 220, 0.4);
+}
+
+.lift-btn.active,
+.descend-btn.active {
   transform: scale(0.95);
   filter: brightness(1.08);
 }
 
 .lift-arrow {
-  font-size: 36px;
+  font-size: 34px;
   font-weight: 800;
   color: #fff;
-  text-shadow: 0 2px 0 rgba(180, 80, 0, 0.35);
+  text-shadow: 0 2px 0 rgba(40, 60, 100, 0.35);
   line-height: 1;
 }
 
@@ -559,8 +578,9 @@ body {
   .lede { font-size: 13px; max-width: 520px; }
   .hero-drone { transform: scale(0.85); margin-bottom: -4px; }
   .stick { width: 110px; height: 110px; }
-  .lift-btn { width: 78px; height: 78px; }
-  .lift-arrow { font-size: 28px; }
+  .lift-btn,
+  .descend-btn { width: 72px; height: 72px; }
+  .lift-arrow { font-size: 26px; }
 }
 
 @media (min-width: 900px) {
