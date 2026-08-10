@@ -12,9 +12,10 @@ https://boxyroom.github.io/4.1-Final-JS-Project/little-drone/
 Controls
 - Right stick: move
 - Orange ↑ button (left): lift up (release to hover)
+- Blue ↓ button (left): descend
 - Boost: speed burst (uses battery)
 - Radar: reveal nearby gems
 - Scan: find hidden supply crates
-- Desktop: WASD move · Space lift · Shift boost · Q descend
+- Desktop: WASD move · Space lift · Shift boost · Q / C descend
 
 Goal: fly through all 12 glowing rings before your battery hits zero.

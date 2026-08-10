@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  window.LITTLE_DRONE_VERSION = 5;
+  window.LITTLE_DRONE_VERSION = 6;
 
   const STORAGE_KEY = "little-drone-v1";
   const RING_COUNT = 12;
@@ -27,6 +27,7 @@
     stick: $("stick"),
     knob: $("stick-knob"),
     btnLift: $("btn-lift"),
+    btnDescend: $("btn-descend"),
     btnBoost: $("btn-boost"),
     btnRadar: $("btn-radar"),
     btnScan: $("btn-scan"),
@@ -544,6 +545,7 @@
     stickX: 0,
     stickY: 0,
     lift: false,
+    descend: false,
     boost: false,
     keys: Object.create(null),
   };
@@ -602,6 +604,7 @@
     btn.addEventListener("pointercancel", off);
   }
   bindHold(els.btnLift, "lift");
+  bindHold(els.btnDescend, "descend");
   bindHold(els.btnBoost, "boost");
 
   window.addEventListener("keydown", (e) => {
@@ -721,11 +724,13 @@
     state.mode = "pause";
     state.pausedBattery = state.battery;
     input.lift = false;
+    input.descend = false;
     input.boost = false;
     input.stickX = 0;
     input.stickY = 0;
     for (const k of Object.keys(input.keys)) input.keys[k] = false;
     els.btnLift.classList.remove("active");
+    els.btnDescend.classList.remove("active");
     els.btnBoost.classList.remove("active");
     setKnob(0, 0);
     showPanel("pause");
@@ -914,6 +919,7 @@
     if (input.keys.KeyW || input.keys.ArrowUp) iy -= 1;
     if (input.keys.KeyS || input.keys.ArrowDown) iy += 1;
     const lift = input.lift || input.keys.Space || input.keys.KeyE;
+    const descend = input.descend || input.keys.KeyQ || input.keys.ControlLeft || input.keys.KeyC;
     const boost = input.boost || input.keys.ShiftLeft || input.keys.ShiftRight;
 
     const len = Math.hypot(ix, iy);
@@ -934,13 +940,12 @@
     state.vel.x += (move.x * speed - state.vel.x) * Math.min(1, dt * 4);
     state.vel.z += (move.z * speed - state.vel.z) * Math.min(1, dt * 4);
 
-    // Hover by default; lift climbs; hold S/ArrowDown or release near sky to sink slowly
-    if (lift) {
+    // Hover by default; ↑ climbs, ↓ descends
+    if (lift && !descend) {
       state.vel.y += (9 - state.vel.y) * Math.min(1, dt * 3.2);
-    } else if (input.keys.KeyQ || input.keys.ControlLeft) {
-      state.vel.y += (-6 - state.vel.y) * Math.min(1, dt * 2.2);
+    } else if (descend && !lift) {
+      state.vel.y += (-7 - state.vel.y) * Math.min(1, dt * 2.8);
     } else {
-      // True hover — casual flight matches the concept art
       state.vel.y += (0 - state.vel.y) * Math.min(1, dt * 2.5);
     }
 
@@ -954,7 +959,7 @@
 
     // Cruise drain — about 4–5 minutes on a full battery
     state.battery -= 0.18 * dt;
-    if (lift) state.battery -= 0.22 * dt;
+    if (lift || descend) state.battery -= 0.22 * dt;
 
     drone.position.x += state.vel.x * dt;
     drone.position.y += state.vel.y * dt;
