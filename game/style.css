@@ -887,18 +887,34 @@ button.dash-btn.loaded-grenades {
   display: none !important;
 }
 
-/* Portrait touch: stick bottom-right; meters clear above it */
-#app.layout-touch.layout-portrait .stick {
+/* Touch (portrait + landscape): stick far bottom-right; fire bottom-left */
+#app.layout-touch .stick {
   left: auto !important;
-  right: max(12px, env(safe-area-inset-right, 0px)) !important;
-  bottom: max(18px, env(safe-area-inset-bottom, 0px)) !important;
+  right: max(8px, env(safe-area-inset-right, 0px)) !important;
+  bottom: max(10px, env(safe-area-inset-bottom, 0px)) !important;
   transform: none !important;
 }
 
-#app.layout-touch.layout-portrait .dash-btn {
-  left: max(16px, env(safe-area-inset-left, 0px));
+#app.layout-touch .dash-btn {
+  left: max(12px, env(safe-area-inset-left, 0px));
   right: auto;
-  bottom: max(28px, env(safe-area-inset-bottom, 0px));
+  bottom: max(16px, env(safe-area-inset-bottom, 0px));
+}
+
+/* Landscape sideways: tuck stick into the far corner; keep meters above it */
+#app.layout-touch:not(.layout-portrait) .stick {
+  right: max(6px, env(safe-area-inset-right, 0px)) !important;
+  bottom: max(6px, env(safe-area-inset-bottom, 0px)) !important;
+  width: 96px;
+  height: 96px;
+}
+
+#app.layout-touch:not(.layout-portrait) .hud-meters {
+  top: 44px;
+  bottom: 118px;
+  transform: none;
+  height: auto;
+  right: max(8px, env(safe-area-inset-right, 0px));
 }
 
 #app.layout-touch.layout-portrait .hud-meters {
@@ -946,18 +962,29 @@ button.dash-btn.loaded-grenades {
   }
 }
 
-@media (orientation: portrait) and (hover: none),
+/* Sideways phone: stick far bottom-right even before JS classes apply */
+@media (orientation: landscape) and (hover: none),
+       (orientation: landscape) and (pointer: coarse),
+       (orientation: portrait) and (hover: none),
        (orientation: portrait) and (pointer: coarse) {
   .stick {
     left: auto !important;
-    right: max(12px, env(safe-area-inset-right, 0px)) !important;
-    bottom: max(18px, env(safe-area-inset-bottom, 0px)) !important;
+    right: max(6px, env(safe-area-inset-right, 0px)) !important;
+    bottom: max(6px, env(safe-area-inset-bottom, 0px)) !important;
     transform: none !important;
   }
 
   .dash-btn {
-    left: max(16px, env(safe-area-inset-left, 0px));
+    left: max(12px, env(safe-area-inset-left, 0px));
     right: auto;
-    bottom: max(28px, env(safe-area-inset-bottom, 0px));
+    bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (orientation: landscape) and (hover: none),
+       (orientation: landscape) and (pointer: coarse) {
+  .stick {
+    width: 96px;
+    height: 96px;
   }
 }

@@ -825,18 +825,29 @@
     app.classList.toggle("layout-touch", touch);
     app.classList.toggle("layout-portrait", portrait);
 
-    // Inline pin so cached/older CSS cannot leave the stick centered in portrait.
+    // Inline pin: move stick stays far bottom-right on phones (portrait + sideways).
     if (ui.stick) {
-      if (touch && portrait) {
+      if (touch) {
+        const edge = portrait ? "12px" : "6px";
+        const bottom = portrait ? "18px" : "6px";
         ui.stick.style.left = "auto";
-        ui.stick.style.right = "max(12px, env(safe-area-inset-right, 0px))";
-        ui.stick.style.bottom = "max(18px, env(safe-area-inset-bottom, 0px))";
+        ui.stick.style.right = `max(${edge}, env(safe-area-inset-right, 0px))`;
+        ui.stick.style.bottom = `max(${bottom}, env(safe-area-inset-bottom, 0px))`;
         ui.stick.style.transform = "none";
+        if (!portrait) {
+          ui.stick.style.width = "96px";
+          ui.stick.style.height = "96px";
+        } else {
+          ui.stick.style.width = "";
+          ui.stick.style.height = "";
+        }
       } else {
         ui.stick.style.left = "";
         ui.stick.style.right = "";
         ui.stick.style.bottom = "";
         ui.stick.style.transform = "";
+        ui.stick.style.width = "";
+        ui.stick.style.height = "";
       }
     }
   }
