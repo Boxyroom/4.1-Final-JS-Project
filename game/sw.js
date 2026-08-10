@@ -1,5 +1,5 @@
 /* Lantern Hollow game folder — lightweight offline cache */
-const CACHE = "lantern-hollow-game-v22";
+const CACHE = "lantern-hollow-game-v24";
 const PRECACHE = [
   "./",
   "./play.html",
@@ -9,6 +9,13 @@ const PRECACHE = [
   "./cgi.js",
   "./game.js",
   "./assets/relic-orb.png",
+  "./assets/spawner/face-5.png",
+  "./assets/spawner/face-4.png",
+  "./assets/spawner/face-3.png",
+  "./assets/spawner/face-2.png",
+  "./assets/spawner/face-1.png",
+  "./assets/rocket-pickup.png",
+  "./assets/rocket-icon.png",
   "./assets/enemy-wisp.png",
   "./assets/enemy-armor.png",
   "./assets/ancient-relic.png",
