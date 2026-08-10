@@ -245,10 +245,11 @@ h2 {
 }
 
 .move-label {
-  left: 50%;
+  left: auto;
+  right: max(8px, env(safe-area-inset-right, 0px));
   bottom: 148px;
-  transform: translateX(-50%);
-  text-align: center;
+  transform: none;
+  text-align: right;
 }
 
 .dash-label {
@@ -609,9 +610,10 @@ h2 {
 
 .stick {
   position: absolute;
-  left: 50%;
-  bottom: 28px;
-  transform: translateX(-50%);
+  left: auto;
+  right: max(8px, env(safe-area-inset-right, 0px));
+  bottom: max(8px, env(safe-area-inset-bottom, 0px));
+  transform: none;
   width: 110px;
   height: 110px;
   border-radius: 50%;
@@ -747,12 +749,13 @@ button.dash-btn.loaded-grenades {
   right: max(8px, env(safe-area-inset-right, 0px));
   top: 52%;
   transform: translateY(-50%);
-  width: 28px;
+  width: 36px;
   height: min(62vh, 320px);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  justify-content: flex-start;
+  gap: 12px;
   margin: 0;
   pointer-events: none;
   z-index: 5;
@@ -768,16 +771,19 @@ button.dash-btn.loaded-grenades {
 }
 
 #app.layout-touch .meter-life {
-  flex: 1.35;
+  flex: 1.6 1 0;
   height: auto;
+  min-height: 90px;
 }
 
 #app.layout-touch .meter-xp {
-  flex: 0.55;
+  flex: 0.7 1 0;
+  min-height: 56px;
 }
 
 #app.layout-touch .meter-dash {
-  flex: 0.28;
+  flex: 0.35 1 0;
+  min-height: 28px;
 }
 
 #app.layout-touch .life-row {
@@ -801,15 +807,16 @@ button.dash-btn.loaded-grenades {
 #app.layout-touch .dash-track {
   margin: 0;
   max-width: none;
-  width: 8px;
-  border-radius: 3px;
+  width: 10px;
+  border-radius: 4px;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
   overflow: hidden;
-  flex: 1;
+  flex: 1 1 auto;
   height: auto;
-  min-height: 28px;
+  min-height: 40px;
+  align-self: center;
 }
 
 #app.layout-touch .life-track {
@@ -1079,7 +1086,7 @@ button.dash-btn.loaded-grenades {
 
     <div id="touch-zone" class="hidden" aria-hidden="true">
       <div class="touch-label move-label">Move</div>
-      <div id="stick" class="stick" aria-label="Move stick">
+      <div id="stick" class="stick" aria-label="Move stick" style="left:auto;right:8px;bottom:8px;transform:none">
         <div id="stick-knob" class="stick-knob"></div>
       </div>
       <div class="touch-label dash-label">Fire = use equipped weapon</div>
@@ -3837,9 +3844,15 @@ button.dash-btn.loaded-grenades {
     if (!el) return;
     const v = `${clamp(pct, 0, 100)}%`;
     el.style.setProperty("--meter", v);
-    // Desktop/horizontal bars use width; vertical phone rail uses height via CSS var.
-    el.style.width = v;
-    el.style.height = "";
+    const vertical =
+      document.getElementById("app")?.classList.contains("layout-touch");
+    if (vertical) {
+      el.style.width = "100%";
+      el.style.height = v;
+    } else {
+      el.style.width = v;
+      el.style.height = "";
+    }
   }
 
   function syncTouchLayout() {
@@ -3852,29 +3865,21 @@ button.dash-btn.loaded-grenades {
     app.classList.toggle("layout-touch", touch);
     app.classList.toggle("layout-portrait", portrait);
 
-    // Inline pin: move stick stays far bottom-right on phones (portrait + sideways).
-    if (ui.stick) {
-      if (touch) {
-        const edge = portrait ? "12px" : "6px";
-        const bottom = portrait ? "18px" : "6px";
-        ui.stick.style.left = "auto";
-        ui.stick.style.right = `max(${edge}, env(safe-area-inset-right, 0px))`;
-        ui.stick.style.bottom = `max(${bottom}, env(safe-area-inset-bottom, 0px))`;
-        ui.stick.style.transform = "none";
-        if (!portrait) {
-          ui.stick.style.width = "96px";
-          ui.stick.style.height = "96px";
-        } else {
-          ui.stick.style.width = "";
-          ui.stick.style.height = "";
-        }
+    // Always pin move stick to the far bottom-right on phones.
+    const stick = ui.stick || document.getElementById("stick");
+    if (stick) {
+      const edge = touch && !portrait ? "6px" : "8px";
+      const bottom = touch && !portrait ? "4px" : "8px";
+      stick.style.setProperty("left", "auto", "important");
+      stick.style.setProperty("right", edge, "important");
+      stick.style.setProperty("bottom", bottom, "important");
+      stick.style.setProperty("transform", "none", "important");
+      if (touch && !portrait) {
+        stick.style.setProperty("width", "96px", "important");
+        stick.style.setProperty("height", "96px", "important");
       } else {
-        ui.stick.style.left = "";
-        ui.stick.style.right = "";
-        ui.stick.style.bottom = "";
-        ui.stick.style.transform = "";
-        ui.stick.style.width = "";
-        ui.stick.style.height = "";
+        stick.style.removeProperty("width");
+        stick.style.removeProperty("height");
       }
     }
   }
@@ -3940,9 +3945,11 @@ button.dash-btn.loaded-grenades {
       show(ui.round);
       show(ui.hud);
       if (isTouchPrimary()) show(ui.touch);
+      syncTouchLayout();
     } else if (next === "play") {
       show(ui.hud);
       if (isTouchPrimary()) show(ui.touch);
+      syncTouchLayout();
     } else if (next === "levelup") {
       show(ui.levelup);
     } else if (next === "tactic") {
@@ -6163,7 +6170,11 @@ button.dash-btn.loaded-grenades {
   on("btn-quit", "click", () => endRun(true));
 
   window.addEventListener("resize", resize);
-  window.addEventListener("orientationchange", syncTouchLayout);
+  window.addEventListener("orientationchange", () => {
+    syncTouchLayout();
+    setTimeout(syncTouchLayout, 50);
+    setTimeout(syncTouchLayout, 250);
+  });
 
   try {
     if (window.LanternCGI) {
@@ -6188,6 +6199,15 @@ button.dash-btn.loaded-grenades {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
       navigator.serviceWorker.register("sw.js").catch(() => {});
+      navigator.serviceWorker.addEventListener("message", (ev) => {
+        if (ev.data && ev.data.type === "LANTERN_SW_UPDATED") {
+          const key = "lantern-sw-reload-" + ev.data.cache;
+          if (!sessionStorage.getItem(key)) {
+            sessionStorage.setItem(key, "1");
+            location.reload();
+          }
+        }
+      });
     });
   }
 

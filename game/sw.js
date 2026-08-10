@@ -1,5 +1,5 @@
 /* Lantern Hollow game folder — lightweight offline cache */
-const CACHE = "lantern-hollow-game-v10";
+const CACHE = "lantern-hollow-game-v11";
 const PRECACHE = [
   "./",
   "./play.html",
@@ -53,7 +53,12 @@ self.addEventListener("activate", (event) => {
     caches
       .keys()
       .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
-      .then(() => self.clients.claim()),
+      .then(() => self.clients.claim())
+      .then(() =>
+        self.clients.matchAll({ type: "window" }).then((clients) => {
+          clients.forEach((c) => c.postMessage({ type: "LANTERN_SW_UPDATED", cache: CACHE }));
+        }),
+      ),
   );
 });
 

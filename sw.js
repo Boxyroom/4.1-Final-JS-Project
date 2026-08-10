@@ -1,5 +1,5 @@
 /* Lantern Hollow — lightweight offline cache for phone install / testing */
-const CACHE = "lantern-hollow-v10";
+const CACHE = "lantern-hollow-v11";
 const PRECACHE = [
   "./",
   "./lantern.html",
@@ -55,7 +55,12 @@ self.addEventListener("activate", (event) => {
     caches
       .keys()
       .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
-      .then(() => self.clients.claim()),
+      .then(() => self.clients.claim())
+      .then(() =>
+        self.clients.matchAll({ type: "window" }).then((clients) => {
+          clients.forEach((c) => c.postMessage({ type: "LANTERN_SW_UPDATED", cache: CACHE }));
+        }),
+      ),
   );
 });
 
