@@ -651,7 +651,7 @@
   }
 
   function updateHud() {
-    const b = Math.max(0, Math.ceil(state.battery));
+    const b = Math.max(0, Math.round(state.battery));
     els.batteryNum.textContent = String(b);
     els.batteryFill.style.width = `${Math.max(0, Math.min(100, state.battery))}%`;
     els.batteryFill.classList.toggle("low", state.battery < 35 && state.battery >= 18);
