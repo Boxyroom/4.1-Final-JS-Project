@@ -401,7 +401,7 @@
       id: 0,
       file: "relic-orb.png",
       // Round cyan-gold orb — sized for chase camera readability.
-      height: 3.35,
+      height: 2.23,
       // Glow core sits at image center.
       coreY: 0.02,
       // Keeps the orb hovering above the forest floor.
@@ -498,17 +498,16 @@
     );
   }
 
-  /** Keep the player orb facing the camera, then roll it with movement. */
-  function orientPlayerBillboard(facingRad = 0, spinRad = 0) {
+  /** Keep the player orb facing the camera, then turn it toward travel direction. */
+  function orientPlayerBillboard(facingRad = 0) {
     if (!lanternGroup || !camera) return;
     const billboard = lanternGroup.getObjectByName("playerSprite");
     if (!billboard) return;
-    // Match camera, yaw 180° so the plane faces the lens, then spin with travel.
+    // Match camera, yaw 180° so the plane faces the lens, then face travel.
     billboard.quaternion.copy(camera.quaternion);
     billboard.rotateY(Math.PI);
     // Game facing: 0 = +X (right), π/2 = +Y (down on the playfield).
-    const face = -facingRad + Math.PI / 2;
-    billboard.rotateZ(face + spinRad);
+    billboard.rotateZ(-facingRad + Math.PI / 2);
   }
 
   /**
@@ -1440,8 +1439,7 @@
       const coreY = lanternGroup.userData.coreY || 0.02;
       lanternGroup.position.set(0, hover + bob, 0);
       lanternGroup.rotation.set(0, 0, 0);
-      const titleSpin = now * 0.00055;
-      orientPlayerBillboard(titleSpin, titleSpin * 0.35);
+      orientPlayerBillboard(0);
       lanternLight.position.set(0, hover + bob + coreY, 0);
       flameLight.position.set(0, hover + bob + coreY, 0);
       glowSprite.position.set(0, hover + bob + coreY, 0);
@@ -1474,8 +1472,7 @@
     lanternGroup.position.set(pp.x, hover, pp.z);
     lanternGroup.rotation.set(0, 0, 0);
     const facing = p.facingSmooth != null ? p.facingSmooth : p.facing || 0;
-    const spin = p.orbSpin || 0;
-    orientPlayerBillboard(facing, spin);
+    orientPlayerBillboard(facing);
 
     const flick = 0.88 + Math.sin(state.time * 18) * 0.08 + Math.sin(state.time * 41) * 0.03;
     const lightMul = evo.light != null ? evo.light : 1;
