@@ -1,5 +1,5 @@
-/* Scope-limited SW when the game is opened from /game/ */
-const CACHE = "lantern-hollow-game-v8";
+/* Lantern Hollow game folder — lightweight offline cache */
+const CACHE = "lantern-hollow-game-v9";
 const PRECACHE = [
   "./",
   "./play.html",
@@ -63,6 +63,27 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(req.url);
   const isThree = url.href.includes("unpkg.com/three@");
   if (url.origin !== self.location.origin && !isThree) return;
+
+  const isHtml =
+    req.mode === "navigate" ||
+    url.pathname.endsWith(".html") ||
+    url.pathname.endsWith("/") ||
+    url.pathname.endsWith("sw.js");
+
+  if (isHtml && !isThree) {
+    event.respondWith(
+      fetch(req)
+        .then((res) => {
+          if (res && res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE).then((cache) => cache.put(req, copy)).catch(() => {});
+          }
+          return res;
+        })
+        .catch(() => caches.match(req).then((c) => c || caches.match("./play.html"))),
+    );
+    return;
+  }
 
   event.respondWith(
     caches.match(req).then((cached) => {

@@ -710,9 +710,208 @@ button.dash-btn.loaded-grenades {
   .lede { font-size: 0.98rem; }
 }
 
-/* Phone play (especially sideways / short screens): thin meters on the right */
+.meter-tag {
+  display: none;
+  font-family: var(--font-body);
+  font-weight: 800;
+  line-height: 1;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75);
+  pointer-events: none;
+}
+
+.meter-block {
+  display: contents;
+}
+
+/* Touch phones: thin vertical meters on the right edge */
+#app.layout-touch .hud-meters {
+  position: absolute;
+  right: max(8px, env(safe-area-inset-right, 0px));
+  top: 52%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: min(62vh, 320px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+
+#app.layout-touch .meter-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  min-height: 0;
+}
+
+#app.layout-touch .meter-life {
+  flex: 1.35;
+  height: auto;
+}
+
+#app.layout-touch .meter-xp {
+  flex: 0.55;
+}
+
+#app.layout-touch .meter-dash {
+  flex: 0.28;
+}
+
+#app.layout-touch .life-row {
+  margin: 0;
+  max-width: none;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+#app.layout-touch .life-label,
+#app.layout-touch #hud-hp {
+  display: none;
+}
+
+#app.layout-touch .life-track,
+#app.layout-touch .xp-track,
+#app.layout-touch .dash-track {
+  margin: 0;
+  max-width: none;
+  width: 8px;
+  border-radius: 3px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+  flex: 1;
+  height: auto;
+  min-height: 28px;
+}
+
+#app.layout-touch .life-track {
+  border: 1px solid rgba(125, 206, 160, 0.45);
+  background: rgba(8, 16, 12, 0.7);
+}
+
+#app.layout-touch .xp-track,
+#app.layout-touch .dash-track {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+#app.layout-touch #life-fill,
+#app.layout-touch #xp-fill,
+#app.layout-touch #dash-fill {
+  width: 100% !important;
+  height: var(--meter, 100%) !important;
+  align-self: stretch;
+  background-image: linear-gradient(180deg, #7dcea0, #2f6a45);
+}
+
+#app.layout-touch #xp-fill {
+  background-image: linear-gradient(180deg, var(--amber), var(--fern));
+}
+
+#app.layout-touch #dash-fill {
+  background-image: linear-gradient(180deg, var(--amber), var(--ember));
+}
+
+#app.layout-touch #dash-fill.nuke {
+  background-image: linear-gradient(180deg, #c084fc, #7c3aed);
+}
+
+#app.layout-touch #dash-fill.grenades {
+  background-image: linear-gradient(180deg, #86efac, #15803d);
+}
+
+#app.layout-touch #dash-fill.swarm {
+  background-image: linear-gradient(180deg, #fb7185, #9f1239);
+}
+
+#app.layout-touch .life-row.danger #life-fill {
+  background-image: linear-gradient(180deg, #f0b429, #8a3a18);
+}
+
+#app.layout-touch .meter-tag {
+  display: block;
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  color: var(--mist);
+  text-align: center;
+}
+
+#app.layout-touch .meter-heart {
+  font-size: 0.85rem;
+  color: #7dcea0;
+}
+
+#app.layout-touch .meter-life:has(.life-row.danger) .meter-heart {
+  color: #e07a2f;
+}
+
+#app.layout-touch .hud-top {
+  gap: 6px;
+  align-items: flex-start;
+}
+
+#app.layout-touch #hud {
+  padding: 6px 8px 0;
+}
+
+#app.layout-touch .hud-brand {
+  font-size: 0.85rem;
+}
+
+#app.layout-touch .hud-stats {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px 10px;
+  font-size: 0.72rem;
+  max-width: 72vw;
+}
+
+#app.layout-touch .hud-pause {
+  font-size: 0.72rem;
+  padding: 3px 8px;
+}
+
+#app.layout-touch .banner,
+#app.layout-touch .coach,
+#app.layout-touch .hud-hint,
+#app.layout-touch .touch-label {
+  display: none !important;
+}
+
+/* Portrait touch: stick bottom-right; meters clear above it */
+#app.layout-touch.layout-portrait .stick {
+  left: auto !important;
+  right: max(12px, env(safe-area-inset-right, 0px)) !important;
+  bottom: max(18px, env(safe-area-inset-bottom, 0px)) !important;
+  transform: none !important;
+}
+
+#app.layout-touch.layout-portrait .dash-btn {
+  left: max(16px, env(safe-area-inset-left, 0px));
+  right: auto;
+  bottom: max(28px, env(safe-area-inset-bottom, 0px));
+}
+
+#app.layout-touch.layout-portrait .hud-meters {
+  top: 56px;
+  bottom: 150px;
+  transform: none;
+  height: auto;
+  right: max(10px, env(safe-area-inset-right, 0px));
+}
+
+/* Fallback media queries (when JS classes are delayed) */
 @media (orientation: landscape) and (max-height: 520px),
-       (hover: none) and (pointer: coarse) and (max-height: 900px) {
+       (hover: none) and (pointer: coarse) {
   #hud {
     padding: 6px 8px 0;
   }
@@ -739,99 +938,6 @@ button.dash-btn.loaded-grenades {
     padding: 3px 8px;
   }
 
-  .hud-meters {
-    position: absolute;
-    right: max(6px, env(safe-area-inset-right));
-    top: 50%;
-    transform: translateY(-50%);
-    width: 12px;
-    height: min(58vh, 260px);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    margin: 0;
-    pointer-events: none;
-  }
-
-  .life-row {
-    margin: 0;
-    max-width: none;
-    width: 100%;
-    height: 58%;
-    flex-direction: column;
-    align-items: center;
-    gap: 3px;
-  }
-
-  .life-label,
-  #hud-hp {
-    display: none;
-  }
-
-  .life-track,
-  .xp-track,
-  .dash-track {
-    margin: 0;
-    max-width: none;
-    width: 6px;
-    border-radius: 2px;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    overflow: hidden;
-  }
-
-  .life-track {
-    flex: 1;
-    height: auto;
-    min-height: 0;
-  }
-
-  .xp-track {
-    height: 22%;
-    min-height: 36px;
-  }
-
-  .dash-track {
-    height: 12%;
-    min-height: 22px;
-  }
-
-  #life-fill,
-  #xp-fill,
-  #dash-fill {
-    width: 100% !important;
-    height: var(--meter, 100%);
-    align-self: stretch;
-    background-image: linear-gradient(180deg, #7dcea0, #2f6a45);
-  }
-
-  #xp-fill {
-    background-image: linear-gradient(180deg, var(--amber), var(--fern));
-  }
-
-  #dash-fill {
-    background-image: linear-gradient(180deg, var(--amber), var(--ember));
-  }
-
-  #dash-fill.nuke {
-    background-image: linear-gradient(180deg, #c084fc, #7c3aed);
-  }
-
-  #dash-fill.grenades {
-    background-image: linear-gradient(180deg, #86efac, #15803d);
-  }
-
-  #dash-fill.swarm {
-    background-image: linear-gradient(180deg, #fb7185, #9f1239);
-  }
-
-  .life-row.danger #life-fill {
-    background-image: linear-gradient(180deg, #f0b429, #8a3a18);
-  }
-
-  /* No coach/banner chrome during play */
   .banner,
   .coach,
   .hud-hint,
@@ -840,43 +946,15 @@ button.dash-btn.loaded-grenades {
   }
 }
 
-/* Portrait: stick bottom-right (after phone rules so meters/stick aren't overridden) */
-@media (orientation: portrait) and (max-width: 1200px),
-       (orientation: portrait) and (hover: none) {
-  #stick.stick,
+@media (orientation: portrait) and (hover: none),
+       (orientation: portrait) and (pointer: coarse) {
   .stick {
-    left: unset;
-    right: max(12px, env(safe-area-inset-right, 0px));
-    bottom: max(18px, env(safe-area-inset-bottom, 0px));
-    transform: none;
+    left: auto !important;
+    right: max(12px, env(safe-area-inset-right, 0px)) !important;
+    bottom: max(18px, env(safe-area-inset-bottom, 0px)) !important;
+    transform: none !important;
   }
 
-  .move-label {
-    left: unset;
-    right: max(12px, env(safe-area-inset-right, 0px));
-    bottom: 138px;
-    transform: none;
-    text-align: right;
-  }
-
-  /* Meters on the right rail, clear of the stick */
-  .hud-meters {
-    position: absolute;
-    right: max(8px, env(safe-area-inset-right, 0px));
-    top: 56px;
-    bottom: 150px;
-    transform: none;
-    width: 12px;
-    height: auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    margin: 0;
-    pointer-events: none;
-  }
-
-  /* Fire stays bottom-left */
   .dash-btn {
     left: max(16px, env(safe-area-inset-left, 0px));
     right: auto;

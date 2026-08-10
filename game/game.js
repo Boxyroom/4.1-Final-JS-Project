@@ -809,8 +809,36 @@
   function setMeterFill(el, pct) {
     if (!el) return;
     const v = `${clamp(pct, 0, 100)}%`;
-    el.style.width = v;
     el.style.setProperty("--meter", v);
+    // Desktop/horizontal bars use width; vertical phone rail uses height via CSS var.
+    el.style.width = v;
+    el.style.height = "";
+  }
+
+  function syncTouchLayout() {
+    const app = document.getElementById("app");
+    if (!app) return;
+    const touch = isTouchPrimary();
+    const portrait =
+      window.matchMedia("(orientation: portrait)").matches ||
+      window.innerHeight >= window.innerWidth;
+    app.classList.toggle("layout-touch", touch);
+    app.classList.toggle("layout-portrait", portrait);
+
+    // Inline pin so cached/older CSS cannot leave the stick centered in portrait.
+    if (ui.stick) {
+      if (touch && portrait) {
+        ui.stick.style.left = "auto";
+        ui.stick.style.right = "max(12px, env(safe-area-inset-right, 0px))";
+        ui.stick.style.bottom = "max(18px, env(safe-area-inset-bottom, 0px))";
+        ui.stick.style.transform = "none";
+      } else {
+        ui.stick.style.left = "";
+        ui.stick.style.right = "";
+        ui.stick.style.bottom = "";
+        ui.stick.style.transform = "";
+      }
+    }
   }
 
   function dist(a, b) {
@@ -828,6 +856,7 @@
       state.w = window.innerWidth;
       state.h = window.innerHeight;
     }
+    syncTouchLayout();
   }
 
   function show(el) {
@@ -3096,6 +3125,7 @@
   on("btn-quit", "click", () => endRun(true));
 
   window.addEventListener("resize", resize);
+  window.addEventListener("orientationchange", syncTouchLayout);
 
   try {
     if (window.LanternCGI) {

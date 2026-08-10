@@ -1,5 +1,5 @@
 /* Lantern Hollow — lightweight offline cache for phone install / testing */
-const CACHE = "lantern-hollow-v8";
+const CACHE = "lantern-hollow-v9";
 const PRECACHE = [
   "./",
   "./lantern.html",
@@ -63,9 +63,31 @@ self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;
   const url = new URL(req.url);
-  // Same-origin + Three CDN only
   const isThree = url.href.includes("unpkg.com/three@");
   if (url.origin !== self.location.origin && !isThree) return;
+
+  const isHtml =
+    req.mode === "navigate" ||
+    url.pathname.endsWith(".html") ||
+    url.pathname.endsWith("/") ||
+    url.pathname.endsWith("/sw.js") ||
+    url.pathname.endsWith("sw.js");
+
+  // HTML + SW: network-first so phone layout fixes land without stale cache.
+  if (isHtml && !isThree) {
+    event.respondWith(
+      fetch(req)
+        .then((res) => {
+          if (res && res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE).then((cache) => cache.put(req, copy)).catch(() => {});
+          }
+          return res;
+        })
+        .catch(() => caches.match(req).then((c) => c || caches.match("./lantern.html"))),
+    );
+    return;
+  }
 
   event.respondWith(
     caches.match(req).then((cached) => {
