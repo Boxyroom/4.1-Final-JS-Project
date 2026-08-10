@@ -276,20 +276,25 @@
   };
   groundImg.src = GROUND_SRC;
 
-  // Level 0 Ancient Relic player sprite (exact PNG). Future forms can swap this source.
+  // Relic orb player sprite (cyan-gold sphere). Future forms can swap this source.
   const PLAYER_VISUAL_SRC = (() => {
     const path = (location.pathname || "").replace(/\\/g, "/");
-    if (path.includes("/game") && !/lantern\.html$/i.test(path)) return "assets/ancient-relic.png";
-    return "game/assets/ancient-relic.png";
+    if (path.includes("/game") && !/lantern\.html$/i.test(path)) return "assets/relic-orb.png";
+    return "game/assets/relic-orb.png";
   })();
-  // Matches CGI form levelRollDeg — levels the art without editing the PNG.
-  const PLAYER_VISUAL_LEVEL_ROLL = (-8.8 * Math.PI) / 180;
   const playerVisualImg = new Image();
   let playerVisualReady = false;
   playerVisualImg.onload = () => {
     playerVisualReady = true;
   };
   playerVisualImg.src = PLAYER_VISUAL_SRC;
+
+  function lerpAngle(a, b, t) {
+    let d = b - a;
+    while (d > Math.PI) d -= TAU;
+    while (d < -Math.PI) d += TAU;
+    return a + d * t;
+  }
 
   const WEAPON_CRATE_SRC = (() => {
     const path = (location.pathname || "").replace(/\\/g, "/");
@@ -1000,6 +1005,8 @@
       thorns: 0,
       emberMult: 1,
       facing: 0,
+      facingSmooth: 0,
+      orbSpin: 0,
     };
 
     for (const item of SHOP) {
@@ -1929,7 +1936,15 @@
       my /= mag;
     }
 
-    if (mag > 0.1) p.facing = Math.atan2(my, mx);
+    if (mag > 0.1) {
+      p.facing = Math.atan2(my, mx);
+      p.orbSpin = (p.orbSpin || 0) + mag * p.speed * dt * 0.028;
+    }
+    p.facingSmooth = lerpAngle(
+      p.facingSmooth != null ? p.facingSmooth : p.facing || 0,
+      p.facing || 0,
+      1 - Math.pow(0.0008, dt),
+    );
 
     p.x += mx * p.speed * dt;
     p.y += my * p.speed * dt;
@@ -2294,11 +2309,11 @@
     const lightMul = evo.light;
     const poolR = (90 + evo.stage * 30) * flicker;
 
-    // Soft warm fill under the floating relic (not a fixture)
+    // Soft cyan fill under the floating orb (not a fixture)
     const pool = ctx.createRadialGradient(ps.x, ps.y + 10, 4, ps.x, ps.y + 10, poolR);
-    pool.addColorStop(0, `rgba(255, 210, 110, ${0.35 * flicker * lightMul})`);
-    pool.addColorStop(0.35, `rgba(255, 170, 60, ${0.14 * flicker * lightMul})`);
-    pool.addColorStop(1, "rgba(255,140,40,0)");
+    pool.addColorStop(0, `rgba(120, 230, 255, ${0.32 * flicker * lightMul})`);
+    pool.addColorStop(0.35, `rgba(40, 170, 190, ${0.14 * flicker * lightMul})`);
+    pool.addColorStop(1, "rgba(20,120,140,0)");
     ctx.fillStyle = pool;
     ctx.beginPath();
     ctx.arc(ps.x, ps.y + 10, poolR, 0, TAU);
@@ -2306,14 +2321,16 @@
 
     const bob = Math.sin(state.time * 6) * 3;
     if (playerVisualReady) {
-      const drawH = 104;
-      const drawW = drawH * (playerVisualImg.naturalWidth / playerVisualImg.naturalHeight || 1024 / 1536);
-      // Center on hitbox; slight upward bias so the relic reads as hovering.
-      // Canvas rotate is CW-positive; negate so the roll matches CGI (CCW level).
-      const cy = ps.y + bob - 10;
+      const drawH = 92;
+      const drawW = drawH * (playerVisualImg.naturalWidth / playerVisualImg.naturalHeight || 1);
+      const cy = ps.y + bob - 8;
+      const facing = p.facingSmooth != null ? p.facingSmooth : p.facing || 0;
+      const spin = p.orbSpin || 0;
+      // Canvas rotate is CW-positive; align orb face with travel + rolling spin.
+      const roll = facing - Math.PI / 2 + spin;
       ctx.save();
       ctx.translate(ps.x, cy);
-      ctx.rotate(PLAYER_VISUAL_LEVEL_ROLL);
+      ctx.rotate(roll);
       ctx.drawImage(playerVisualImg, -drawW / 2, -drawH / 2, drawW, drawH);
       ctx.restore();
     } else {
