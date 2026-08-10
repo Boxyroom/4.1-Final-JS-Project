@@ -2921,16 +2921,120 @@
       ctx.fill();
     }
     ctx.restore();
-    // Very subtle life bar (hits remaining)
-    const pct = clamp(sp.hp / sp.maxHp, 0, 1);
-    const barW = Math.max(48, drawW * 0.34);
-    const barH = 3;
+  }
+
+  let overlayCanvas = null;
+  let overlayCtx = null;
+
+  function ensureOverlay() {
+    if (overlayCanvas && overlayCtx) return overlayCtx;
+    const app = document.getElementById("app");
+    if (!app) return null;
+    overlayCanvas = document.getElementById("game-overlay");
+    if (!overlayCanvas) {
+      overlayCanvas = document.createElement("canvas");
+      overlayCanvas.id = "game-overlay";
+      overlayCanvas.setAttribute("aria-hidden", "true");
+      overlayCanvas.style.cssText =
+        "position:absolute;inset:0;z-index:3;pointer-events:none;width:100%;height:100%";
+      app.appendChild(overlayCanvas);
+    }
+    overlayCtx = overlayCanvas.getContext("2d");
+    return overlayCtx;
+  }
+
+  function drawSpawnerMeter(octx, sp, s) {
+    const pct = clamp(sp.hp / Math.max(1, sp.maxHp), 0, 1);
+    const barW = 72;
+    const barH = 8;
     const bx = s.x - barW / 2;
-    const by = s.y - drawH * 0.54 - 8;
-    ctx.fillStyle = "rgba(8, 12, 18, 0.28)";
-    ctx.fillRect(bx, by, barW, barH);
-    ctx.fillStyle = `rgba(147, 197, 253, ${0.35 + pct * 0.25})`;
-    ctx.fillRect(bx, by, barW * pct, barH);
+    const by = s.y - 78;
+    octx.fillStyle = "rgba(6, 10, 14, 0.72)";
+    octx.strokeStyle = "rgba(191, 219, 254, 0.75)";
+    octx.lineWidth = 1.5;
+    octx.beginPath();
+    octx.roundRect
+      ? octx.roundRect(bx - 1, by - 1, barW + 2, barH + 2, 4)
+      : octx.rect(bx - 1, by - 1, barW + 2, barH + 2);
+    octx.fill();
+    octx.stroke();
+    octx.fillStyle = "rgba(30, 41, 59, 0.95)";
+    octx.fillRect(bx, by, barW, barH);
+    const fill = octx.createLinearGradient(bx, by, bx + barW, by);
+    fill.addColorStop(0, "#60a5fa");
+    fill.addColorStop(1, "#c4b5fd");
+    octx.fillStyle = fill;
+    octx.fillRect(bx, by, barW * pct, barH);
+    // hit pips
+    const pipGap = barW / SPAWNER_ROCKET_HITS;
+    for (let i = 1; i < SPAWNER_ROCKET_HITS; i++) {
+      octx.strokeStyle = "rgba(8, 12, 18, 0.55)";
+      octx.beginPath();
+      octx.moveTo(bx + pipGap * i, by);
+      octx.lineTo(bx + pipGap * i, by + barH);
+      octx.stroke();
+    }
+    octx.fillStyle = "rgba(226, 232, 240, 0.9)";
+    octx.font = "700 11px Outfit, sans-serif";
+    octx.textAlign = "center";
+    octx.textBaseline = "bottom";
+    octx.fillText(`${Math.max(0, sp.hp | 0)}/${sp.maxHp | 0}`, s.x, by - 3);
+  }
+
+  function drawMissileIndicator(octx, r, s) {
+    const ang = Math.atan2(r.vy || 0, r.vx || 1);
+    octx.save();
+    octx.translate(s.x, s.y);
+    octx.rotate(ang);
+    // Direction stem + chevron so travel heading is obvious in CGI.
+    octx.strokeStyle = "rgba(255, 230, 160, 0.95)";
+    octx.fillStyle = "rgba(255, 176, 64, 0.95)";
+    octx.lineWidth = 3;
+    octx.lineCap = "round";
+    octx.beginPath();
+    octx.moveTo(-10, 0);
+    octx.lineTo(28, 0);
+    octx.stroke();
+    octx.beginPath();
+    octx.moveTo(36, 0);
+    octx.lineTo(18, -10);
+    octx.lineTo(18, 10);
+    octx.closePath();
+    octx.fill();
+    octx.strokeStyle = "rgba(255, 255, 255, 0.55)";
+    octx.lineWidth = 1.25;
+    octx.stroke();
+    // Small rear marker
+    octx.fillStyle = "rgba(255, 107, 58, 0.9)";
+    octx.beginPath();
+    octx.arc(-14, 0, 4, 0, TAU);
+    octx.fill();
+    octx.restore();
+  }
+
+  /** Always-on HUD overlay (CGI hides the main 2D canvas). */
+  function drawHudOverlay() {
+    const octx = ensureOverlay();
+    if (!octx || !overlayCanvas) return;
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    if (overlayCanvas.width !== Math.floor(w * dpr) || overlayCanvas.height !== Math.floor(h * dpr)) {
+      overlayCanvas.width = Math.floor(w * dpr);
+      overlayCanvas.height = Math.floor(h * dpr);
+    }
+    octx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    octx.clearRect(0, 0, w, h);
+    if (!state || state.ended || (mode !== "play" && mode !== "pause" && mode !== "levelup" && mode !== "tactic")) {
+      return;
+    }
+    for (const sp of state.spawners || []) {
+      if (sp.hp <= 0) continue;
+      drawSpawnerMeter(octx, sp, worldToScreen(sp.x, sp.y));
+    }
+    for (const rk of state.rockets || []) {
+      drawMissileIndicator(octx, rk, worldToScreen(rk.x, rk.y));
+    }
   }
 
   function drawRocketPickup(rp, s) {
@@ -3513,11 +3617,13 @@
       } else {
         draw();
       }
+      drawHudOverlay();
     } catch (err) {
       console.error("frame", err);
       // Keep the loop alive after a render glitch so the run doesn't die silently.
       try {
         if (!(window.LanternCGI && window.LanternCGI.ready())) draw();
+        drawHudOverlay();
       } catch (_) {
         /* ignore */
       }
