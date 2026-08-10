@@ -926,17 +926,17 @@ button.dash-btn.loaded-grenades {
   bottom: max(16px, env(safe-area-inset-bottom, 0px));
 }
 
-/* Landscape sideways: tuck stick into the far corner; keep meters above it */
+/* Landscape sideways: stick bottom-right, nudged up and left from the corner */
 #app.layout-touch:not(.layout-portrait) .stick {
-  right: max(6px, env(safe-area-inset-right, 0px)) !important;
-  bottom: max(6px, env(safe-area-inset-bottom, 0px)) !important;
+  right: max(36px, calc(env(safe-area-inset-right, 0px) + 28px)) !important;
+  bottom: max(36px, calc(env(safe-area-inset-bottom, 0px) + 28px)) !important;
   width: 96px;
   height: 96px;
 }
 
 #app.layout-touch:not(.layout-portrait) .hud-meters {
   top: 44px;
-  bottom: 118px;
+  bottom: 148px;
   transform: none;
   height: auto;
   right: max(8px, env(safe-area-inset-right, 0px));
@@ -987,16 +987,16 @@ button.dash-btn.loaded-grenades {
   }
 }
 
-/* Sideways phone: stick far bottom-right even before JS classes apply */
+/* Sideways phone: stick bottom-right, nudged in from the corner */
 @media (orientation: landscape) and (hover: none),
-       (orientation: landscape) and (pointer: coarse),
-       (orientation: portrait) and (hover: none),
-       (orientation: portrait) and (pointer: coarse) {
+       (orientation: landscape) and (pointer: coarse) {
   .stick {
     left: auto !important;
-    right: max(6px, env(safe-area-inset-right, 0px)) !important;
-    bottom: max(6px, env(safe-area-inset-bottom, 0px)) !important;
+    right: max(36px, calc(env(safe-area-inset-right, 0px) + 28px)) !important;
+    bottom: max(36px, calc(env(safe-area-inset-bottom, 0px) + 28px)) !important;
     transform: none !important;
+    width: 96px;
+    height: 96px;
   }
 
   .dash-btn {
@@ -1006,11 +1006,19 @@ button.dash-btn.loaded-grenades {
   }
 }
 
-@media (orientation: landscape) and (hover: none),
-       (orientation: landscape) and (pointer: coarse) {
+@media (orientation: portrait) and (hover: none),
+       (orientation: portrait) and (pointer: coarse) {
   .stick {
-    width: 96px;
-    height: 96px;
+    left: auto !important;
+    right: max(8px, env(safe-area-inset-right, 0px)) !important;
+    bottom: max(8px, env(safe-area-inset-bottom, 0px)) !important;
+    transform: none !important;
+  }
+
+  .dash-btn {
+    left: max(12px, env(safe-area-inset-left, 0px));
+    right: auto;
+    bottom: max(16px, env(safe-area-inset-bottom, 0px));
   }
 }
 
@@ -3869,11 +3877,11 @@ button.dash-btn.loaded-grenades {
     app.classList.toggle("layout-touch", touch);
     app.classList.toggle("layout-portrait", portrait);
 
-    // Always pin move stick to the far bottom-right on phones.
+    // Pin move stick bottom-right; in landscape nudge up + left from the corner.
     const stick = ui.stick || document.getElementById("stick");
     if (stick) {
-      const edge = touch && !portrait ? "6px" : "8px";
-      const bottom = touch && !portrait ? "4px" : "8px";
+      const edge = touch && !portrait ? "36px" : "8px";
+      const bottom = touch && !portrait ? "36px" : "8px";
       stick.style.setProperty("left", "auto", "important");
       stick.style.setProperty("right", edge, "important");
       stick.style.setProperty("bottom", bottom, "important");
