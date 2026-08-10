@@ -371,6 +371,7 @@
     hudLevel: document.getElementById("hud-level"),
     coach: document.getElementById("coach"),
     banner: document.getElementById("banner"),
+    weaponStinger: document.getElementById("weapon-stinger"),
     hudDash: document.getElementById("hud-dash"),
     hudFocus: document.getElementById("hud-focus"),
     dashFill: document.getElementById("dash-fill"),
@@ -1103,6 +1104,42 @@
     if (state) state.bannerTimer = 0;
   }
 
+  /** Full-screen transparent weapon word (e.g. SWARM) for ~0.5s. */
+  function showWeaponStinger(label, kind = "swarm") {
+    const el = ui.weaponStinger;
+    if (!el) return;
+    el.textContent = label;
+    el.classList.remove("hidden", "swarm", "grenades", "nuke");
+    el.classList.add(kind === "nuke" ? "nuke" : kind === "grenades" ? "grenades" : "swarm");
+    el.setAttribute("aria-hidden", "false");
+    // Retrigger CSS animation
+    el.style.animation = "none";
+    void el.offsetWidth;
+    el.style.animation = "";
+    clearTimeout(showWeaponStinger._t);
+    showWeaponStinger._t = setTimeout(() => {
+      el.classList.add("hidden");
+      el.setAttribute("aria-hidden", "true");
+    }, 520);
+  }
+
+  /** Active armed weapon tint for the relic glow. */
+  function armedWeaponKind(p) {
+    if (!p) return null;
+    if (p.swarmTimer > 0) return "swarm";
+    if (p.equippedWeapon === "grenades" || p.equippedWeapon === "nuke" || p.equippedWeapon === "swarm") {
+      return p.equippedWeapon;
+    }
+    return null;
+  }
+
+  function weaponGlowRgb(kind) {
+    if (kind === "swarm") return { r: 225, g: 29, b: 72, hex: 0xe11d48, css: "#e11d48" };
+    if (kind === "grenades") return { r: 34, g: 197, b: 94, hex: 0x22c55e, css: "#22c55e" };
+    if (kind === "nuke") return { r: 59, g: 130, b: 246, hex: 0x3b82f6, css: "#3b82f6" };
+    return { r: 62, g: 198, b: 216, hex: 0x3ec6d8, css: "#3ec6d8" };
+  }
+
   function xpForLevel(level) {
     return Math.floor(10 + level * 7 + level * level * 1.4);
   }
@@ -1679,10 +1716,11 @@
     p.swarmTimer = 8;
     p.swarmFireTimer = 0;
     sfx.pickup();
-    showBanner("SWARM FIRE — 8 seconds!", 1.7);
+    showWeaponStinger("SWARM", "swarm");
     floatText(p.x, p.y - 30, "SWARM", "#ff6b6b", 1.25, true);
     addParticles(p.x, p.y, "#e11d48", 22, 220);
     addParticles(p.x, p.y, "#ffb040", 14, 160);
+    refreshWeaponUi();
   }
 
   function equipWeapon(kind) {
@@ -1692,7 +1730,6 @@
     }
     state.player.equippedWeapon = kind;
     sfx.pickup();
-    showBanner(`${weaponLabel(kind)} equipped!`, 1.4);
     floatText(state.player.x, state.player.y - 28, weaponLabel(kind), "#ffd39a", 1.2, true);
     refreshWeaponUi();
   }
@@ -2319,15 +2356,24 @@
     const flicker = 0.88 + Math.sin(state.time * 18) * 0.07 + Math.sin(state.time * 29) * 0.04;
     const lightMul = evo.light;
     const poolR = (90 + evo.stage * 30) * flicker;
+    const armed = armedWeaponKind(p);
+    const glow = weaponGlowRgb(armed);
+    const armedBoost = armed ? 1.35 : 1;
 
-    // Soft cyan fill under the floating orb (not a fixture)
-    const pool = ctx.createRadialGradient(ps.x, ps.y + 10, 4, ps.x, ps.y + 10, poolR);
-    pool.addColorStop(0, `rgba(120, 230, 255, ${0.32 * flicker * lightMul})`);
-    pool.addColorStop(0.35, `rgba(40, 170, 190, ${0.14 * flicker * lightMul})`);
-    pool.addColorStop(1, "rgba(20,120,140,0)");
+    // Soft fill under the floating orb — tinted by armed weapon.
+    const pool = ctx.createRadialGradient(ps.x, ps.y + 10, 4, ps.x, ps.y + 10, poolR * armedBoost);
+    pool.addColorStop(
+      0,
+      `rgba(${glow.r}, ${glow.g}, ${glow.b}, ${(armed ? 0.5 : 0.32) * flicker * lightMul})`,
+    );
+    pool.addColorStop(
+      0.35,
+      `rgba(${glow.r}, ${glow.g}, ${glow.b}, ${(armed ? 0.28 : 0.14) * flicker * lightMul})`,
+    );
+    pool.addColorStop(1, `rgba(${glow.r}, ${glow.g}, ${glow.b}, 0)`);
     ctx.fillStyle = pool;
     ctx.beginPath();
-    ctx.arc(ps.x, ps.y + 10, poolR, 0, TAU);
+    ctx.arc(ps.x, ps.y + 10, poolR * armedBoost, 0, TAU);
     ctx.fill();
 
     const bob = Math.sin(state.time * 6) * 3;
@@ -2342,13 +2388,26 @@
       ctx.translate(ps.x, cy);
       ctx.rotate(roll);
       ctx.drawImage(playerVisualImg, -drawW / 2, -drawH / 2, drawW, drawH);
+      if (armed) {
+        // Additive weapon aura over the relic
+        const aura = ctx.createRadialGradient(0, 0, 2, 0, 0, drawH * 0.7);
+        aura.addColorStop(0, `rgba(${glow.r}, ${glow.g}, ${glow.b}, 0.55)`);
+        aura.addColorStop(0.55, `rgba(${glow.r}, ${glow.g}, ${glow.b}, 0.18)`);
+        aura.addColorStop(1, `rgba(${glow.r}, ${glow.g}, ${glow.b}, 0)`);
+        ctx.globalCompositeOperation = "lighter";
+        ctx.fillStyle = aura;
+        ctx.beginPath();
+        ctx.arc(0, 0, drawH * 0.7, 0, TAU);
+        ctx.fill();
+        ctx.globalCompositeOperation = "source-over";
+      }
       ctx.restore();
     } else {
       // Tiny fallback while the exact asset loads
       const flame = ctx.createRadialGradient(ps.x, ps.y + bob, 1, ps.x, ps.y + bob, 16);
-      flame.addColorStop(0, "#fff6d0");
-      flame.addColorStop(0.45, "#ffb040");
-      flame.addColorStop(1, "rgba(255,120,30,0)");
+      flame.addColorStop(0, glow.css);
+      flame.addColorStop(0.45, glow.css);
+      flame.addColorStop(1, `rgba(${glow.r}, ${glow.g}, ${glow.b}, 0)`);
       ctx.fillStyle = flame;
       ctx.beginPath();
       ctx.arc(ps.x, ps.y + bob, 16, 0, TAU);
