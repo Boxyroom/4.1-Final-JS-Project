@@ -1773,7 +1773,7 @@ button.dash-btn.loaded-grenades {
       id: 0,
       file: "relic-orb.png",
       // Round cyan-gold orb — sized for chase camera readability.
-      height: 0.745,
+      height: 0.93125,
       // Glow core sits at image center.
       coreY: 0.02,
       // Keeps the orb hovering above the forest floor.
@@ -1807,7 +1807,7 @@ button.dash-btn.loaded-grenades {
   /** Raise the orb so a larger sprite still clears the forest floor. */
   function relicHoverY(baseHover, visScale) {
     const form = PLAYER_VISUAL_FORMS[0];
-    const h = (form && form.height) || 0.745;
+    const h = (form && form.height) || 0.93125;
     const lift = Math.max(0, (visScale - 1) * h * 0.5);
     return (baseHover || 1.55) + lift;
   }
@@ -6584,7 +6584,7 @@ button.dash-btn.loaded-grenades {
       } catch (_) {
         /* ignore */
       }
-      const drawH = 20.5 * visScale;
+      const drawH = 25.625 * visScale;
       const drawW = drawH * (playerVisualImg.naturalWidth / playerVisualImg.naturalHeight || 1);
       const cy = ps.y + bob - 8;
       const facing = p.facingSmooth != null ? p.facingSmooth : p.facing || 0;
