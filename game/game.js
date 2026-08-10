@@ -7,8 +7,11 @@
   const SPAWNERS_PER_ROUND = 3;
   const SPAWNER_ROCKET_HITS = 5;
   const ROCKET_KILLS_INTERVAL = 100;
-  const ROCKET_HOME_RANGE = 1200;
-  const ROCKET_SPEED = 440;
+  const ROCKET_HOME_RANGE = 99999; // always lock a Spawner if any remain
+  const ROCKET_SPEED = 400;
+  const SPAWNER_SPEED = 16;
+  const SPAWNER_RADIUS = 92;
+  const NUKE_SPAWNER_RANGE = 240; // near-Spawner nuke = 1 missile hit
   /** Soft world edge — player is clamped here; pickups must spawn inside. */
   const WORLD_BOUND = 2200;
   const PICKUP_BOUND = WORLD_BOUND - 48;
@@ -1098,21 +1101,39 @@
     return best;
   }
 
-  function createSpawner(x, y) {
+  /** Split the playfield into 3 vertical patrol bands (left / mid / right). */
+  function spawnerSectionBounds(section) {
+    const span = (2 * PICKUP_BOUND) / SPAWNERS_PER_ROUND;
+    const minX = -PICKUP_BOUND + section * span + 60;
+    const maxX = -PICKUP_BOUND + (section + 1) * span - 60;
+    return {
+      minX,
+      maxX,
+      minY: -PICKUP_BOUND + 100,
+      maxY: PICKUP_BOUND - 100,
+      cx: (minX + maxX) * 0.5,
+      cy: 0,
+    };
+  }
+
+  function createSpawner(x, y, section = 0) {
     const ang = rand(0, TAU);
+    const zone = spawnerSectionBounds(section);
     return {
       id: nextSpawnerId++,
       x,
       y,
-      r: 46,
+      r: SPAWNER_RADIUS,
       hp: SPAWNER_ROCKET_HITS,
       maxHp: SPAWNER_ROCKET_HITS,
-      speed: 42,
+      speed: SPAWNER_SPEED,
       angle: ang,
       facing: ang,
       face: pickSpawnerFace(ang),
-      moveTimer: rand(1.2, 2.8),
-      spawnTimer: rand(0.8, 1.8),
+      section,
+      zone,
+      moveTimer: rand(2.2, 4.5),
+      spawnTimer: rand(1.2, 2.4),
       pulse: rand(0, TAU),
       hitFlash: 0,
       color: "#7ad0ff",
@@ -1121,13 +1142,11 @@
 
   function placeRoundSpawners() {
     state.spawners = [];
-    const ring = 420;
     for (let i = 0; i < SPAWNERS_PER_ROUND; i++) {
-      const a = (TAU * i) / SPAWNERS_PER_ROUND + rand(-0.2, 0.2);
-      const distAway = ring + rand(-40, 80);
-      state.spawners.push(
-        createSpawner(Math.cos(a) * distAway, Math.sin(a) * distAway),
-      );
+      const zone = spawnerSectionBounds(i);
+      const x = clamp(zone.cx + rand(-80, 80), zone.minX, zone.maxX);
+      const y = clamp(rand(-280, 280), zone.minY, zone.maxY);
+      state.spawners.push(createSpawner(x, y, i));
     }
   }
 
@@ -1142,7 +1161,7 @@
     if (state.enemies.length > before) {
       const e = state.enemies[state.enemies.length - 1];
       const a = rand(0, TAU);
-      const d = spawner.r + 28 + rand(0, 40);
+      const d = spawner.r + 36 + rand(10, 70);
       e.x = spawner.x + Math.cos(a) * d;
       e.y = spawner.y + Math.sin(a) * d;
       e.fromSpawner = spawner.id;
@@ -1202,41 +1221,93 @@
       }
       return false;
     }
+    if (!(state.spawners || []).some((s) => s.hp > 0)) {
+      showBanner("No Spawners left to lock", 1.2);
+      return false;
+    }
     p.rockets -= 1;
     const ang = p.facingSmooth != null ? p.facingSmooth : p.facing || 0;
+    // Always lock a Spawner — never smaller foes.
     const target = nearestSpawner(p, ROCKET_HOME_RANGE);
     state.rockets.push({
       x: p.x,
       y: p.y,
-      vx: Math.cos(ang) * ROCKET_SPEED,
-      vy: Math.sin(ang) * ROCKET_SPEED,
-      speed: ROCKET_SPEED,
-      life: 9,
-      r: 11,
+      vx: Math.cos(ang) * (ROCKET_SPEED * 0.55),
+      vy: Math.sin(ang) * (ROCKET_SPEED * 0.55),
+      speed: ROCKET_SPEED * 0.55,
+      life: 12,
+      r: 16,
       targetId: target ? target.id : null,
       trail: 0,
+      glow: 1,
     });
+    state.shake = Math.max(state.shake, 20);
+    state.killFlash = 0.12;
+    showWeaponStinger("MISSILE", "nuke");
+    sfx.nuke();
     sfx.dash();
-    addParticles(p.x, p.y, "#ffb040", 12, 180);
-    floatText(p.x, p.y - 24, "ROCKET", "#ffd39a", 0.9, true);
+    addParticles(p.x, p.y, "#ffb040", 36, 340);
+    addParticles(p.x, p.y, "#ff6b3a", 28, 280);
+    addParticles(p.x, p.y, "#fff1c2", 20, 200);
+    state.shockwaves.push({
+      x: p.x,
+      y: p.y,
+      r: 18,
+      maxR: 160,
+      life: 0.45,
+      maxLife: 0.45,
+      tint: "missile",
+      lethal: false,
+    });
+    floatText(p.x, p.y - 36, "MISSILE LOCK", "#ffd39a", 1.25, true);
+    showBanner("Missile locked on Spawner", 1.2);
     refreshRocketUi();
     return true;
+  }
+
+  function rocketExplosion(x, y) {
+    state.shake = Math.max(state.shake, 26);
+    sfx.boom();
+    sfx.nova();
+    addParticles(x, y, "#ff6b3a", 56, 420);
+    addParticles(x, y, "#ffb040", 44, 360);
+    addParticles(x, y, "#fff1c2", 32, 280);
+    addParticles(x, y, "#60a5fa", 24, 240);
+    state.shockwaves.push({
+      x,
+      y,
+      r: 28,
+      maxR: 280,
+      life: 0.85,
+      maxLife: 0.85,
+      tint: "missile",
+      lethal: false, // visual only — never harms small enemies
+    });
+    state.shockwaves.push({
+      x,
+      y,
+      r: 16,
+      maxR: 150,
+      life: 0.5,
+      maxLife: 0.5,
+      tint: "nuke",
+      lethal: false,
+    });
   }
 
   function hurtSpawner(spawner, hits = 1) {
     if (!spawner || spawner.hp <= 0) return;
     spawner.hp -= hits;
-    spawner.hitFlash = 0.25;
-    state.shake = Math.max(state.shake, 12);
+    spawner.hitFlash = 0.28;
+    state.shake = Math.max(state.shake, 14);
     sfx.hit();
-    floatText(spawner.x, spawner.y - 30, `-${hits}`, "#93c5fd", 0.9, true);
-    addParticles(spawner.x, spawner.y, "#60a5fa", 16, 200);
+    floatText(spawner.x, spawner.y - 40, `-${hits}`, "#93c5fd", 0.85, true);
+    addParticles(spawner.x, spawner.y, "#60a5fa", 18, 200);
     if (spawner.hp <= 0) {
       spawner.hp = 0;
-      sfx.boom();
-      addParticles(spawner.x, spawner.y, "#7ad0ff", 36, 320);
-      addParticles(spawner.x, spawner.y, "#c49bff", 24, 260);
-      floatText(spawner.x, spawner.y - 20, "SPAWNER DOWN", "#bfdbfe", 1.4, true);
+      addParticles(spawner.x, spawner.y, "#7ad0ff", 48, 380);
+      addParticles(spawner.x, spawner.y, "#c49bff", 36, 300);
+      floatText(spawner.x, spawner.y - 28, "SPAWNER DOWN", "#bfdbfe", 1.5, true);
       showBanner("Spawner destroyed!", 1.5);
       state.spawners = state.spawners.filter((s) => s.hp > 0);
       if (
@@ -1251,19 +1322,52 @@
 
   function updateSpawners(dt) {
     for (const s of state.spawners) {
-      s.pulse += dt * 2.2;
+      s.pulse += dt * 1.6;
       if (s.hitFlash > 0) s.hitFlash = Math.max(0, s.hitFlash - dt);
+      const zone = s.zone || spawnerSectionBounds(s.section || 0);
+      s.zone = zone;
+
       s.moveTimer -= dt;
       if (s.moveTimer <= 0) {
-        // Prefer drifting, with a slight lean toward map center so they stay in play.
-        const toCenter = Math.atan2(-s.y, -s.x);
-        s.angle = toCenter + rand(-1.1, 1.1);
-        s.moveTimer = rand(1.4, 3.2);
+        // Patrol inside own section only — never chase the lantern.
+        const tx = rand(zone.minX, zone.maxX);
+        const ty = rand(zone.minY, zone.maxY);
+        s.angle = Math.atan2(ty - s.y, tx - s.x);
+        s.moveTimer = rand(2.8, 5.5);
       }
       s.x += Math.cos(s.angle) * s.speed * dt;
       s.y += Math.sin(s.angle) * s.speed * dt;
-      s.x = clamp(s.x, -PICKUP_BOUND, PICKUP_BOUND);
-      s.y = clamp(s.y, -PICKUP_BOUND, PICKUP_BOUND);
+
+      // Soft clamp into section bounds.
+      if (s.x < zone.minX) {
+        s.x = zone.minX;
+        s.angle = rand(-0.6, 0.6);
+      } else if (s.x > zone.maxX) {
+        s.x = zone.maxX;
+        s.angle = Math.PI + rand(-0.6, 0.6);
+      }
+      if (s.y < zone.minY) {
+        s.y = zone.minY;
+        s.angle = Math.PI * 0.5 + rand(-0.5, 0.5);
+      } else if (s.y > zone.maxY) {
+        s.y = zone.maxY;
+        s.angle = -Math.PI * 0.5 + rand(-0.5, 0.5);
+      }
+
+      // Keep distance from other Spawners (extra separation).
+      for (const other of state.spawners) {
+        if (other === s || other.hp <= 0) continue;
+        const d = dist(s, other);
+        const minSep = s.r + other.r + 40;
+        if (d > 0 && d < minSep) {
+          const push = ((minSep - d) / minSep) * 28 * dt;
+          const ang = Math.atan2(s.y - other.y, s.x - other.x);
+          s.x += Math.cos(ang) * push;
+          s.y += Math.sin(ang) * push;
+        }
+      }
+      s.x = clamp(s.x, zone.minX, zone.maxX);
+      s.y = clamp(s.y, zone.minY, zone.maxY);
       s.facing = s.angle;
       s.face = pickSpawnerFace(s.facing);
 
@@ -1272,11 +1376,11 @@
         const burst = state.enemies.length < 18 ? 2 : 1;
         for (let i = 0; i < burst; i++) spawnEnemyFromSpawner(s);
         const density = 1 + state.time / 80 + Math.max(0, state.round - 1) * 0.15;
-        s.spawnTimer = Math.max(0.85, 2.1 / density) + rand(0, 0.45);
+        s.spawnTimer = Math.max(1.05, 2.4 / density) + rand(0, 0.5);
       }
 
-      // Touching a spawner hurts, but less than a brute pile-up.
-      if (dist(state.player, s) < state.player.r + s.r * 0.55) {
+      // Touching a Spawner hurts lightly — they still do not chase you.
+      if (dist(state.player, s) < state.player.r + s.r * 0.42) {
         hurtPlayer(8, null);
       }
     }
@@ -1286,6 +1390,8 @@
     for (const r of state.rockets) {
       r.life -= dt;
       r.trail += dt;
+      r.glow = Math.min(1.4, (r.glow || 1) + dt * 0.35);
+      // Spawner-only lock. Never target or harm smaller enemies.
       let target = null;
       if (r.targetId != null) {
         target = (state.spawners || []).find((s) => s.id === r.targetId && s.hp > 0) || null;
@@ -1297,23 +1403,23 @@
       if (target) {
         const desired = Math.atan2(target.y - r.y, target.x - r.x);
         const cur = Math.atan2(r.vy, r.vx);
-        const next = lerpAngle(cur, desired, 1 - Math.pow(0.0015, dt));
+        const next = lerpAngle(cur, desired, 1 - Math.pow(0.0004, dt));
+        r.speed = Math.min(620, r.speed + 90 * dt);
         r.vx = Math.cos(next) * r.speed;
         r.vy = Math.sin(next) * r.speed;
-        r.speed = Math.min(560, r.speed + 40 * dt);
       }
       r.x += r.vx * dt;
       r.y += r.vy * dt;
-      if (r.trail > 0.03) {
+      if (r.trail > 0.02) {
         r.trail = 0;
-        addParticles(r.x, r.y, "#ffb040", 2, 40);
+        addParticles(r.x - r.vx * 0.02, r.y - r.vy * 0.02, "#ffb040", 3, 55);
+        addParticles(r.x, r.y, "#ff6b3a", 2, 35);
       }
       for (const s of state.spawners) {
-        if (s.hp > 0 && dist(r, s) < r.r + s.r * 0.7) {
+        if (s.hp > 0 && dist(r, s) < r.r + s.r * 0.65) {
           r.life = 0;
+          rocketExplosion(s.x, s.y);
           hurtSpawner(s, 1);
-          addParticles(r.x, r.y, "#ff6b3a", 18, 240);
-          sfx.boom();
           break;
         }
       }
@@ -2056,22 +2162,32 @@
       return false;
     }
     if (kind === "nuke") {
-      const foes = state.enemies.filter((e) => e.hp > 0);
-      for (const e of foes) {
-        hurtEnemy(e, 9999, { sfx: false });
-      }
-      // hard-suck every XP gem into the lantern
-      state.nukeSuckTimer = 2.8;
-      for (const g of state.gems) {
-        const ang = Math.atan2(p.y - g.y, p.x - g.x);
-        g.vx = Math.cos(ang) * 520;
-        g.vy = Math.sin(ang) * 520;
+      const nearSpawner = nearestSpawner(p, NUKE_SPAWNER_RANGE);
+      if (nearSpawner) {
+        // Close-range nuke = one missile hit on the Spawner (same damage).
+        rocketExplosion(nearSpawner.x, nearSpawner.y);
+        hurtSpawner(nearSpawner, 1);
+        showBanner("Nuke strikes the Spawner!", 1.5);
+        floatText(p.x, p.y - 36, "SPAWNER HIT", "#bfdbfe", 1.3, true);
+      } else {
+        const foes = state.enemies.filter((e) => e.hp > 0);
+        for (const e of foes) {
+          hurtEnemy(e, 9999, { sfx: false });
+        }
+        // hard-suck every XP gem into the lantern
+        state.nukeSuckTimer = 2.8;
+        for (const g of state.gems) {
+          const ang = Math.atan2(p.y - g.y, p.x - g.x);
+          g.vx = Math.cos(ang) * 520;
+          g.vy = Math.sin(ang) * 520;
+        }
+        showBanner("NUKE — field cleared!", 1.8);
+        floatText(p.x, p.y - 36, "NUKE", "#bfdbfe", 1.4, true);
       }
       state.shake = 22;
       addParticles(p.x, p.y, "#60a5fa", 52, 360);
       addParticles(p.x, p.y, "#3b82f6", 40, 300);
       addParticles(p.x, p.y, "#dbeafe", 28, 220);
-      // Visual-only blue blast ring (enemies already cleared above)
       state.shockwaves.push({
         x: p.x,
         y: p.y,
@@ -2083,8 +2199,6 @@
         lethal: false,
       });
       sfx.nuke();
-      showBanner("NUKE — field cleared!", 1.8);
-      floatText(p.x, p.y - 36, "NUKE", "#bfdbfe", 1.4, true);
     } else if (kind === "grenades") {
       // Land in a star just inside the visible screen edge
       const halfMin = Math.min(state.w || window.innerWidth, state.h || window.innerHeight) * 0.5;
@@ -2777,19 +2891,19 @@
     const face = clamp(sp.face | 0, 0, 4);
     const img = spawnerFaceImgs[face];
     const ready = spawnerFaceReady[face];
-    const bob = Math.sin(sp.pulse) * 3;
-    const pulse = 1 + Math.sin(sp.pulse * 1.4) * 0.03;
-    const drawH = 118 * pulse * (sp.hitFlash > 0 ? 1.06 : 1);
+    const bob = Math.sin(sp.pulse) * 4;
+    const pulse = 1 + Math.sin(sp.pulse * 1.2) * 0.025;
+    const drawH = 228 * pulse * (sp.hitFlash > 0 ? 1.04 : 1);
     const aspect = ready && img && img.width ? img.width / img.height : 1.3;
     const drawW = drawH * aspect;
-    drawShadow(s.x, s.y + 10, drawW * 0.42, drawH * 0.14, 0.38);
+    drawShadow(s.x, s.y + 14, drawW * 0.45, drawH * 0.12, 0.4);
     ctx.save();
     ctx.translate(s.x, s.y + bob);
     if (ready && img) {
       ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
       if (sp.hitFlash > 0) {
         ctx.globalCompositeOperation = "lighter";
-        ctx.globalAlpha = 0.4;
+        ctx.globalAlpha = 0.35;
         ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
         ctx.globalCompositeOperation = "source-over";
         ctx.globalAlpha = 1;
@@ -2805,16 +2919,16 @@
       ctx.fill();
     }
     ctx.restore();
-    // hit pips
-    const pipW = 10;
-    const totalW = SPAWNER_ROCKET_HITS * (pipW + 4) - 4;
-    let px0 = s.x - totalW / 2;
-    const py = s.y - drawH * 0.52 - 8;
-    for (let i = 0; i < SPAWNER_ROCKET_HITS; i++) {
-      ctx.fillStyle = i < sp.hp ? "#60a5fa" : "rgba(0,0,0,0.45)";
-      ctx.fillRect(px0, py, pipW, 5);
-      px0 += pipW + 4;
-    }
+    // Very subtle life bar (hits remaining)
+    const pct = clamp(sp.hp / sp.maxHp, 0, 1);
+    const barW = Math.max(48, drawW * 0.34);
+    const barH = 3;
+    const bx = s.x - barW / 2;
+    const by = s.y - drawH * 0.48 - 10;
+    ctx.fillStyle = "rgba(8, 12, 18, 0.28)";
+    ctx.fillRect(bx, by, barW, barH);
+    ctx.fillStyle = `rgba(147, 197, 253, ${0.35 + pct * 0.25})`;
+    ctx.fillRect(bx, by, barW * pct, barH);
   }
 
   function drawRocketPickup(rp, s) {
@@ -2842,30 +2956,43 @@
 
   function drawRocketMissile(r, s) {
     const ang = Math.atan2(r.vy, r.vx);
+    const g = r.glow || 1;
     ctx.save();
     ctx.translate(s.x, s.y);
     ctx.rotate(ang);
-    const flame = ctx.createLinearGradient(-18, 0, 10, 0);
-    flame.addColorStop(0, "rgba(255,120,40,0)");
-    flame.addColorStop(0.5, "rgba(255,160,60,0.7)");
-    flame.addColorStop(1, "rgba(255,230,160,0.95)");
+    const bloom = ctx.createRadialGradient(0, 0, 2, 0, 0, 34 * g);
+    bloom.addColorStop(0, "rgba(255,230,160,0.85)");
+    bloom.addColorStop(0.35, "rgba(255,140,50,0.45)");
+    bloom.addColorStop(1, "rgba(255,80,20,0)");
+    ctx.fillStyle = bloom;
+    ctx.beginPath();
+    ctx.arc(0, 0, 34 * g, 0, TAU);
+    ctx.fill();
+    const flame = ctx.createLinearGradient(-42, 0, 18, 0);
+    flame.addColorStop(0, "rgba(255,80,20,0)");
+    flame.addColorStop(0.45, "rgba(255,120,40,0.75)");
+    flame.addColorStop(1, "rgba(255,240,180,0.98)");
     ctx.fillStyle = flame;
     ctx.beginPath();
-    ctx.moveTo(-18, 0);
-    ctx.lineTo(-4, -5);
-    ctx.lineTo(-4, 5);
+    ctx.moveTo(-40, 0);
+    ctx.lineTo(-6, -9);
+    ctx.lineTo(-6, 9);
     ctx.closePath();
     ctx.fill();
-    ctx.fillStyle = "#ffd39a";
+    ctx.fillStyle = "#ffe08a";
     ctx.beginPath();
-    ctx.moveTo(14, 0);
-    ctx.lineTo(-2, -5);
-    ctx.lineTo(-2, 5);
+    ctx.moveTo(26, 0);
+    ctx.lineTo(-4, -8);
+    ctx.lineTo(-4, 8);
     ctx.closePath();
     ctx.fill();
     ctx.fillStyle = "#e07a2f";
-    ctx.fillRect(-6, -6, 4, 4);
-    ctx.fillRect(-6, 2, 4, 4);
+    ctx.fillRect(-10, -10, 7, 6);
+    ctx.fillRect(-10, 4, 7, 6);
+    ctx.fillStyle = "#93c5fd";
+    ctx.beginPath();
+    ctx.arc(8, 0, 3.5, 0, TAU);
+    ctx.fill();
     ctx.restore();
   }
 
@@ -3162,6 +3289,14 @@
               ring: `rgba(187, 247, 208, ${0.9 * alpha})`,
               edge: `rgba(220, 252, 231, ${0.55 * alpha})`,
             }
+          : sw.tint === "missile"
+            ? {
+                a: `rgba(255, 240, 180, ${0.42 * alpha})`,
+                b: `rgba(255, 140, 50, ${0.4 * alpha})`,
+                c: `rgba(255, 70, 20, ${0.5 * alpha})`,
+                ring: `rgba(255, 210, 120, ${0.95 * alpha})`,
+                edge: `rgba(255, 255, 240, ${0.65 * alpha})`,
+              }
           : sw.tint === "nuke"
             ? {
                 a: `rgba(219, 234, 254, ${0.3 * alpha})`,
@@ -3187,7 +3322,7 @@
       ctx.arc(s.x, s.y, sw.r, 0, TAU);
       ctx.fill();
       ctx.strokeStyle = palette.ring;
-      ctx.lineWidth = sw.tint === "nuke" ? 7 : 5;
+      ctx.lineWidth = sw.tint === "missile" ? 9 : sw.tint === "nuke" ? 7 : 5;
       ctx.beginPath();
       ctx.arc(s.x, s.y, sw.r, 0, TAU);
       ctx.stroke();
