@@ -613,11 +613,12 @@
     ENEMY_MAT.wispArm = basic(0x3ec0d4, { transparent: true, opacity: 0.82 });
     ENEMY_MAT.wispTip = basic(0xb8f6ff);
     ENEMY_MAT.wispCore = basic(0xffffff);
-    ENEMY_MAT.armorBody = basic(0x1a1e28);
-    ENEMY_MAT.armorArm = basic(0x3a5080);
-    ENEMY_MAT.armorTip = basic(0x7ad0ff);
-    ENEMY_MAT.armorEye = basic(0x7a4cff);
-    ENEMY_MAT.armorPupil = basic(0xd8f6ff);
+    // Brighter steel/violet so armored foes stay readable on the dark marsh.
+    ENEMY_MAT.armorBody = basic(0x5a6d92);
+    ENEMY_MAT.armorArm = basic(0x7a9ae0);
+    ENEMY_MAT.armorTip = basic(0xb8e4ff);
+    ENEMY_MAT.armorEye = basic(0xc49bff);
+    ENEMY_MAT.armorPupil = basic(0xf0fbff);
   }
 
   function disposeEnemyMesh(mesh) {
