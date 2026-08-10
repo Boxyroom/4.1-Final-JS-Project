@@ -1730,6 +1730,7 @@
     }
     state.player.equippedWeapon = kind;
     sfx.pickup();
+    if (kind === "nuke") showWeaponStinger("NUKE", "nuke");
     floatText(state.player.x, state.player.y - 28, weaponLabel(kind), "#ffd39a", 1.2, true);
     refreshWeaponUi();
   }
