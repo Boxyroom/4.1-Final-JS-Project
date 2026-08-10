@@ -728,41 +728,6 @@ button.dash-btn.loaded-grenades {
   .lede { font-size: 0.98rem; }
 }
 
-/* Portrait phone: move stick to bottom-right; keep fire on the left */
-@media (orientation: portrait) and (max-width: 900px) {
-  .stick {
-    left: auto;
-    right: max(16px, env(safe-area-inset-right));
-    bottom: max(22px, env(safe-area-inset-bottom));
-    transform: none;
-  }
-
-  .move-label {
-    left: auto;
-    right: max(16px, env(safe-area-inset-right));
-    bottom: 140px;
-    transform: none;
-    text-align: right;
-  }
-
-  /* Keep the thin meters on the right, but above the stick */
-  .hud-meters {
-    position: absolute;
-    right: max(8px, env(safe-area-inset-right));
-    top: 56px;
-    bottom: 160px;
-    transform: none;
-    width: 12px;
-    height: auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    margin: 0;
-    pointer-events: none;
-  }
-}
-
 /* Phone play (especially sideways / short screens): thin meters on the right */
 @media (orientation: landscape) and (max-height: 520px),
        (hover: none) and (pointer: coarse) and (max-height: 900px) {
@@ -893,7 +858,51 @@ button.dash-btn.loaded-grenades {
   }
 }
 
-  </style>
+/* Portrait: stick bottom-right (after phone rules so meters/stick aren't overridden) */
+@media (orientation: portrait) and (max-width: 1200px),
+       (orientation: portrait) and (hover: none) {
+  #stick.stick,
+  .stick {
+    left: unset;
+    right: max(12px, env(safe-area-inset-right, 0px));
+    bottom: max(18px, env(safe-area-inset-bottom, 0px));
+    transform: none;
+  }
+
+  .move-label {
+    left: unset;
+    right: max(12px, env(safe-area-inset-right, 0px));
+    bottom: 138px;
+    transform: none;
+    text-align: right;
+  }
+
+  /* Meters on the right rail, clear of the stick */
+  .hud-meters {
+    position: absolute;
+    right: max(8px, env(safe-area-inset-right, 0px));
+    top: 56px;
+    bottom: 150px;
+    transform: none;
+    width: 12px;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    pointer-events: none;
+  }
+
+  /* Fire stays bottom-left */
+  .dash-btn {
+    left: max(16px, env(safe-area-inset-left, 0px));
+    right: auto;
+    bottom: max(28px, env(safe-area-inset-bottom, 0px));
+  }
+}
+
+</style>
   <link rel="icon" type="image/png" href="game/assets/icons/icon-192.png" />
 </head>
 <body>
@@ -1024,7 +1033,7 @@ button.dash-btn.loaded-grenades {
       <h2>Paused</h2>
       <p class="lede">Game is frozen. Check your build, then resume.</p>
       <div class="control-cheat">
-        <div><strong>Move</strong> — WASD / arrows / center stick</div>
+        <div><strong>Move</strong> — WASD / arrows / move stick</div>
         <div><strong>Weapons</strong> — drive through crates to equip; Space / Shift / Fire button to shoot</div>
         <div><strong>Grenades</strong> — orange ~20s · <strong>Swarm</strong> — red ~30s (instant 8s fire) · <strong>Nuke</strong> — purple ~60s</div>
         <div><strong>Focus</strong> — hold <span class="key">F</span> to prioritize brutes/bosses</div>
@@ -2879,7 +2888,7 @@ button.dash-btn.loaded-grenades {
   };
 })();
 
-  </script>
+</script>
   <script>
 (() => {
   "use strict";
@@ -3298,7 +3307,7 @@ button.dash-btn.loaded-grenades {
       body: "Steering is your main job.",
       card: `
         <p><strong>Keyboard:</strong> hold <span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span> or the arrow keys.</p>
-        <p><strong>Phone / tablet:</strong> drag the center <strong>Move</strong> stick.</p>
+        <p><strong>Phone / tablet:</strong> drag the <strong>Move</strong> stick (bottom-right in portrait).</p>
         <ul>
           <li>Keep moving so green enemies don’t pile on you.</li>
           <li>There is no jump and no special move stick combo — just direction.</li>
@@ -6041,6 +6050,6 @@ button.dash-btn.loaded-grenades {
   };
 })();
 
-  </script>
+</script>
 </body>
 </html>
