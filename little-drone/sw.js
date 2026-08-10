@@ -1,4 +1,4 @@
-const CACHE = "little-drone-v4";
+const CACHE = "little-drone-v5";
 const ASSETS = [
   "./",
   "./index.html",
