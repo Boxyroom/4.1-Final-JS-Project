@@ -711,6 +711,13 @@
   function pauseGame() {
     if (state.mode !== "play") return;
     state.mode = "pause";
+    input.lift = false;
+    input.boost = false;
+    input.stickX = 0;
+    input.stickY = 0;
+    els.btnLift.classList.remove("active");
+    els.btnBoost.classList.remove("active");
+    setKnob(0, 0);
     showPanel("pause");
   }
 
@@ -913,24 +920,25 @@
     move.addScaledVector(right, ix);
     move.addScaledVector(forward, -iy);
 
-    const speed = boost ? 22 : 12;
+    const speed = boost ? 24 : 14;
     state.vel.x += (move.x * speed - state.vel.x) * Math.min(1, dt * 4);
     state.vel.z += (move.z * speed - state.vel.z) * Math.min(1, dt * 4);
 
-    if (lift) state.vel.y += (10 - state.vel.y) * Math.min(1, dt * 3);
-    else state.vel.y += (-4.5 - state.vel.y) * Math.min(1, dt * 1.6);
+    // Hover by default; lift climbs; release sinks gently (concept: only ↑ button)
+    if (lift) state.vel.y += (9 - state.vel.y) * Math.min(1, dt * 3.2);
+    else state.vel.y += (-1.15 - state.vel.y) * Math.min(1, dt * 1.4);
 
     if (boost) {
       boostTrail.visible = true;
-      state.battery -= 12 * dt;
-      if (Math.random() < 0.08) sfx.boost();
+      state.battery -= 4.5 * dt;
+      if (Math.random() < 0.06) sfx.boost();
     } else {
       boostTrail.visible = false;
     }
 
-    // Idle drain
-    state.battery -= (boost ? 0 : 1.6) * dt;
-    if (lift) state.battery -= 1.1 * dt;
+    // Slow cruise drain — full battery lasts a few minutes of flying
+    state.battery -= 0.35 * dt;
+    if (lift) state.battery -= 0.45 * dt;
 
     drone.position.x += state.vel.x * dt;
     drone.position.y += state.vel.y * dt;
@@ -950,13 +958,16 @@
     drone.position.z = THREE.MathUtils.clamp(drone.position.z, -90, 90);
     drone.position.y = THREE.MathUtils.clamp(drone.position.y, -3.5, 42);
 
-    // Water / fall damage
-    if (drone.position.y < -3) {
-      state.battery -= 25 * dt;
+    // Water splash — bounce up once, don't melt the battery
+    if (drone.position.y < -2.2) {
+      drone.position.y = -2.0;
+      state.vel.y = Math.max(5.5, Math.abs(state.vel.y) * 0.6);
       if (state.invuln <= 0) {
+        state.battery -= 6;
+        state.invuln = 1.1;
         setExpression("surprised");
-        state.invuln = 0.6;
         sfx.hurt();
+        showToast("Splash! Climb up");
       }
     }
 
@@ -973,8 +984,8 @@
         drone.position.z += hit.nz * 0.6;
         state.vel.x *= -0.4;
         state.vel.z *= -0.4;
-        state.battery -= 8;
-        state.invuln = 0.8;
+        state.battery -= 5;
+        state.invuln = 1.0;
         setExpression("surprised");
         sfx.hurt();
         showToast("Ouch!");
@@ -1046,8 +1057,8 @@
       u.wingL.rotation.z = Math.sin(state.time * 10 + u.angle) * 0.5;
       u.wingR.rotation.z = -Math.sin(state.time * 10 + u.angle) * 0.5;
       if (state.invuln <= 0 && drone.position.distanceTo(bird.position) < 1.3) {
-        state.battery -= 12;
-        state.invuln = 1;
+        state.battery -= 7;
+        state.invuln = 1.2;
         state.vel.addScaledVector(
           tmp.subVectors(drone.position, bird.position).normalize(),
           6
