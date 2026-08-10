@@ -738,7 +738,7 @@
           bill.material.needsUpdate = true;
           const img = tex.image;
           if (img && img.width && img.height) {
-            const h = m.userData.spriteH || 7.4;
+            const h = m.userData.spriteH || 9.2;
             bill.scale.set(h * (img.width / img.height), h, 1);
           }
         }
@@ -766,8 +766,8 @@
     const billboard = new THREE.Mesh(ENEMY_SPRITE.plane, mat);
     billboard.name = "spawnerSprite";
     billboard.renderOrder = 2;
-    const h = 7.4;
-    billboard.scale.set(h * 1.3, h, 1);
+    const h = 9.2;
+    billboard.scale.set(h * 1.25, h, 1);
     g.add(billboard);
     g.userData.billboard = billboard;
     g.userData.spriteH = h;
@@ -1713,7 +1713,7 @@
           m.userData.billboard.material.needsUpdate = true;
           const img = tex.image;
           if (img && img.width && img.height) {
-            const h = m.userData.spriteH || 7.4;
+            const h = m.userData.spriteH || 9.2;
             m.userData.billboard.scale.set(h * (img.width / img.height), h, 1);
           }
         }
@@ -1721,7 +1721,8 @@
       const sp = worldTo3D(s.x, s.y);
       const bob = Math.sin(s.pulse || state.time * 2) * 0.12;
       m.visible = true;
-      m.position.set(sp.x, 1.85 + bob, sp.z);
+      // Lift the billboard so tentacle tips clear the forest floor.
+      m.position.set(sp.x, 2.55 + bob, sp.z);
       const bill = m.userData.billboard;
       if (bill && camera) {
         bill.quaternion.copy(camera.quaternion);

@@ -9,7 +9,7 @@
   const ROCKET_KILLS_INTERVAL = 100;
   const ROCKET_HOME_RANGE = 99999; // always lock a Spawner if any remain
   const ROCKET_SPEED = 400;
-  const SPAWNER_SPEED = 16;
+  const SPAWNER_SPEED = 34;
   const SPAWNER_RADIUS = 92;
   const NUKE_SPAWNER_RANGE = 240; // near-Spawner nuke = 1 missile hit
   /** Soft world edge — player is clamped here; pickups must spawn inside. */
@@ -1132,8 +1132,8 @@
       face: pickSpawnerFace(ang),
       section,
       zone,
-      moveTimer: rand(2.2, 4.5),
-      spawnTimer: rand(1.2, 2.4),
+      moveTimer: rand(1.4, 3.0),
+      spawnTimer: rand(0.25, 0.7),
       pulse: rand(0, TAU),
       hitFlash: 0,
       color: "#7ad0ff",
@@ -1373,10 +1373,11 @@
 
       s.spawnTimer -= dt;
       if (s.spawnTimer <= 0) {
-        const burst = state.enemies.length < 18 ? 2 : 1;
+        const density = 1 + state.time / 55 + Math.max(0, state.round - 1) * 0.25;
+        const burst = state.enemies.length < 22 ? 3 : state.enemies.length < 34 ? 2 : 1;
         for (let i = 0; i < burst; i++) spawnEnemyFromSpawner(s);
-        const density = 1 + state.time / 80 + Math.max(0, state.round - 1) * 0.15;
-        s.spawnTimer = Math.max(1.05, 2.4 / density) + rand(0, 0.5);
+        // Aggressive spawn cadence — Spawners should pressure the lantern hard.
+        s.spawnTimer = Math.max(0.28, 0.85 / density) + rand(0, 0.18);
       }
 
       // Touching a Spawner costs half your life — they still do not chase you.
@@ -2893,12 +2894,13 @@
     const ready = spawnerFaceReady[face];
     const bob = Math.sin(sp.pulse) * 4;
     const pulse = 1 + Math.sin(sp.pulse * 1.2) * 0.025;
-    const drawH = 228 * pulse * (sp.hitFlash > 0 ? 1.04 : 1);
-    const aspect = ready && img && img.width ? img.width / img.height : 1.3;
+    // Tall draw box + slight upward bias so tentacle tips aren't clipped.
+    const drawH = 280 * pulse * (sp.hitFlash > 0 ? 1.04 : 1);
+    const aspect = ready && img && img.width ? img.width / img.height : 1.25;
     const drawW = drawH * aspect;
-    drawShadow(s.x, s.y + 14, drawW * 0.45, drawH * 0.12, 0.4);
+    drawShadow(s.x, s.y + 18, drawW * 0.42, drawH * 0.11, 0.4);
     ctx.save();
-    ctx.translate(s.x, s.y + bob);
+    ctx.translate(s.x, s.y + bob - drawH * 0.06);
     if (ready && img) {
       ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
       if (sp.hitFlash > 0) {
@@ -2924,7 +2926,7 @@
     const barW = Math.max(48, drawW * 0.34);
     const barH = 3;
     const bx = s.x - barW / 2;
-    const by = s.y - drawH * 0.48 - 10;
+    const by = s.y - drawH * 0.54 - 8;
     ctx.fillStyle = "rgba(8, 12, 18, 0.28)";
     ctx.fillRect(bx, by, barW, barH);
     ctx.fillStyle = `rgba(147, 197, 253, ${0.35 + pct * 0.25})`;
