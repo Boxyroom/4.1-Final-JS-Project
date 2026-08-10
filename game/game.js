@@ -289,6 +289,25 @@
   };
   playerVisualImg.src = PLAYER_VISUAL_SRC;
 
+  // Enemy art sprites (jellyfish wisps / armored eyes).
+  function enemyAssetSrc(file) {
+    const path = (location.pathname || "").replace(/\\/g, "/");
+    if (path.includes("/game") && !/lantern\.html$/i.test(path)) return "assets/" + file;
+    return "game/assets/" + file;
+  }
+  const enemyWispImg = new Image();
+  const enemyArmorImg = new Image();
+  let enemyWispReady = false;
+  let enemyArmorReady = false;
+  enemyWispImg.onload = () => {
+    enemyWispReady = true;
+  };
+  enemyArmorImg.onload = () => {
+    enemyArmorReady = true;
+  };
+  enemyWispImg.src = enemyAssetSrc("enemy-wisp.png");
+  enemyArmorImg.src = enemyAssetSrc("enemy-armor.png");
+
   function lerpAngle(a, b, t) {
     let d = b - a;
     while (d > Math.PI) d -= TAU;
@@ -1208,7 +1227,7 @@
         speed: 66 * speedMul,
         damage: 16,
         xp: 40,
-        color: "#e07a4a",
+        color: "#a56bff",
         pulse: 0,
       });
       return;
@@ -1225,7 +1244,7 @@
         speed: (72 + t * 0.018) * speedMul,
         damage: 10,
         xp: 5,
-        color: "#7a9ae0",
+        color: "#7ad0ff",
         pulse: rand(0, TAU),
       });
       return;
@@ -1242,7 +1261,7 @@
         speed: (170 + t * 0.05) * speedMul,
         damage: 7,
         xp: 3,
-        color: "#7ec8a3",
+        color: "#4ad8e8",
         pulse: rand(0, TAU),
       });
       return;
@@ -1258,7 +1277,7 @@
       speed: (95 + Math.max(0, t - 20) * 0.03) * speedMul,
       damage: 7,
       xp: 2,
-      color: "#86a37a",
+      color: "#4ad8e8",
       pulse: rand(0, TAU),
     });
   }
@@ -2453,171 +2472,59 @@
     }
   }
 
-  function drawEnemyArm(e, armored, armIndex, armCount, time) {
-    const base = (armIndex / armCount) * TAU;
-    const phase = e.pulse * (armored ? 1.1 : 1.45) + armIndex * 0.9;
-    const reach = Math.atan2(state.player.y - e.y, state.player.x - e.x);
-    const lean = Math.sin(base - reach) * 0.35;
-    const twitch = Math.sin(phase * 4.5 + armIndex) > 0.92 ? Math.sin(time * 28 + armIndex) * 0.45 : 0;
-    const len = e.r * (armored ? 1.85 : 1.65);
-    const x0 = Math.cos(base) * e.r * 0.55;
-    const y0 = Math.sin(base) * e.r * 0.35;
-    const x1 = Math.cos(base + lean * 0.5) * (e.r + len * 0.45) + Math.cos(phase) * 4;
-    const y1 = Math.sin(base + lean * 0.5) * (e.r + len * 0.35) + Math.sin(phase * 1.2) * 5 + twitch * 6;
-    const x2 = Math.cos(base + lean) * (e.r + len) + Math.cos(phase + 1.1) * 3 + twitch * 4;
-    const y2 = Math.sin(base + lean) * (e.r + len * 0.85) + Math.sin(phase * 0.8) * 4 + 6;
-
-    ctx.beginPath();
-    ctx.moveTo(x0, y0);
-    ctx.quadraticCurveTo(x1, y1, x2, y2);
-    ctx.strokeStyle = armored
-      ? `rgba(140,180,255,${0.78 + Math.sin(phase) * 0.15})`
-      : `rgba(80,220,240,${0.5 + Math.sin(phase) * 0.25})`;
-    ctx.lineWidth = armored ? Math.max(2.5, e.r * 0.22) : Math.max(2, e.r * 0.18);
-    ctx.lineCap = "round";
-    ctx.stroke();
-
-    // Tip bulb / scythe point
-    if (armored) {
-      ctx.fillStyle = "rgba(200,230,255,0.95)";
-      ctx.beginPath();
-      ctx.moveTo(x2, y2);
-      ctx.lineTo(x2 + Math.cos(base + 0.4) * 5, y2 + Math.sin(base + 0.4) * 5);
-      ctx.lineTo(x2 + Math.cos(base - 0.4) * 4, y2 + Math.sin(base - 0.4) * 4);
-      ctx.closePath();
-      ctx.fill();
-    } else {
-      const tip = ctx.createRadialGradient(x2, y2, 0.5, x2, y2, 5);
-      tip.addColorStop(0, "rgba(220,255,255,0.95)");
-      tip.addColorStop(1, "rgba(40,180,210,0)");
-      ctx.fillStyle = tip;
-      ctx.beginPath();
-      ctx.arc(x2, y2, 4.5, 0, TAU);
-      ctx.fill();
-    }
-  }
-
   function drawEnemy(e, s) {
     const flash = e.hitFlash && e.hitFlash > 0;
     if (e.hitFlash) e.hitFlash = Math.max(0, e.hitFlash - 0.016);
+    const armored = e.kind === "brute" || e.kind === "boss";
+    const img = armored ? enemyArmorImg : enemyWispImg;
+    const ready = armored ? enemyArmorReady : enemyWispReady;
     const bob = Math.sin(e.pulse) * 2;
-    drawShadow(s.x, s.y + 4, e.r * 1.15, e.r * 0.6, 0.32);
+    const phase = e.pulse * (armored ? 2.1 : 2.7);
+    const twitch = Math.sin(phase * 3.4) > 0.92 ? Math.sin(phase * 18) * 0.06 : 0;
+    const sway = Math.sin(phase) * 0.08 + twitch;
+    const pulse = 1 + Math.sin(phase * 0.85) * 0.04 + Math.abs(twitch) * 0.4;
+    const drawH = e.r * (armored ? (e.kind === "boss" ? 4.4 : 3.8) : 3.6) * pulse * (flash ? 1.08 : 1);
+    const aspect = ready && img.width && img.height ? img.width / img.height : armored ? 768 / 561 : 1;
+    const drawW = drawH * aspect;
+
+    drawShadow(s.x, s.y + 6, drawW * 0.38, drawH * 0.12, 0.3);
 
     ctx.save();
     ctx.translate(s.x, s.y + bob);
-    ctx.scale(1.12, 1.12);
-
-    const armored = e.kind === "brute" || e.kind === "boss";
-    const busy = state.enemies.length > 26;
-    const armCount = busy
-      ? armored
-        ? 3
-        : 3
-      : armored
-        ? e.kind === "boss"
-          ? 5
-          : 4
-        : 4;
-    // Arms behind body
-    for (let i = 0; i < armCount; i++) drawEnemyArm(e, armored, i, armCount, state.time);
-
-    if (!armored) {
-      // Plasma jellyfish core
-      const body = ctx.createRadialGradient(-2, -2, 1, 0, 0, e.r + 8);
-      body.addColorStop(0, flash ? "#f4ffff" : "rgba(200,250,255,0.95)");
-      body.addColorStop(0.35, flash ? "#c8f0ff" : "rgba(60,200,220,0.85)");
-      body.addColorStop(0.75, "rgba(20,100,130,0.55)");
-      body.addColorStop(1, "rgba(10,40,60,0)");
-      ctx.fillStyle = body;
-      ctx.beginPath();
-      ctx.arc(0, 0, e.r + 6, 0, TAU);
-      ctx.fill();
-      // Star maw
-      ctx.fillStyle = "#061018";
-      ctx.beginPath();
-      for (let i = 0; i < 6; i++) {
-        const a = (i / 6) * TAU - Math.PI / 2;
-        const r = i % 2 === 0 ? e.r * 0.42 : e.r * 0.18;
-        const x = Math.cos(a) * r;
-        const y = Math.sin(a) * r;
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
+    ctx.rotate(sway);
+    if (ready) {
+      if (flash) ctx.globalAlpha = 0.92;
+      ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
+      if (flash) {
+        ctx.globalCompositeOperation = "lighter";
+        ctx.globalAlpha = 0.35;
+        ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
+        ctx.globalCompositeOperation = "source-over";
+        ctx.globalAlpha = 1;
       }
-      ctx.closePath();
-      ctx.fill();
-      ctx.fillStyle = "#9cf0ff";
-      ctx.beginPath();
-      ctx.arc(0, 0, 2.2, 0, TAU);
-      ctx.fill();
     } else {
-      // Armored cosmic eye — steel/violet so it pops on the dark marsh
-      const aura = ctx.createRadialGradient(0, 0, e.r * 0.6, 0, 0, e.r + 14);
-      aura.addColorStop(0, "rgba(150,180,255,0.35)");
-      aura.addColorStop(0.55, "rgba(120,100,220,0.18)");
-      aura.addColorStop(1, "rgba(40,50,90,0)");
-      ctx.fillStyle = aura;
+      // Fallback while art loads
+      const glow = ctx.createRadialGradient(0, 0, 2, 0, 0, e.r + 10);
+      glow.addColorStop(0, armored ? "#c49bff" : "#9cf0ff");
+      glow.addColorStop(0.5, armored ? "#5a6d92" : "#3ec0d4");
+      glow.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = glow;
       ctx.beginPath();
-      ctx.arc(0, 0, e.r + 14, 0, TAU);
+      ctx.arc(0, 0, e.r + 10, 0, TAU);
       ctx.fill();
-
-      const shell = ctx.createRadialGradient(-4, -5, 2, 0, 0, e.r + 4);
-      shell.addColorStop(0, flash ? "#e8eefc" : "#9aabd0");
-      shell.addColorStop(0.45, flash ? "#a8b4d8" : "#5a6d92");
-      shell.addColorStop(1, "#2e3a58");
-      ctx.fillStyle = shell;
-      ctx.beginPath();
-      ctx.arc(0, 0, e.r, 0, TAU);
-      ctx.fill();
-      ctx.strokeStyle = "rgba(190,210,255,0.75)";
-      ctx.lineWidth = 2.5;
-      ctx.stroke();
-      // Iris
-      const iris = ctx.createRadialGradient(0, 0, 1, 0, 0, e.r * 0.55);
-      iris.addColorStop(0, flash ? "#f4f0ff" : "#e0d0ff");
-      iris.addColorStop(0.4, "#a56bff");
-      iris.addColorStop(1, "#3a2068");
-      ctx.fillStyle = iris;
-      ctx.beginPath();
-      ctx.arc(0, 0, e.r * 0.55, 0, TAU);
-      ctx.fill();
-      // Vertical pupil
-      ctx.fillStyle = "#d8f6ff";
-      ctx.beginPath();
-      safeEllipse(0, 0, e.r * 0.12, e.r * 0.38, 0);
-      ctx.fill();
-      ctx.fillStyle = "#061018";
-      ctx.beginPath();
-      safeEllipse(0, 0, e.r * 0.05, e.r * 0.28, 0);
-      ctx.fill();
-      // Armor notches
-      ctx.strokeStyle = "rgba(180,210,255,0.7)";
-      ctx.lineWidth = 2.25;
-      for (let i = 0; i < 5; i++) {
-        const a = (i / 5) * TAU;
-        ctx.beginPath();
-        ctx.arc(0, 0, e.r * 0.82, a - 0.25, a + 0.25);
-        ctx.stroke();
-      }
-      if (e.kind === "boss") {
-        ctx.strokeStyle = `rgba(180,200,255,${0.65 + Math.sin(e.pulse) * 0.2})`;
-        ctx.lineWidth = 2.5;
-        ctx.beginPath();
-        ctx.arc(0, 0, e.r + 7 + Math.sin(e.pulse) * 2, 0, TAU);
-        ctx.stroke();
-      }
     }
-
     ctx.restore();
 
     if (e.kind === "boss" || e.hp < e.maxHp) {
       const pct = clamp(e.hp / e.maxHp, 0, 1);
+      const barW = Math.max(e.r * 2, drawW * 0.45);
       ctx.fillStyle = "rgba(0,0,0,0.5)";
-      ctx.fillRect(s.x - e.r, s.y - e.r - 16, e.r * 2, 5);
-      const bar = ctx.createLinearGradient(s.x - e.r, 0, s.x + e.r, 0);
+      ctx.fillRect(s.x - barW / 2, s.y - drawH * 0.48 - 10, barW, 5);
+      const bar = ctx.createLinearGradient(s.x - barW / 2, 0, s.x + barW / 2, 0);
       bar.addColorStop(0, "#c45c26");
       bar.addColorStop(1, "#f0b429");
       ctx.fillStyle = bar;
-      ctx.fillRect(s.x - e.r, s.y - e.r - 16, e.r * 2 * pct, 5);
+      ctx.fillRect(s.x - barW / 2, s.y - drawH * 0.48 - 10, barW * pct, 5);
     }
   }
 

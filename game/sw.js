@@ -9,6 +9,8 @@ const PRECACHE = [
   "./cgi.js",
   "./game.js",
   "./assets/relic-orb.png",
+  "./assets/enemy-wisp.png",
+  "./assets/enemy-armor.png",
   "./assets/ancient-relic.png",
   "./assets/forest-floor.webp",
   "./assets/forest-floor.png",
