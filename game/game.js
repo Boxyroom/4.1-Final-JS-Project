@@ -2997,7 +2997,12 @@
     octx.fill();
     octx.fillStyle = "rgba(255, 230, 160, 0.95)";
     octx.beginPath();
-    octx.ellipse(0, 0, 14, 5.5, 0, 0, TAU);
+    if (octx.ellipse) octx.ellipse(0, 0, 14, 5.5, 0, 0, TAU);
+    else {
+      octx.scale(1, 0.4);
+      octx.arc(0, 0, 14, 0, TAU);
+      octx.scale(1, 2.5);
+    }
     octx.fill();
     octx.fillStyle = "rgba(255, 176, 64, 0.98)";
     octx.beginPath();
