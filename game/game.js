@@ -806,6 +806,13 @@
     return Math.max(a, Math.min(b, v));
   }
 
+  function setMeterFill(el, pct) {
+    if (!el) return;
+    const v = `${clamp(pct, 0, 100)}%`;
+    el.style.width = v;
+    el.style.setProperty("--meter", v);
+  }
+
   function dist(a, b) {
     const dx = a.x - b.x;
     const dy = a.y - b.y;
@@ -1029,10 +1036,9 @@
     animId = requestAnimationFrame(frame);
   }
 
-  function showCoach(text) {
-    if (!ui.coach) return;
-    ui.coach.textContent = text;
-    ui.coach.classList.remove("hidden");
+  function showCoach(_text) {
+    // In-run coach popups removed — they cover too much of the phone screen.
+    hideCoach();
   }
 
   function hideCoach() {
@@ -1040,11 +1046,10 @@
     ui.coach.classList.add("hidden");
   }
 
-  function showBanner(text, seconds = 2.4) {
-    if (!ui.banner) return;
-    ui.banner.textContent = text;
-    ui.banner.classList.remove("hidden");
-    state.bannerTimer = seconds;
+  function showBanner(_text, _seconds = 2.4) {
+    // In-run banners removed — keep the battlefield clear on mobile.
+    if (ui.banner) ui.banner.classList.add("hidden");
+    if (state) state.bannerTimer = 0;
   }
 
   function xpForLevel(level) {
@@ -1753,7 +1758,7 @@
     }
     if (ui.dashFill) {
       const fillPct = swarming ? (p.swarmTimer / 8) * 100 : loaded ? 100 : 0;
-      ui.dashFill.style.width = `${fillPct}%`;
+      setMeterFill(ui.dashFill, fillPct);
       ui.dashFill.classList.toggle("nuke", kind === "nuke" && !swarming);
       ui.dashFill.classList.toggle("grenades", kind === "grenades" && !swarming);
       ui.dashFill.classList.toggle("swarm", swarming);
@@ -2099,7 +2104,7 @@
     ui.hudTime.textContent = formatTime(state.time);
     const hpPct = clamp(p.hp / p.maxHp, 0, 1);
     ui.hudHp.textContent = `${Math.ceil(p.hp)} / ${Math.ceil(p.maxHp)}`;
-    if (ui.lifeFill) ui.lifeFill.style.width = `${hpPct * 100}%`;
+    if (ui.lifeFill) setMeterFill(ui.lifeFill, hpPct * 100);
     if (ui.lifeRow) ui.lifeRow.classList.toggle("danger", hpPct < 0.3);
     ui.hudHp.classList.toggle("danger", hpPct < 0.3);
     ui.hudKills.textContent = `${state.kills} kills`;
@@ -2107,7 +2112,7 @@
       ui.hudRound.textContent = `R${state.round} ${state.roundKills}/${KILLS_PER_ROUND}`;
     }
     ui.hudLevel.textContent = `Lv ${p.level}`;
-    ui.xpFill.style.width = `${(p.xp / p.nextXp) * 100}%`;
+    setMeterFill(ui.xpFill, (p.xp / p.nextXp) * 100);
     if (ui.hudFocus) {
       ui.hudFocus.classList.toggle("hidden", !input.focus);
     }
