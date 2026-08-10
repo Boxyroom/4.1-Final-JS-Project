@@ -541,58 +541,267 @@
 
   let tutorialIndex = 0;
 
-  const SHOP = [
+  /** Ember shop stocks. When every item in a tier is maxed, the next stock unlocks. */
+  const SHOP_TIERS = [
     {
-      id: "vitality",
-      name: "Deep Roots",
-      desc: "+12 max light (HP) per rank.",
-      max: 8,
-      cost: (r) => 12 + r * 10,
-      apply: (p, r) => {
-        p.maxHp += 12 * r;
-      },
+      id: "hollow",
+      name: "Hollow Stock",
+      blurb: "Core lantern crafts — permanent boosts for every run.",
+      items: [
+        {
+          id: "vitality",
+          name: "Deep Roots",
+          desc: "+12 max light (HP) per rank.",
+          max: 8,
+          cost: (r) => 12 + r * 10,
+          apply: (p, r) => {
+            p.maxHp += 12 * r;
+          },
+          applyLive: (p, from, to) => {
+            const d = to - from;
+            p.maxHp += 12 * d;
+            p.hp += 12 * d;
+          },
+        },
+        {
+          id: "swift",
+          name: "Marsh Stride",
+          desc: "+6% move speed per rank.",
+          max: 6,
+          cost: (r) => 14 + r * 12,
+          apply: (p, r) => {
+            p.speed *= 1 + 0.06 * r;
+          },
+          applyLive: (p, from, to) => {
+            const before = 1 + 0.06 * from;
+            const after = 1 + 0.06 * to;
+            p.speed *= after / Math.max(0.01, before);
+          },
+        },
+        {
+          id: "spark",
+          name: "Kindling Spark",
+          desc: "+8% attack damage per rank.",
+          max: 8,
+          cost: (r) => 15 + r * 13,
+          apply: (p, r) => {
+            p.damage *= 1 + 0.08 * r;
+          },
+          applyLive: (p, from, to) => {
+            const before = 1 + 0.08 * from;
+            const after = 1 + 0.08 * to;
+            p.damage *= after / Math.max(0.01, before);
+          },
+        },
+        {
+          id: "pickup",
+          name: "Wide Wick",
+          desc: "+18% XP magnet range per rank.",
+          max: 5,
+          cost: (r) => 10 + r * 9,
+          apply: (p, r) => {
+            p.magnet *= 1 + 0.18 * r;
+          },
+          applyLive: (p, from, to, s) => {
+            const before = 1 + 0.18 * from;
+            const after = 1 + 0.18 * to;
+            p.magnet *= after / Math.max(0.01, before);
+            if (s) s.baseMagnet = p.magnet;
+          },
+        },
+        {
+          id: "fortune",
+          name: "Lucky Moth",
+          desc: "+10% embers earned per rank.",
+          max: 5,
+          cost: (r) => 20 + r * 18,
+          apply: (p, r) => {
+            p.emberMult *= 1 + 0.1 * r;
+          },
+          applyLive: (p, from, to) => {
+            const before = 1 + 0.1 * from;
+            const after = 1 + 0.1 * to;
+            p.emberMult *= after / Math.max(0.01, before);
+          },
+        },
+      ],
     },
     {
-      id: "swift",
-      name: "Marsh Stride",
-      desc: "+6% move speed per rank.",
-      max: 6,
-      cost: (r) => 14 + r * 12,
-      apply: (p, r) => {
-        p.speed *= 1 + 0.06 * r;
-      },
+      id: "marsh",
+      name: "Deep Marsh Stock",
+      blurb: "New wares — unlocked after Hollow Stock is fully bought.",
+      items: [
+        {
+          id: "ironbark",
+          name: "Iron Bark",
+          desc: "+4% damage reduction per rank (caps with other armor).",
+          max: 6,
+          cost: (r) => 22 + r * 16,
+          apply: (p, r) => {
+            p.armor += 0.04 * r;
+          },
+          applyLive: (p, from, to) => {
+            p.armor += 0.04 * (to - from);
+          },
+        },
+        {
+          id: "heartfire",
+          name: "Heartfire",
+          desc: "+0.28 light restored per second per rank.",
+          max: 6,
+          cost: (r) => 24 + r * 18,
+          apply: (p, r) => {
+            p.regen += 0.28 * r;
+          },
+          applyLive: (p, from, to) => {
+            p.regen += 0.28 * (to - from);
+          },
+        },
+        {
+          id: "bramble",
+          name: "Bramble Skin",
+          desc: "+3 thorns damage to attackers per rank.",
+          max: 5,
+          cost: (r) => 20 + r * 15,
+          apply: (p, r) => {
+            p.thorns += 3 * r;
+          },
+          applyLive: (p, from, to) => {
+            p.thorns += 3 * (to - from);
+          },
+        },
+        {
+          id: "quickfuse",
+          name: "Quick Fuse",
+          desc: "−5% fire cooldown per rank.",
+          max: 6,
+          cost: (r) => 26 + r * 20,
+          apply: (p, r) => {
+            p.fireCooldown *= Math.pow(0.95, r);
+          },
+          applyLive: (p, from, to) => {
+            p.fireCooldown *= Math.pow(0.95, to - from);
+          },
+        },
+        {
+          id: "warhead",
+          name: "Warhead Cache",
+          desc: "Start each run with +1 missile per rank.",
+          max: 3,
+          cost: (r) => 40 + r * 32,
+          apply: (p, r) => {
+            p.rockets += r;
+          },
+          applyLive: (p, from, to) => {
+            p.rockets += to - from;
+          },
+        },
+      ],
     },
     {
-      id: "spark",
-      name: "Kindling Spark",
-      desc: "+8% attack damage per rank.",
-      max: 8,
-      cost: (r) => 15 + r * 13,
-      apply: (p, r) => {
-        p.damage *= 1 + 0.08 * r;
-      },
-    },
-    {
-      id: "pickup",
-      name: "Wide Wick",
-      desc: "+18% XP magnet range per rank.",
-      max: 5,
-      cost: (r) => 10 + r * 9,
-      apply: (p, r) => {
-        p.magnet *= 1 + 0.18 * r;
-      },
-    },
-    {
-      id: "fortune",
-      name: "Lucky Moth",
-      desc: "+10% embers earned per rank.",
-      max: 5,
-      cost: (r) => 20 + r * 18,
-      apply: (p, r) => {
-        p.emberMult *= 1 + 0.1 * r;
-      },
+      id: "ancient",
+      name: "Ancient Ember Stock",
+      blurb: "Rare crafts — unlocked after Deep Marsh Stock is emptied.",
+      items: [
+        {
+          id: "titanroots",
+          name: "Titan Roots",
+          desc: "+18 max light (HP) per rank.",
+          max: 6,
+          cost: (r) => 36 + r * 28,
+          apply: (p, r) => {
+            p.maxHp += 18 * r;
+          },
+          applyLive: (p, from, to) => {
+            const d = to - from;
+            p.maxHp += 18 * d;
+            p.hp += 18 * d;
+          },
+        },
+        {
+          id: "severingspark",
+          name: "Severing Spark",
+          desc: "+10% attack damage per rank.",
+          max: 6,
+          cost: (r) => 38 + r * 30,
+          apply: (p, r) => {
+            p.damage *= 1 + 0.1 * r;
+          },
+          applyLive: (p, from, to) => {
+            const before = 1 + 0.1 * from;
+            const after = 1 + 0.1 * to;
+            p.damage *= after / Math.max(0.01, before);
+          },
+        },
+        {
+          id: "twinwick",
+          name: "Twin Wick",
+          desc: "+1 lantern bolt projectile per rank.",
+          max: 2,
+          cost: (r) => 55 + r * 45,
+          apply: (p, r) => {
+            p.projectiles += r;
+          },
+          applyLive: (p, from, to) => {
+            p.projectiles += to - from;
+          },
+        },
+        {
+          id: "galestride",
+          name: "Gale Stride",
+          desc: "+7% move speed per rank.",
+          max: 5,
+          cost: (r) => 30 + r * 24,
+          apply: (p, r) => {
+            p.speed *= 1 + 0.07 * r;
+          },
+          applyLive: (p, from, to) => {
+            const before = 1 + 0.07 * from;
+            const after = 1 + 0.07 * to;
+            p.speed *= after / Math.max(0.01, before);
+          },
+        },
+        {
+          id: "gildmoth",
+          name: "Gilded Moth",
+          desc: "+12% embers earned per rank.",
+          max: 5,
+          cost: (r) => 42 + r * 34,
+          apply: (p, r) => {
+            p.emberMult *= 1 + 0.12 * r;
+          },
+          applyLive: (p, from, to) => {
+            const before = 1 + 0.12 * from;
+            const after = 1 + 0.12 * to;
+            p.emberMult *= after / Math.max(0.01, before);
+          },
+        },
+      ],
     },
   ];
+
+  function allShopItems() {
+    const out = [];
+    for (const tier of SHOP_TIERS) {
+      for (const item of tier.items) out.push(item);
+    }
+    return out;
+  }
+
+  function isShopTierComplete(tier) {
+    return tier.items.every((item) => (meta.shop[item.id] || 0) >= item.max);
+  }
+
+  function activeShopTier() {
+    for (let i = 0; i < SHOP_TIERS.length; i++) {
+      if (!isShopTierComplete(SHOP_TIERS[i])) return SHOP_TIERS[i];
+    }
+    return SHOP_TIERS[SHOP_TIERS.length - 1];
+  }
+
+  function shopStockFullyCleared() {
+    return SHOP_TIERS.every(isShopTierComplete);
+  }
 
   const RUN_UPGRADES = [
     {
@@ -1075,7 +1284,7 @@
       rockets: 0,
     };
 
-    for (const item of SHOP) {
+    for (const item of allShopItems()) {
       const rank = meta.shop[item.id] || 0;
       if (rank > 0) item.apply(p, rank);
     }
@@ -1930,29 +2139,57 @@
 
   function applyShopPurchaseToPlayer(item, fromRank, toRank) {
     if (!state || !state.player || toRank <= fromRank) return;
-    const p = state.player;
-    const d = toRank - fromRank;
-    if (item.id === "vitality") {
-      p.maxHp += 12 * d;
-      p.hp += 12 * d;
-    } else if (item.id === "swift") {
-      const before = 1 + 0.06 * fromRank;
-      const after = 1 + 0.06 * toRank;
-      p.speed *= after / Math.max(0.01, before);
-    } else if (item.id === "spark") {
-      const before = 1 + 0.08 * fromRank;
-      const after = 1 + 0.08 * toRank;
-      p.damage *= after / Math.max(0.01, before);
-    } else if (item.id === "pickup") {
-      const before = 1 + 0.18 * fromRank;
-      const after = 1 + 0.18 * toRank;
-      p.magnet *= after / Math.max(0.01, before);
-      state.baseMagnet = p.magnet;
-    } else if (item.id === "fortune") {
-      const before = 1 + 0.1 * fromRank;
-      const after = 1 + 0.1 * toRank;
-      p.emberMult *= after / Math.max(0.01, before);
+    if (typeof item.applyLive === "function") {
+      item.applyLive(state.player, fromRank, toRank, state);
+      return;
     }
+    // Fallback for additive-style apply (ranks applied from 0).
+    const p = state.player;
+    const scratch = {
+      maxHp: 0,
+      speed: 1,
+      damage: 1,
+      magnet: 1,
+      emberMult: 1,
+      armor: 0,
+      regen: 0,
+      thorns: 0,
+      fireCooldown: 1,
+      projectiles: 0,
+      rockets: 0,
+      hp: 0,
+    };
+    item.apply(scratch, fromRank);
+    const after = {
+      maxHp: 0,
+      speed: 1,
+      damage: 1,
+      magnet: 1,
+      emberMult: 1,
+      armor: 0,
+      regen: 0,
+      thorns: 0,
+      fireCooldown: 1,
+      projectiles: 0,
+      rockets: 0,
+      hp: 0,
+    };
+    item.apply(after, toRank);
+    p.maxHp += after.maxHp - scratch.maxHp;
+    p.hp += after.maxHp - scratch.maxHp;
+    p.armor += after.armor - scratch.armor;
+    p.regen += after.regen - scratch.regen;
+    p.thorns += after.thorns - scratch.thorns;
+    p.projectiles += after.projectiles - scratch.projectiles;
+    p.rockets += after.rockets - scratch.rockets;
+    if (scratch.speed > 0) p.speed *= after.speed / scratch.speed;
+    if (scratch.damage > 0) p.damage *= after.damage / scratch.damage;
+    if (scratch.magnet > 0) {
+      p.magnet *= after.magnet / scratch.magnet;
+      state.baseMagnet = p.magnet;
+    }
+    if (scratch.emberMult > 0) p.emberMult *= after.emberMult / scratch.emberMult;
+    if (scratch.fireCooldown > 0) p.fireCooldown *= after.fireCooldown / scratch.fireCooldown;
   }
 
   function gainXp(amount) {
@@ -3604,11 +3841,25 @@
 
   function renderShop() {
     ui.shopEmbers.textContent = String(meta.embers);
+    const tier = activeShopTier();
+    const tierIndex = SHOP_TIERS.indexOf(tier);
+    const cleared = shopStockFullyCleared();
     if (ui.shopLede) {
-      ui.shopLede.innerHTML =
+      const base =
         state && state.shopReturnMode === "round"
           ? "<strong>Embers</strong> from this round. Buy a permanent skill — it applies now and to every future run — then head back and continue."
           : "<strong>Embers</strong> are the coins you earn after each run. Spending them here makes every future run permanently stronger on this device.";
+      let stockNote = "";
+      if (cleared) {
+        stockNote =
+          " Every shop stock is emptied — your lantern crafts are fully forged.";
+      } else if (tierIndex > 0) {
+        stockNote = ` Maxing a stock unlocks the next. Now showing <strong>${tier.name}</strong>.`;
+      } else {
+        stockNote =
+          " Max every item in this stock to unlock a new set of wares.";
+      }
+      ui.shopLede.innerHTML = base + stockNote;
     }
     const back = document.getElementById("btn-shop-back");
     if (back) {
@@ -3616,7 +3867,14 @@
         state && state.shopReturnMode === "round" ? "Back to round" : "Back";
     }
     ui.shopList.innerHTML = "";
-    for (const item of SHOP) {
+    const stockLabel = document.createElement("div");
+    stockLabel.className = "shop-stock-label";
+    stockLabel.innerHTML = cleared
+      ? `<strong>${tier.name}</strong> — all ranks maxed`
+      : `<strong>${tier.name}</strong> <span>(${tierIndex + 1}/${SHOP_TIERS.length})</span> — ${tier.blurb}`;
+    ui.shopList.appendChild(stockLabel);
+
+    for (const item of tier.items) {
       const rank = meta.shop[item.id] || 0;
       const maxed = rank >= item.max;
       const cost = item.cost(rank);
@@ -3634,6 +3892,9 @@
         meta.embers -= cost;
         meta.shop[item.id] = rank + 1;
         applyShopPurchaseToPlayer(item, rank, rank + 1);
+        if (item.id === "warhead" && typeof refreshRocketUi === "function") {
+          refreshRocketUi();
+        }
         saveMeta();
         renderShop();
         refreshMetaUi();
@@ -3907,6 +4168,7 @@
 
   window.__lanternDebug = {
     getState: () => state,
+    getMeta: () => meta,
     spawnWeapon: (kind) => {
       if (!state) return false;
       const k =
@@ -3943,5 +4205,16 @@
       state.player.r = lanternEvolution(lv).r;
       return true;
     },
+    /** Max all items in shop tier index (0-based). Unlocks the next stock. */
+    maxShopTier: (tierIndex = 0) => {
+      const tier = SHOP_TIERS[tierIndex | 0];
+      if (!tier) return false;
+      for (const item of tier.items) meta.shop[item.id] = item.max;
+      saveMeta();
+      if (mode === "shop") renderShop();
+      refreshMetaUi();
+      return tier.id;
+    },
+    activeShopTier: () => activeShopTier().id,
   };
 })();
