@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#4AA8FF" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Little Drone" />
+  <meta name="description" content="Fly a cute little drone through floating islands — collect energy, zip through rings, and explore." />
+  <title>Little Drone</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="assets/icons/icon-180.png" />
+  <link rel="icon" type="image/png" href="assets/icons/icon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+    <canvas id="game" aria-label="Little Drone game"></canvas>
+
+    <div id="hud" class="hidden" aria-live="polite">
+      <div class="hud-top">
+        <div class="battery" title="Battery">
+          <span class="battery-bolt" aria-hidden="true">⚡</span>
+          <div class="battery-track"><div id="battery-fill"></div></div>
+          <span id="battery-num">100</span>
+        </div>
+        <div class="hud-center">
+          <span id="hud-score">0</span>
+          <span id="hud-rings">0 / 12</span>
+        </div>
+        <button type="button" id="btn-pause" class="icon-btn" title="Pause" aria-label="Pause">❚❚</button>
+      </div>
+      <div id="toast" class="toast hidden"></div>
+      <div id="next-hint" class="next-hint">Fly through the glowing ring</div>
+    </div>
+
+    <div id="touch" class="hidden" aria-hidden="true">
+      <div id="stick" class="stick" aria-label="Move stick">
+        <div id="stick-knob" class="stick-knob"></div>
+      </div>
+      <div class="right-controls">
+        <div class="ability-row">
+          <button type="button" id="btn-radar" class="ability" title="Radar">
+            <span class="ability-icon">◎</span>
+            <span>Radar</span>
+          </button>
+          <button type="button" id="btn-scan" class="ability" title="Scan">
+            <span class="ability-icon">▽</span>
+            <span>Scan</span>
+          </button>
+        </div>
+        <button type="button" id="btn-boost" class="boost-btn" title="Boost">
+          <span class="boost-flame">▲</span>
+          <span>Boost</span>
+        </button>
+        <button type="button" id="btn-lift" class="lift-btn" title="Lift up" aria-label="Lift">
+          <span class="lift-arrow">↑</span>
+        </button>
+      </div>
+    </div>
+
+    <section id="title" class="panel">
+      <div class="sky-wash" aria-hidden="true"></div>
+      <div class="hero-drone" aria-hidden="true">
+        <div class="hero-rotor r1"></div>
+        <div class="hero-rotor r2"></div>
+        <div class="hero-rotor r3"></div>
+        <div class="hero-rotor r4"></div>
+        <div class="hero-body">
+          <div class="hero-face">
+            <span class="eye"></span><span class="eye"></span>
+          </div>
+        </div>
+      </div>
+      <p class="brand">Little Drone</p>
+      <h1 class="tagline">Float. Explore. Zip the rings.</h1>
+      <p class="lede">Guide your cheerful quadcopter through floating islands. Grab energy gems, clear the ring course, and keep your battery alive.</p>
+      <div class="btn-row">
+        <button type="button" id="btn-start" class="btn primary">Play</button>
+        <button type="button" id="btn-how" class="btn">How to fly</button>
+      </div>
+      <p class="footnote">Best on landscape. Add to Home Screen for a full-screen app icon.</p>
+      <div class="meta-row">
+        <div class="meta-chip">Best <strong id="meta-best">0</strong></div>
+        <div class="meta-chip">Flights <strong id="meta-runs">0</strong></div>
+      </div>
+    </section>
+
+    <section id="howto" class="panel hidden">
+      <h2>How to fly</h2>
+      <ul class="howto-list">
+        <li><strong>Stick</strong> — move forward, back, left, right</li>
+        <li><strong>Lift ↑</strong> — climb. Release to gently sink</li>
+        <li><strong>Boost</strong> — hold for a jet burst (uses battery)</li>
+        <li><strong>Radar</strong> — pulse to reveal nearby gems</li>
+        <li><strong>Scan</strong> — cone-scan the ground for supply crates</li>
+        <li><strong>Rings</strong> — fly through glowing rings in order</li>
+        <li><strong>Gems</strong> — recharge battery and score</li>
+      </ul>
+      <div class="btn-row">
+        <button type="button" id="btn-how-back" class="btn">Back</button>
+        <button type="button" id="btn-how-play" class="btn primary">Play</button>
+      </div>
+    </section>
+
+    <section id="pause" class="panel hidden">
+      <h2>Paused</h2>
+      <p class="lede">Sky on hold. Resume whenever you’re ready.</p>
+      <div class="btn-row">
+        <button type="button" id="btn-resume" class="btn primary">Resume</button>
+        <button type="button" id="btn-quit" class="btn">Quit to menu</button>
+      </div>
+    </section>
+
+    <section id="win" class="panel hidden">
+      <h2>Course clear!</h2>
+      <p class="lede" id="win-summary">You threaded every ring.</p>
+      <div class="meta-row">
+        <div class="meta-chip">Score <strong id="win-score">0</strong></div>
+        <div class="meta-chip">Gems <strong id="win-gems">0</strong></div>
+        <div class="meta-chip">Time <strong id="win-time">0:00</strong></div>
+      </div>
+      <div class="btn-row">
+        <button type="button" id="btn-win-again" class="btn primary">Fly again</button>
+        <button type="button" id="btn-win-menu" class="btn">Menu</button>
+      </div>
+    </section>
+
+    <section id="gameover" class="panel hidden">
+      <h2>Battery empty</h2>
+      <p class="lede" id="over-summary">Your drone powered down mid-flight.</p>
+      <div class="meta-row">
+        <div class="meta-chip">Score <strong id="over-score">0</strong></div>
+        <div class="meta-chip">Rings <strong id="over-rings">0</strong></div>
+        <div class="meta-chip">Gems <strong id="over-gems">0</strong></div>
+      </div>
+      <div class="btn-row">
+        <button type="button" id="btn-again" class="btn primary">Try again</button>
+        <button type="button" id="btn-menu" class="btn">Menu</button>
+      </div>
+    </section>
+
+    <div id="rotate-hint" class="rotate-hint hidden">
+      <p>Tilt your phone sideways for the best flight view</p>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
