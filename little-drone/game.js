@@ -1,6 +1,8 @@
 (() => {
   "use strict";
 
+  window.LITTLE_DRONE_VERSION = 4;
+
   const STORAGE_KEY = "little-drone-v1";
   const RING_COUNT = 12;
   const GEM_COUNT = 28;
@@ -519,6 +521,11 @@
       wingR.position.x = 0.4;
       g.add(wingL, wingR);
       g.position.set((Math.random() - 0.5) * 80, 6 + Math.random() * 16, (Math.random() - 0.5) * 80);
+      // Keep spawn clear of the player start area
+      if (Math.hypot(g.position.x, g.position.z - 12) < 18) {
+        g.position.x += g.position.x < 0 ? -22 : 22;
+        g.position.z -= 24;
+      }
       g.userData = {
         wingL, wingR,
         angle: Math.random() * Math.PI * 2,
@@ -611,6 +618,7 @@
   const state = {
     mode: "title", // title | play | pause | win | over
     battery: 100,
+    pausedBattery: 100,
     score: 0,
     gems: 0,
     ringsCleared: 0,
@@ -711,10 +719,12 @@
   function pauseGame() {
     if (state.mode !== "play") return;
     state.mode = "pause";
+    state.pausedBattery = state.battery;
     input.lift = false;
     input.boost = false;
     input.stickX = 0;
     input.stickY = 0;
+    for (const k of Object.keys(input.keys)) input.keys[k] = false;
     els.btnLift.classList.remove("active");
     els.btnBoost.classList.remove("active");
     setKnob(0, 0);
@@ -723,8 +733,10 @@
 
   function resumeGame() {
     if (state.mode !== "pause") return;
+    state.battery = state.pausedBattery;
     state.mode = "play";
     els.pause.classList.add("hidden");
+    updateHud();
   }
 
   function quitToMenu() {
@@ -936,15 +948,15 @@
 
     if (boost) {
       boostTrail.visible = true;
-      state.battery -= 4.5 * dt;
-      if (Math.random() < 0.06) sfx.boost();
+      state.battery -= 3.2 * dt;
+      if (Math.random() < 0.05) sfx.boost();
     } else {
       boostTrail.visible = false;
     }
 
-    // Slow cruise drain — ~3+ minutes at full battery while exploring
-    state.battery -= 0.22 * dt;
-    if (lift) state.battery -= 0.35 * dt;
+    // Cruise drain — about 4–5 minutes on a full battery
+    state.battery -= 0.18 * dt;
+    if (lift) state.battery -= 0.22 * dt;
 
     drone.position.x += state.vel.x * dt;
     drone.position.y += state.vel.y * dt;
@@ -1177,12 +1189,13 @@
   function frame(now) {
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
-    update(dt);
+    if (state.mode === "pause") {
+      state.battery = state.pausedBattery;
+    } else {
+      update(dt);
+    }
     if (state.mode === "play" || state.mode === "pause") updateCamera(dt);
     animateDecor(dt);
-    if (state.mode === "pause") {
-      // freeze gameplay already; still render
-    }
     renderer.render(scene, camera);
     requestAnimationFrame(frame);
   }
