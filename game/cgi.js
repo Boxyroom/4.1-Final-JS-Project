@@ -577,48 +577,63 @@
     return evo;
   }
 
-  // Shared low-cost enemy parts (reused across all foes — critical for phone perf).
-  const ENEMY_GEO = {
-    sphere: null,
-    cyl: null,
-    cone: null,
-  };
-  const ENEMY_MAT = {
-    wispBody: null,
-    wispArm: null,
-    wispTip: null,
-    wispCore: null,
-    armorBody: null,
-    armorArm: null,
-    armorTip: null,
-    armorEye: null,
-    armorPupil: null,
+  // Shared enemy sprite billboards (art PNGs) — cheap + readable on phones.
+  const ENEMY_SPRITE = {
+    plane: null,
+    tex: { wisp: null, armor: null },
+    loading: { wisp: false, armor: false },
   };
 
-  function enemySharedReady() {
-    if (ENEMY_GEO.sphere) return;
-    ENEMY_GEO.sphere = new THREE.SphereGeometry(1, 10, 10);
-    ENEMY_GEO.cyl = new THREE.CylinderGeometry(1, 0.75, 1, 6);
-    ENEMY_GEO.cone = new THREE.ConeGeometry(1, 1, 6);
-    ENEMY_GEO.sphere.userData.shared = true;
-    ENEMY_GEO.cyl.userData.shared = true;
-    ENEMY_GEO.cone.userData.shared = true;
+  function enemySpriteKey(kind) {
+    return kind === "brute" || kind === "boss" ? "armor" : "wisp";
+  }
 
-    function basic(color, opts) {
-      const m = new THREE.MeshBasicMaterial(Object.assign({ color }, opts || {}));
-      m.userData.shared = true;
-      return m;
-    }
-    ENEMY_MAT.wispBody = basic(0x4ad8e8, { transparent: true, opacity: 0.9 });
-    ENEMY_MAT.wispArm = basic(0x3ec0d4, { transparent: true, opacity: 0.82 });
-    ENEMY_MAT.wispTip = basic(0xb8f6ff);
-    ENEMY_MAT.wispCore = basic(0xffffff);
-    // Brighter steel/violet so armored foes stay readable on the dark marsh.
-    ENEMY_MAT.armorBody = basic(0x5a6d92);
-    ENEMY_MAT.armorArm = basic(0x7a9ae0);
-    ENEMY_MAT.armorTip = basic(0xb8e4ff);
-    ENEMY_MAT.armorEye = basic(0xc49bff);
-    ENEMY_MAT.armorPupil = basic(0xf0fbff);
+  function enemySpriteHeight(kind) {
+    if (kind === "boss") return 3.35;
+    if (kind === "brute") return 2.45;
+    if (kind === "dart") return 1.55;
+    return 1.85;
+  }
+
+  function enemySpriteFile(key) {
+    return key === "armor" ? "enemy-armor.png" : "enemy-wisp.png";
+  }
+
+  function ensureEnemySpriteTex(key) {
+    if (ENEMY_SPRITE.tex[key] || ENEMY_SPRITE.loading[key]) return;
+    ENEMY_SPRITE.loading[key] = true;
+    const loader = new THREE.TextureLoader();
+    loader.load(
+      gameAssetSrc(enemySpriteFile(key)),
+      (tex) => {
+        if ("colorSpace" in tex && THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
+        else if ("encoding" in tex && THREE.sRGBEncoding) tex.encoding = THREE.sRGBEncoding;
+        tex.needsUpdate = true;
+        tex.userData.shared = true;
+        ENEMY_SPRITE.tex[key] = tex;
+        ENEMY_SPRITE.loading[key] = false;
+        // Apply to any billboards waiting on this texture.
+        for (let i = 0; i < enemyPool.length; i++) {
+          const m = enemyPool[i] && enemyPool[i].mesh;
+          const bill = m && m.userData && m.userData.billboard;
+          if (!bill || m.userData.spriteKey !== key) continue;
+          bill.material.map = tex;
+          bill.material.needsUpdate = true;
+          const img = tex.image;
+          if (img && img.width && img.height) {
+            const h = m.userData.spriteH || 1.85;
+            bill.userData.baseW = h * (img.width / img.height);
+            bill.userData.baseH = h;
+            bill.scale.set(bill.userData.baseW, bill.userData.baseH, 1);
+          }
+        }
+      },
+      undefined,
+      (err) => {
+        ENEMY_SPRITE.loading[key] = false;
+        console.error("Failed to load enemy sprite", key, err);
+      },
+    );
   }
 
   function disposeEnemyMesh(mesh) {
@@ -642,125 +657,57 @@
     });
   }
 
-  /**
-   * Lightweight tentacle foes (shared geos/mats, few segments).
-   * Heavy per-enemy meshes were melting phones once waves got busy.
-   */
+  /** Camera-facing PNG billboard for wisps (jellyfish) / armored eyes. */
   function createEnemyMesh(kind) {
-    enemySharedReady();
+    if (!ENEMY_SPRITE.plane) {
+      ENEMY_SPRITE.plane = new THREE.PlaneGeometry(1, 1);
+      ENEMY_SPRITE.plane.userData.shared = true;
+    }
+    const key = enemySpriteKey(kind);
+    const h = enemySpriteHeight(kind);
+    ensureEnemySpriteTex(key);
+
     const g = new THREE.Group();
-    const armored = kind === "brute" || kind === "boss";
-    const scale = kind === "boss" ? 1.45 : kind === "brute" ? 1.1 : kind === "dart" ? 0.85 : 1;
-    const armCount = armored ? (kind === "boss" ? 5 : 4) : 4;
-    const segments = 2;
-    const bodyR = (armored ? 0.4 : 0.3) * scale;
+    const mat = new THREE.MeshBasicMaterial({
+      map: ENEMY_SPRITE.tex[key] || null,
+      transparent: true,
+      depthWrite: false,
+      depthTest: true,
+      fog: false,
+      toneMapped: false,
+      side: THREE.DoubleSide,
+    });
+    const billboard = new THREE.Mesh(ENEMY_SPRITE.plane, mat);
+    billboard.name = "enemySprite";
+    billboard.renderOrder = 2;
+    const tex = ENEMY_SPRITE.tex[key];
+    const aspect = tex && tex.image && tex.image.width && tex.image.height
+      ? tex.image.width / tex.image.height
+      : key === "armor" ? 768 / 561 : 1;
+    billboard.userData.baseW = h * aspect;
+    billboard.userData.baseH = h;
+    billboard.scale.set(billboard.userData.baseW, billboard.userData.baseH, 1);
+    g.add(billboard);
 
-    const body = new THREE.Mesh(ENEMY_GEO.sphere, armored ? ENEMY_MAT.armorBody : ENEMY_MAT.wispBody);
-    body.name = "enemyBody";
-    body.scale.setScalar(bodyR);
-    g.add(body);
-
-    if (armored) {
-      const iris = new THREE.Mesh(ENEMY_GEO.sphere, ENEMY_MAT.armorEye);
-      iris.scale.setScalar(bodyR * 0.55);
-      iris.position.z = bodyR * 0.38;
-      g.add(iris);
-      const pupil = new THREE.Mesh(ENEMY_GEO.sphere, ENEMY_MAT.armorPupil);
-      pupil.scale.set(bodyR * 0.12, bodyR * 0.32, bodyR * 0.12);
-      pupil.position.z = bodyR * 0.7;
-      g.add(pupil);
-    } else {
-      const core = new THREE.Mesh(ENEMY_GEO.sphere, ENEMY_MAT.wispCore);
-      core.scale.setScalar(bodyR * 0.18);
-      core.position.z = bodyR * 0.55;
-      g.add(core);
-    }
-
-    const armsRoot = new THREE.Group();
-    armsRoot.name = "enemyArms";
-    g.add(armsRoot);
-
-    const arms = [];
-    const armMat = armored ? ENEMY_MAT.armorArm : ENEMY_MAT.wispArm;
-    const tipMat = armored ? ENEMY_MAT.armorTip : ENEMY_MAT.wispTip;
-    for (let i = 0; i < armCount; i++) {
-      const root = new THREE.Group();
-      const baseAngle = (i / armCount) * Math.PI * 2;
-      root.position.set(
-        Math.cos(baseAngle) * bodyR * 0.7,
-        -bodyR * 0.12,
-        Math.sin(baseAngle) * bodyR * 0.7,
-      );
-      root.rotation.order = "YXZ";
-      root.rotation.y = -baseAngle;
-      root.rotation.x = 0.9;
-
-      const segs = [];
-      let parent = root;
-      let segLen = 0.26 * scale;
-      let segR = 0.055 * scale;
-      for (let s = 0; s < segments; s++) {
-        const pivot = new THREE.Group();
-        if (s === 0) parent.add(pivot);
-        else {
-          pivot.position.y = -segLen;
-          parent.add(pivot);
-        }
-        const mesh = new THREE.Mesh(ENEMY_GEO.cyl, s === segments - 1 ? tipMat : armMat);
-        const r = segR * (1 - s * 0.2);
-        const len = segLen * (1 - s * 0.08);
-        mesh.scale.set(r, len, r);
-        mesh.position.y = -len * 0.5;
-        pivot.add(mesh);
-        segs.push({ pivot });
-        parent = pivot;
-        segLen = len;
-        segR = r;
-      }
-      const tip = new THREE.Mesh(
-        armored ? ENEMY_GEO.cone : ENEMY_GEO.sphere,
-        tipMat,
-      );
-      tip.scale.setScalar(segR * (armored ? 1.4 : 1.8));
-      tip.position.y = -segLen * (armored ? 0.7 : 0.2);
-      if (armored) tip.rotation.x = Math.PI;
-      parent.add(tip);
-
-      armsRoot.add(root);
-      arms.push({ root, segs, baseAngle, phase: i * 1.7 });
-    }
-
-    g.userData.arms = arms;
-    g.userData.armored = armored;
-    g.userData.body = body;
-    g.userData.baseEmissive = null;
+    g.userData.billboard = billboard;
+    g.userData.spriteKey = key;
+    g.userData.spriteH = h;
+    g.userData.armored = key === "armor";
+    g.userData.phase = Math.random() * Math.PI * 2;
+    g.userData.arms = null;
     g.visible = false;
     scene.add(g);
     return { kind, mesh: g };
   }
 
+  /** Subtle menacing sway / pulse on the sprite (arms are in the art). */
   function animateEnemyArms(mesh, time, towardX, towardZ) {
-    const arms = mesh.userData && mesh.userData.arms;
-    if (!arms) return;
-    const dx = towardX - mesh.position.x;
-    const dz = towardZ - mesh.position.z;
-    const reachYaw = Math.atan2(dx, dz);
-    const rate = mesh.userData.armored ? 2.0 : 2.8;
-
-    for (let i = 0; i < arms.length; i++) {
-      const arm = arms[i];
-      const t = time * rate + arm.phase;
-      const lean = 0.72 + Math.sin(t * 0.7) * 0.1;
-      const localReach = Math.sin(arm.baseAngle - reachYaw) * 0.2;
-      // Occasional snappy twitch without Math.random (stable + cheap).
-      const twitch = Math.sin(t * 5.5) > 0.97 ? Math.sin(t * 28) * 0.35 : 0;
-      arm.root.rotation.x = lean + twitch * 0.2;
-      arm.root.rotation.z = localReach + Math.sin(t * 0.9) * 0.07 + twitch * 0.12;
-      for (let s = 0; s < arm.segs.length; s++) {
-        arm.segs[s].pivot.rotation.x = 0.2 + Math.sin(t + s * 0.9) * 0.38 + twitch * 0.25;
-        arm.segs[s].pivot.rotation.z = Math.sin(t * 1.1 + s) * 0.18;
-      }
-    }
+    const bill = mesh && mesh.userData && mesh.userData.billboard;
+    if (!bill) return;
+    const phase = (mesh.userData.phase || 0) + time * (mesh.userData.armored ? 2.1 : 2.7);
+    const twitch = Math.sin(phase * 3.4) > 0.92 ? Math.sin(phase * 18) * 0.08 : 0;
+    mesh.userData.sway = Math.sin(phase) * 0.06 + twitch;
+    mesh.userData.pulse = 1 + Math.sin(phase * 0.85) * 0.04 + Math.abs(twitch) * 0.35;
   }
 
   function createGemMesh() {
@@ -1618,14 +1565,27 @@
       const ep = worldTo3D(e.x, e.y);
       const bounce = Math.sin(e.pulse || state.time * 3) * 0.08;
       m.visible = true;
-      m.position.set(ep.x, 0.55 + bounce + (e.kind === "boss" ? 0.25 : 0), ep.z);
-      m.lookAt(pp.x, m.position.y, pp.z);
-      // Skip some arm updates when the field is crowded.
+      m.position.set(ep.x, 0.7 + bounce + (e.kind === "boss" ? 0.35 : 0.1), ep.z);
+      m.rotation.set(0, 0, 0);
+      const bill = m.userData.billboard;
+      if (bill && camera) {
+        bill.quaternion.copy(camera.quaternion);
+        bill.rotateY(Math.PI);
+        bill.rotateZ(m.userData.sway || 0);
+        const pulse = m.userData.pulse || 1;
+        const bw = bill.userData.baseW || 1;
+        const bh = bill.userData.baseH || 1;
+        bill.scale.set(bw * pulse, bh * pulse, 1);
+      }
+      // Skip some pulse updates when the field is crowded.
       if (i % animBudget === (state.time * 10 | 0) % animBudget) {
         animateEnemyArms(m, state.time, pp.x, pp.z);
       }
       const hit = e.hitFlash && e.hitFlash > 0;
       m.scale.setScalar(hit ? 1.12 : 1);
+      if (bill && bill.material) {
+        bill.material.opacity = hit ? 1 : 0.98;
+      }
     }
 
     ensurePool(gemPool, state.gems.length, createGemMesh);
