@@ -27,6 +27,9 @@
   let particlePool = [];
 
   const enemyPool = [];
+  const spawnerPool = [];
+  const rocketPool = [];
+  const rocketPickupPool = [];
   const gemPool = [];
   const bulletPool = [];
   const pickupPool = [];
@@ -34,6 +37,11 @@
   const crateHintPool = [];
   const orbitSparkPool = [];
   const shockwavePool = [];
+
+  const SPAWNER_TEX = [null, null, null, null, null];
+  const SPAWNER_TEX_LOADING = [false, false, false, false, false];
+  let rocketPickupTex = null;
+  let rocketPickupLoading = false;
   const fireflies = [];
   const mistPuffs = [];
   const puddles = [];
@@ -708,6 +716,134 @@
     const twitch = Math.sin(phase * 3.4) > 0.92 ? Math.sin(phase * 18) * 0.08 : 0;
     mesh.userData.sway = Math.sin(phase) * 0.06 + twitch;
     mesh.userData.pulse = 1 + Math.sin(phase * 0.85) * 0.04 + Math.abs(twitch) * 0.35;
+  }
+
+  function ensureSpawnerTex(faceIdx) {
+    const i = Math.max(0, Math.min(4, faceIdx | 0));
+    if (SPAWNER_TEX[i] || SPAWNER_TEX_LOADING[i]) return;
+    SPAWNER_TEX_LOADING[i] = true;
+    const loader = new THREE.TextureLoader();
+    loader.load(
+      gameAssetSrc("spawner/face-" + (i + 1) + ".png"),
+      (tex) => {
+        if ("colorSpace" in tex && THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
+        tex.userData.shared = true;
+        SPAWNER_TEX[i] = tex;
+        SPAWNER_TEX_LOADING[i] = false;
+        for (let n = 0; n < spawnerPool.length; n++) {
+          const m = spawnerPool[n];
+          const bill = m && m.userData && m.userData.billboard;
+          if (!bill || m.userData.face !== i) continue;
+          bill.material.map = tex;
+          bill.material.needsUpdate = true;
+          const img = tex.image;
+          if (img && img.width && img.height) {
+            const h = m.userData.spriteH || 3.8;
+            bill.scale.set(h * (img.width / img.height), h, 1);
+          }
+        }
+      },
+      undefined,
+      () => {
+        SPAWNER_TEX_LOADING[i] = false;
+      },
+    );
+  }
+
+  function createSpawnerMesh() {
+    if (!ENEMY_SPRITE.plane) {
+      ENEMY_SPRITE.plane = new THREE.PlaneGeometry(1, 1);
+      ENEMY_SPRITE.plane.userData.shared = true;
+    }
+    const g = new THREE.Group();
+    const mat = new THREE.MeshBasicMaterial({
+      transparent: true,
+      depthWrite: false,
+      fog: false,
+      toneMapped: false,
+      side: THREE.DoubleSide,
+    });
+    const billboard = new THREE.Mesh(ENEMY_SPRITE.plane, mat);
+    billboard.name = "spawnerSprite";
+    billboard.renderOrder = 2;
+    const h = 3.9;
+    billboard.scale.set(h * 1.3, h, 1);
+    g.add(billboard);
+    g.userData.billboard = billboard;
+    g.userData.spriteH = h;
+    g.userData.face = 0;
+    g.visible = false;
+    scene.add(g);
+    return g;
+  }
+
+  function createRocketMesh() {
+    const g = new THREE.Group();
+    const body = new THREE.Mesh(
+      new THREE.ConeGeometry(0.12, 0.55, 6),
+      new THREE.MeshBasicMaterial({ color: 0xffd39a }),
+    );
+    body.rotation.x = Math.PI / 2;
+    g.add(body);
+    const flame = new THREE.Mesh(
+      new THREE.ConeGeometry(0.1, 0.35, 5),
+      new THREE.MeshBasicMaterial({ color: 0xff6b3a, transparent: true, opacity: 0.9 }),
+    );
+    flame.rotation.x = -Math.PI / 2;
+    flame.position.z = -0.35;
+    g.add(flame);
+    g.userData.body = body;
+    g.userData.flame = flame;
+    g.visible = false;
+    scene.add(g);
+    return g;
+  }
+
+  function createRocketPickupMesh() {
+    if (!ENEMY_SPRITE.plane) {
+      ENEMY_SPRITE.plane = new THREE.PlaneGeometry(1, 1);
+      ENEMY_SPRITE.plane.userData.shared = true;
+    }
+    if (!rocketPickupTex && !rocketPickupLoading) {
+      rocketPickupLoading = true;
+      const loader = new THREE.TextureLoader();
+      loader.load(
+        gameAssetSrc("rocket-pickup.png"),
+        (tex) => {
+          if ("colorSpace" in tex && THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
+          tex.userData.shared = true;
+          rocketPickupTex = tex;
+          rocketPickupLoading = false;
+          for (let i = 0; i < rocketPickupPool.length; i++) {
+            const bill = rocketPickupPool[i] && rocketPickupPool[i].userData.billboard;
+            if (bill) {
+              bill.material.map = tex;
+              bill.material.needsUpdate = true;
+            }
+          }
+        },
+        undefined,
+        () => {
+          rocketPickupLoading = false;
+        },
+      );
+    }
+    const g = new THREE.Group();
+    const mat = new THREE.MeshBasicMaterial({
+      map: rocketPickupTex,
+      transparent: true,
+      depthWrite: false,
+      fog: false,
+      toneMapped: false,
+      side: THREE.DoubleSide,
+    });
+    const billboard = new THREE.Mesh(ENEMY_SPRITE.plane, mat);
+    billboard.scale.set(1.2, 1.2, 1);
+    g.add(billboard);
+    g.userData.billboard = billboard;
+    g.visible = false;
+    scene.add(g);
+    return g;
   }
 
   function createGemMesh() {
@@ -1542,6 +1678,95 @@
     camera.lookAt(camTarget);
 
     syncAtmosphere(pp, state.time, false);
+
+    const spawners = state.spawners || [];
+    ensurePool(spawnerPool, spawners.length, createSpawnerMesh);
+    while (spawnerPool.length > Math.max(spawners.length, 3)) {
+      const extra = spawnerPool.pop();
+      disposeEnemyMesh(extra);
+    }
+    for (let i = 0; i < spawnerPool.length; i++) {
+      const m = spawnerPool[i];
+      const s = spawners[i];
+      if (!s) {
+        m.visible = false;
+        continue;
+      }
+      const face = Math.max(0, Math.min(4, s.face | 0));
+      ensureSpawnerTex(face);
+      if (m.userData.face !== face) {
+        m.userData.face = face;
+        const tex = SPAWNER_TEX[face];
+        if (tex && m.userData.billboard) {
+          m.userData.billboard.material.map = tex;
+          m.userData.billboard.material.needsUpdate = true;
+          const img = tex.image;
+          if (img && img.width && img.height) {
+            const h = m.userData.spriteH || 3.9;
+            m.userData.billboard.scale.set(h * (img.width / img.height), h, 1);
+          }
+        }
+      }
+      const sp = worldTo3D(s.x, s.y);
+      const bob = Math.sin(s.pulse || state.time * 2) * 0.1;
+      m.visible = true;
+      m.position.set(sp.x, 1.15 + bob, sp.z);
+      const bill = m.userData.billboard;
+      if (bill && camera) {
+        bill.quaternion.copy(camera.quaternion);
+        bill.rotateY(Math.PI);
+        const hit = s.hitFlash && s.hitFlash > 0;
+        m.scale.setScalar(hit ? 1.08 : 1);
+        if (bill.material) bill.material.opacity = hit ? 1 : 0.98;
+      }
+    }
+
+    const rockets = state.rockets || [];
+    ensurePool(rocketPool, rockets.length, createRocketMesh);
+    while (rocketPool.length > Math.max(rockets.length, 4)) {
+      const extra = rocketPool.pop();
+      disposeEnemyMesh(extra);
+    }
+    for (let i = 0; i < rocketPool.length; i++) {
+      const m = rocketPool[i];
+      const r = rockets[i];
+      if (!r) {
+        m.visible = false;
+        continue;
+      }
+      const rp = worldTo3D(r.x, r.y);
+      m.visible = true;
+      m.position.set(rp.x, 0.85, rp.z);
+      const ang = Math.atan2(r.vy || 0, r.vx || 1);
+      m.rotation.y = -ang;
+      if (m.userData.flame && m.userData.flame.material) {
+        m.userData.flame.material.opacity = 0.65 + Math.sin(state.time * 30 + i) * 0.25;
+      }
+    }
+
+    const rocketPickups = state.rocketPickups || [];
+    ensurePool(rocketPickupPool, rocketPickups.length, createRocketPickupMesh);
+    while (rocketPickupPool.length > Math.max(rocketPickups.length, 2)) {
+      const extra = rocketPickupPool.pop();
+      disposeEnemyMesh(extra);
+    }
+    for (let i = 0; i < rocketPickupPool.length; i++) {
+      const m = rocketPickupPool[i];
+      const r = rocketPickups[i];
+      if (!r) {
+        m.visible = false;
+        continue;
+      }
+      const wp = worldTo3D(r.x, r.y);
+      const bob = Math.sin((r.pulse || state.time) * 5) * 0.12;
+      m.visible = true;
+      m.position.set(wp.x, 0.7 + bob, wp.z);
+      const bill = m.userData.billboard;
+      if (bill && camera) {
+        bill.quaternion.copy(camera.quaternion);
+        bill.rotateY(Math.PI);
+      }
+    }
 
     ensurePool(enemyPool, state.enemies.length, () => createEnemyMesh("wisp"));
     // Trim unused pool slots so dead enemies don't keep GPU objects forever.

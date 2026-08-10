@@ -757,6 +757,67 @@ button.dash-btn.loaded-grenades {
   color: #fff5f5;
 }
 
+.rocket-btn {
+  -webkit-appearance: none;
+  appearance: none;
+  position: absolute;
+  left: max(28px, env(safe-area-inset-left, 0px));
+  bottom: calc(40px + 102px);
+  z-index: 7;
+  width: 78px;
+  height: 78px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 180, 70, 0.55);
+  background: rgba(40, 28, 16, 0.82);
+  color: #ffd39a;
+  pointer-events: auto;
+  touch-action: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 14px rgba(224, 122, 47, 0.35);
+}
+
+.rocket-btn img {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+}
+
+.rocket-btn .rocket-count {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: rgba(224, 122, 47, 0.95);
+  color: #1a1208;
+  font: 700 0.75rem var(--font-body);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rocket-btn:disabled {
+  opacity: 0.42;
+}
+
+.rocket-btn.armed {
+  box-shadow:
+    0 0 16px rgba(255, 176, 64, 0.75),
+    0 0 28px rgba(224, 122, 47, 0.45);
+  border-color: rgba(255, 210, 120, 0.85);
+}
+
+#app.layout-touch .rocket-btn {
+  left: max(12px, env(safe-area-inset-left, 0px));
+  bottom: calc(max(16px, env(safe-area-inset-bottom, 0px)) + 100px);
+}
+
 @keyframes fade-in {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }

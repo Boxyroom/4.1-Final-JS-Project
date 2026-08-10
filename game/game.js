@@ -3,10 +3,24 @@
 
   const STORAGE_KEY = "lantern-hollow-v1";
   const TAU = Math.PI * 2;
-  const KILLS_PER_ROUND = 5000;
+  const KILLS_PER_ROUND = 5000; // legacy HUD fallback; rounds clear by destroying spawners
+  const SPAWNERS_PER_ROUND = 3;
+  const SPAWNER_ROCKET_HITS = 5;
+  const ROCKET_KILLS_INTERVAL = 100;
+  const ROCKET_HOME_RANGE = 1200;
+  const ROCKET_SPEED = 440;
   /** Soft world edge — player is clamped here; pickups must spawn inside. */
   const WORLD_BOUND = 2200;
   const PICKUP_BOUND = WORLD_BOUND - 48;
+
+  // Preferred travel angle (0=+X right, π/2=+Y down) for each spawner face art.
+  const SPAWNER_FACE_DIRS = [
+    Math.PI / 2, // face-1 front / down
+    0.4, // face-2 down-right
+    0, // face-3 right
+    Math.PI, // face-4 left
+    -Math.PI / 2, // face-5 up / away
+  ];
 
   let audioCtx = null;
   let masterGain = null;
@@ -308,6 +322,24 @@
   enemyWispImg.src = enemyAssetSrc("enemy-wisp.png");
   enemyArmorImg.src = enemyAssetSrc("enemy-armor.png");
 
+  const spawnerFaceImgs = [null, null, null, null, null];
+  const spawnerFaceReady = [false, false, false, false, false];
+  for (let i = 0; i < 5; i++) {
+    const img = new Image();
+    const idx = i;
+    img.onload = () => {
+      spawnerFaceReady[idx] = true;
+    };
+    img.src = enemyAssetSrc(`spawner/face-${i + 1}.png`);
+    spawnerFaceImgs[i] = img;
+  }
+  const rocketPickupImg = new Image();
+  let rocketPickupReady = false;
+  rocketPickupImg.onload = () => {
+    rocketPickupReady = true;
+  };
+  rocketPickupImg.src = enemyAssetSrc("rocket-pickup.png");
+
   function lerpAngle(a, b, t) {
     let d = b - a;
     while (d > Math.PI) d -= TAU;
@@ -409,6 +441,9 @@
     stick: document.getElementById("stick"),
     stickKnob: document.getElementById("stick-knob"),
     dashBtn: document.getElementById("dash-btn"),
+    rocketBtn: document.getElementById("rocket-btn"),
+    rocketCount: document.getElementById("rocket-count"),
+    rocketBtnIcon: document.getElementById("rocket-btn-icon"),
     tutStepLabel: document.getElementById("tut-step-label"),
     tutTitle: document.getElementById("tut-title"),
     tutBody: document.getElementById("tut-body"),
@@ -783,6 +818,7 @@
     left: false,
     right: false,
     dash: false,
+    rocket: false,
     pause: false,
     focus: false,
     ax: 0,
@@ -922,6 +958,7 @@
       show(ui.title);
       hide(ui.hud);
       hide(ui.touch);
+      if (ui.rocketBtn) ui.rocketBtn.classList.add("hidden");
       if (state) state.shopReturnMode = null;
       refreshMetaUi();
       if (sessionStorage.getItem("lantern-sw-reload-pending")) {
@@ -946,6 +983,7 @@
       show(ui.hud);
       if (isTouchPrimary()) show(ui.touch);
       syncTouchLayout();
+      refreshRocketUi();
     } else if (next === "levelup") {
       show(ui.levelup);
     } else if (next === "tactic") {
@@ -1031,6 +1069,7 @@
       emberMult: 1,
       facing: 0,
       facingSmooth: 0,
+      rockets: 0,
     };
 
     for (const item of SHOP) {
@@ -1041,6 +1080,247 @@
     return p;
   }
 
+  let nextSpawnerId = 1;
+
+  function pickSpawnerFace(facing) {
+    let best = 0;
+    let bestDiff = Infinity;
+    for (let i = 0; i < SPAWNER_FACE_DIRS.length; i++) {
+      let d = facing - SPAWNER_FACE_DIRS[i];
+      while (d > Math.PI) d -= TAU;
+      while (d < -Math.PI) d += TAU;
+      d = Math.abs(d);
+      if (d < bestDiff) {
+        bestDiff = d;
+        best = i;
+      }
+    }
+    return best;
+  }
+
+  function createSpawner(x, y) {
+    const ang = rand(0, TAU);
+    return {
+      id: nextSpawnerId++,
+      x,
+      y,
+      r: 46,
+      hp: SPAWNER_ROCKET_HITS,
+      maxHp: SPAWNER_ROCKET_HITS,
+      speed: 42,
+      angle: ang,
+      facing: ang,
+      face: pickSpawnerFace(ang),
+      moveTimer: rand(1.2, 2.8),
+      spawnTimer: rand(0.8, 1.8),
+      pulse: rand(0, TAU),
+      hitFlash: 0,
+      color: "#7ad0ff",
+    };
+  }
+
+  function placeRoundSpawners() {
+    state.spawners = [];
+    const ring = 420;
+    for (let i = 0; i < SPAWNERS_PER_ROUND; i++) {
+      const a = (TAU * i) / SPAWNERS_PER_ROUND + rand(-0.2, 0.2);
+      const distAway = ring + rand(-40, 80);
+      state.spawners.push(
+        createSpawner(Math.cos(a) * distAway, Math.sin(a) * distAway),
+      );
+    }
+  }
+
+  function spawnEnemyFromSpawner(spawner) {
+    if (!spawner || state.enemies.length >= MAX_ENEMIES) return;
+    const t = state.time;
+    let roll = "wisp";
+    if (t > 40 && Math.random() < 0.12) roll = "brute";
+    else if (Math.random() < 0.18) roll = "dart";
+    const before = state.enemies.length;
+    spawnEnemy(roll);
+    if (state.enemies.length > before) {
+      const e = state.enemies[state.enemies.length - 1];
+      const a = rand(0, TAU);
+      const d = spawner.r + 28 + rand(0, 40);
+      e.x = spawner.x + Math.cos(a) * d;
+      e.y = spawner.y + Math.sin(a) * d;
+      e.fromSpawner = spawner.id;
+    }
+  }
+
+  function spawnRocketPickup() {
+    const p = state.player;
+    const a = rand(0, TAU);
+    const d = rand(180, 300);
+    const x = clamp(p.x + Math.cos(a) * d, -PICKUP_BOUND, PICKUP_BOUND);
+    const y = clamp(p.y + Math.sin(a) * d, -PICKUP_BOUND, PICKUP_BOUND);
+    state.rocketPickups.push({ x, y, r: 16, pulse: rand(0, TAU) });
+    showBanner("Rocket supply dropped — drive through it!", 1.8);
+    floatText(x, y - 20, "ROCKET", "#ffb040", 1.2, true);
+    sfx.pickup();
+  }
+
+  function nearestSpawner(from, maxRange = Infinity) {
+    let best = null;
+    let bestD = maxRange;
+    for (const s of state.spawners || []) {
+      if (s.hp <= 0) continue;
+      const d = dist(from, s);
+      if (d < bestD) {
+        bestD = d;
+        best = s;
+      }
+    }
+    return best;
+  }
+
+  function refreshRocketUi() {
+    const n = state && state.player ? state.player.rockets || 0 : 0;
+    if (ui.rocketCount) ui.rocketCount.textContent = String(n);
+    if (ui.rocketBtn) {
+      ui.rocketBtn.disabled = n <= 0;
+      ui.rocketBtn.classList.toggle("armed", n > 0);
+      ui.rocketBtn.classList.toggle("hidden", !state || state.ended || mode !== "play");
+      ui.rocketBtn.title =
+        n > 0
+          ? `Fire heat-seeking rocket (${n} ready) — key R`
+          : "Kill 100 foes to drop a rocket supply";
+    }
+    if (ui.rocketBtnIcon && !ui.rocketBtnIcon.getAttribute("src")) {
+      ui.rocketBtnIcon.src = enemyAssetSrc("rocket-icon.png");
+    }
+  }
+
+  function fireRocket() {
+    if (!state || state.ended || state.pausedChoice) return false;
+    const p = state.player;
+    if (!p || (p.rockets || 0) <= 0) {
+      if (!state._emptyRocketBanner || state.time - state._emptyRocketBanner > 1.2) {
+        showBanner("No rockets — destroy 100 foes for a supply drop", 1.3);
+        state._emptyRocketBanner = state.time;
+      }
+      return false;
+    }
+    p.rockets -= 1;
+    const ang = p.facingSmooth != null ? p.facingSmooth : p.facing || 0;
+    const target = nearestSpawner(p, ROCKET_HOME_RANGE);
+    state.rockets.push({
+      x: p.x,
+      y: p.y,
+      vx: Math.cos(ang) * ROCKET_SPEED,
+      vy: Math.sin(ang) * ROCKET_SPEED,
+      speed: ROCKET_SPEED,
+      life: 9,
+      r: 11,
+      targetId: target ? target.id : null,
+      trail: 0,
+    });
+    sfx.dash();
+    addParticles(p.x, p.y, "#ffb040", 12, 180);
+    floatText(p.x, p.y - 24, "ROCKET", "#ffd39a", 0.9, true);
+    refreshRocketUi();
+    return true;
+  }
+
+  function hurtSpawner(spawner, hits = 1) {
+    if (!spawner || spawner.hp <= 0) return;
+    spawner.hp -= hits;
+    spawner.hitFlash = 0.25;
+    state.shake = Math.max(state.shake, 12);
+    sfx.hit();
+    floatText(spawner.x, spawner.y - 30, `-${hits}`, "#93c5fd", 0.9, true);
+    addParticles(spawner.x, spawner.y, "#60a5fa", 16, 200);
+    if (spawner.hp <= 0) {
+      spawner.hp = 0;
+      sfx.boom();
+      addParticles(spawner.x, spawner.y, "#7ad0ff", 36, 320);
+      addParticles(spawner.x, spawner.y, "#c49bff", 24, 260);
+      floatText(spawner.x, spawner.y - 20, "SPAWNER DOWN", "#bfdbfe", 1.4, true);
+      showBanner("Spawner destroyed!", 1.5);
+      state.spawners = state.spawners.filter((s) => s.hp > 0);
+      if (
+        !state.roundCompletePending &&
+        !state.ended &&
+        state.spawners.length === 0
+      ) {
+        completeRound();
+      }
+    }
+  }
+
+  function updateSpawners(dt) {
+    for (const s of state.spawners) {
+      s.pulse += dt * 2.2;
+      if (s.hitFlash > 0) s.hitFlash = Math.max(0, s.hitFlash - dt);
+      s.moveTimer -= dt;
+      if (s.moveTimer <= 0) {
+        // Prefer drifting, with a slight lean toward map center so they stay in play.
+        const toCenter = Math.atan2(-s.y, -s.x);
+        s.angle = toCenter + rand(-1.1, 1.1);
+        s.moveTimer = rand(1.4, 3.2);
+      }
+      s.x += Math.cos(s.angle) * s.speed * dt;
+      s.y += Math.sin(s.angle) * s.speed * dt;
+      s.x = clamp(s.x, -PICKUP_BOUND, PICKUP_BOUND);
+      s.y = clamp(s.y, -PICKUP_BOUND, PICKUP_BOUND);
+      s.facing = s.angle;
+      s.face = pickSpawnerFace(s.facing);
+
+      s.spawnTimer -= dt;
+      if (s.spawnTimer <= 0) {
+        const burst = state.enemies.length < 18 ? 2 : 1;
+        for (let i = 0; i < burst; i++) spawnEnemyFromSpawner(s);
+        const density = 1 + state.time / 80 + Math.max(0, state.round - 1) * 0.15;
+        s.spawnTimer = Math.max(0.85, 2.1 / density) + rand(0, 0.45);
+      }
+
+      // Touching a spawner hurts, but less than a brute pile-up.
+      if (dist(state.player, s) < state.player.r + s.r * 0.55) {
+        hurtPlayer(8, null);
+      }
+    }
+  }
+
+  function updateRockets(dt) {
+    for (const r of state.rockets) {
+      r.life -= dt;
+      r.trail += dt;
+      let target = null;
+      if (r.targetId != null) {
+        target = (state.spawners || []).find((s) => s.id === r.targetId && s.hp > 0) || null;
+      }
+      if (!target) {
+        target = nearestSpawner(r, ROCKET_HOME_RANGE);
+        r.targetId = target ? target.id : null;
+      }
+      if (target) {
+        const desired = Math.atan2(target.y - r.y, target.x - r.x);
+        const cur = Math.atan2(r.vy, r.vx);
+        const next = lerpAngle(cur, desired, 1 - Math.pow(0.0015, dt));
+        r.vx = Math.cos(next) * r.speed;
+        r.vy = Math.sin(next) * r.speed;
+        r.speed = Math.min(560, r.speed + 40 * dt);
+      }
+      r.x += r.vx * dt;
+      r.y += r.vy * dt;
+      if (r.trail > 0.03) {
+        r.trail = 0;
+        addParticles(r.x, r.y, "#ffb040", 2, 40);
+      }
+      for (const s of state.spawners) {
+        if (s.hp > 0 && dist(r, s) < r.r + s.r * 0.7) {
+          r.life = 0;
+          hurtSpawner(s, 1);
+          addParticles(r.x, r.y, "#ff6b3a", 18, 240);
+          sfx.boom();
+          break;
+        }
+      }
+    }
+    state.rockets = state.rockets.filter((r) => r.life > 0);
+  }
+
   function startRun() {
     ensureAudio();
     resize();
@@ -1049,6 +1329,9 @@
       h: window.innerHeight,
       player: createPlayer(),
       enemies: [],
+      spawners: [],
+      rockets: [],
+      rocketPickups: [],
       bullets: [],
       gems: [],
       weaponPickups: [],
@@ -1059,16 +1342,17 @@
       floats: [],
       time: 0,
       kills: 0,
+      killsTowardRocket: 0,
       round: 1,
       roundKills: 0,
       roundCompletePending: false,
       shopReturnMode: null,
-      spawnTimer: 1.2,
+      spawnTimer: 9999, // ambient spawn disabled — spawners produce foes
       nextGrenadePickupAt: 20,
       nextSwarmPickupAt: 30,
       nextNukeAt: 60,
       bossesDown: 0,
-      nextBossAt: 100,
+      nextBossAt: 140,
       bannerTimer: 0,
       killFlash: 0,
       shake: 0,
@@ -1080,7 +1364,7 @@
       coachStep: 0,
       coachTimer: 0,
       buildLog: [],
-      nextTacticAt: 45,
+      nextTacticAt: 55,
       spawnedFocusBrute: false,
       buffTimer: 0,
       buffLabel: "",
@@ -1095,12 +1379,15 @@
       const evo = lanternEvolution(1);
       state.player.r = evo.r;
     }
+    placeRoundSpawners();
     setMode("play");
     refreshWeaponUi();
+    refreshRocketUi();
+    showBanner("Destroy all 3 Spawners — rockets drop every 100 kills", 2.8);
     showCoach(
       isTouchPrimary()
-        ? "You start as a Tiny Light — level up to grow into a full lantern."
-        : "You start as a Tiny Light. WASD move · level up to evolve · Space fires weapons",
+        ? "3 Spawners roam the marsh. Stack rockets, then fire them with the rocket button."
+        : "3 Spawners roam the marsh. R fires stacked rockets. Space fires crate weapons.",
     );
     lastTs = performance.now();
     cancelAnimationFrame(animId);
@@ -1449,6 +1736,7 @@
     e.hp = 0;
     state.kills += 1;
     state.roundKills = (state.roundKills || 0) + 1;
+    state.killsTowardRocket = (state.killsTowardRocket || 0) + 1;
     state.killFlash = 0.08;
     sfx.kill();
     if (e.kind === "boss") {
@@ -1471,12 +1759,9 @@
     });
     addParticles(e.x, e.y, e.color, e.kind === "boss" ? 24 : 10, 160);
     floatText(e.x, e.y - 10, `+${e.xp}`, "#d7e4d5");
-    if (
-      !state.roundCompletePending &&
-      !state.ended &&
-      state.roundKills >= KILLS_PER_ROUND
-    ) {
-      completeRound();
+    if (state.killsTowardRocket >= ROCKET_KILLS_INTERVAL) {
+      state.killsTowardRocket = 0;
+      spawnRocketPickup();
     }
   }
 
@@ -1494,7 +1779,7 @@
     if (ui.roundTitle) ui.roundTitle.textContent = `Round ${state.round} complete`;
     if (ui.roundSummary) {
       ui.roundSummary.textContent =
-        `5,000 foes fallen. You earned ${roundBonus} embers — buy a permanent skill, then continue to the next round.`;
+        `All Spawners destroyed. You earned ${roundBonus} embers — buy a permanent skill, then continue to the next round.`;
     }
     if (ui.roundNumber) ui.roundNumber.textContent = String(state.round);
     if (ui.roundEmbers) ui.roundEmbers.textContent = String(roundBonus);
@@ -1504,12 +1789,14 @@
     showBanner(`Round ${state.round} complete!`, 2.4);
     sfx.level();
     setMode("round");
+    refreshRocketUi();
   }
 
   function continueNextRound() {
     if (!state || state.ended) return;
     state.round += 1;
     state.roundKills = 0;
+    state.killsTowardRocket = 0;
     state.roundCompletePending = false;
     state.pausedChoice = false;
     state.shopReturnMode = null;
@@ -1519,9 +1806,13 @@
     state.bullets = [];
     state.grenades = [];
     state.shockwaves = [];
-    showBanner(`Round ${state.round} begins — the marsh thickens`, 2.6);
-    showCoach(`Round ${state.round}: another ${KILLS_PER_ROUND} kills to clear.`);
+    state.rockets = [];
+    state.rocketPickups = [];
+    placeRoundSpawners();
+    showBanner(`Round ${state.round} — ${SPAWNERS_PER_ROUND} Spawners returned`, 2.6);
+    showCoach(`Round ${state.round}: destroy all Spawners with rockets.`);
     setMode("play");
+    refreshRocketUi();
   }
 
   function openRoundShop() {
@@ -2030,9 +2321,28 @@
     }
     state.weaponPickups = state.weaponPickups.filter((w) => !w._taken);
 
+    for (const rp of state.rocketPickups) {
+      rp.x = clamp(rp.x, -PICKUP_BOUND, PICKUP_BOUND);
+      rp.y = clamp(rp.y, -PICKUP_BOUND, PICKUP_BOUND);
+      rp.pulse += dt * 5;
+      if (dist(p, rp) < p.r + rp.r + 10) {
+        rp._taken = true;
+        p.rockets = (p.rockets || 0) + 1;
+        sfx.pickup();
+        floatText(p.x, p.y - 28, `ROCKET x${p.rockets}`, "#ffb040", 1.15, true);
+        showBanner(`Rocket stacked (${p.rockets})`, 1.2);
+        refreshRocketUi();
+      }
+    }
+    state.rocketPickups = state.rocketPickups.filter((rp) => !rp._taken);
+
     if (input.dash) {
       fireEquippedWeapon();
       input.dash = false;
+    }
+    if (input.rocket) {
+      fireRocket();
+      input.rocket = false;
     }
 
     p.invuln = Math.max(0, p.invuln - dt);
@@ -2046,20 +2356,14 @@
     state.camera.x = p.x;
     state.camera.y = p.y;
 
-    // spawning
-    const density = 1 + state.time / 70 + Math.max(0, (state.round || 1) - 1) * 0.2;
-    state.spawnTimer -= dt;
-    if (state.spawnTimer <= 0) {
-      const early = state.time < 35;
-      const count = early ? 1 : 1 + ((state.time / 95) | 0);
-      for (let i = 0; i < count; i++) spawnEnemy();
-      state.spawnTimer = early
-        ? 1.05
-        : Math.max(0.38, 0.95 / density);
-    }
-    if (state.time >= state.nextBossAt) {
+    // Spawner motherships move and emit the smaller foes.
+    updateSpawners(dt);
+    updateRockets(dt);
+
+    // Rare bog crown still appears late as a bonus threat (not required for the round).
+    if (state.time >= state.nextBossAt && (state.spawners || []).length) {
       spawnEnemy("boss");
-      state.nextBossAt += 90;
+      state.nextBossAt += 110;
       showBanner("Bog crown approaches!");
       sfx.boss();
       floatText(p.x, p.y - 40, "A bog crown stirs", "#e07a2f");
@@ -2102,13 +2406,6 @@
           state._magnetBeforeHarvest = 0;
         }
       }
-    }
-
-    if (!state.spawnedFocusBrute && state.time >= 18) {
-      state.spawnedFocusBrute = true;
-      spawnEnemy("brute");
-      showCoach("Triangle brute! Hold F to FOCUS it, or save a grenade crate for it.");
-      showBanner("Hold F — focus the brute");
     }
 
     if (state.time >= state.nextTacticAt && !state.pausedChoice) {
@@ -2232,7 +2529,10 @@
     ui.hudHp.classList.toggle("danger", hpPct < 0.3);
     ui.hudKills.textContent = `${state.kills} kills`;
     if (ui.hudRound) {
-      ui.hudRound.textContent = `R${state.round} ${state.roundKills}/${KILLS_PER_ROUND}`;
+      const left = (state.spawners || []).length;
+      const rocketProg = state.killsTowardRocket || 0;
+      ui.hudRound.textContent = `R${state.round} Spawners ${left}/${SPAWNERS_PER_ROUND} · rkt ${rocketProg}/${ROCKET_KILLS_INTERVAL}`;
+      ui.hudRound.title = "Destroy all Spawners to clear the round. Rockets drop every 100 kills.";
     }
     ui.hudLevel.textContent = `Lv ${p.level}`;
     setMeterFill(ui.xpFill, (p.xp / p.nextXp) * 100);
@@ -2240,6 +2540,7 @@
       ui.hudFocus.classList.toggle("hidden", !input.focus);
     }
     refreshWeaponUi();
+    refreshRocketUi();
 
     // Short onboarding tips for the first half-minute
     if (state.coachStep === 0 && state.time > 4) {
@@ -2470,6 +2771,102 @@
       ctx.fill();
       ctx.restore();
     }
+  }
+
+  function drawSpawner(sp, s) {
+    const face = clamp(sp.face | 0, 0, 4);
+    const img = spawnerFaceImgs[face];
+    const ready = spawnerFaceReady[face];
+    const bob = Math.sin(sp.pulse) * 3;
+    const pulse = 1 + Math.sin(sp.pulse * 1.4) * 0.03;
+    const drawH = 118 * pulse * (sp.hitFlash > 0 ? 1.06 : 1);
+    const aspect = ready && img && img.width ? img.width / img.height : 1.3;
+    const drawW = drawH * aspect;
+    drawShadow(s.x, s.y + 10, drawW * 0.42, drawH * 0.14, 0.38);
+    ctx.save();
+    ctx.translate(s.x, s.y + bob);
+    if (ready && img) {
+      ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
+      if (sp.hitFlash > 0) {
+        ctx.globalCompositeOperation = "lighter";
+        ctx.globalAlpha = 0.4;
+        ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
+        ctx.globalCompositeOperation = "source-over";
+        ctx.globalAlpha = 1;
+      }
+    } else {
+      const g = ctx.createRadialGradient(0, 0, 8, 0, 0, drawH * 0.5);
+      g.addColorStop(0, "#c49bff");
+      g.addColorStop(0.5, "#3b82f6");
+      g.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(0, 0, drawH * 0.45, 0, TAU);
+      ctx.fill();
+    }
+    ctx.restore();
+    // hit pips
+    const pipW = 10;
+    const totalW = SPAWNER_ROCKET_HITS * (pipW + 4) - 4;
+    let px0 = s.x - totalW / 2;
+    const py = s.y - drawH * 0.52 - 8;
+    for (let i = 0; i < SPAWNER_ROCKET_HITS; i++) {
+      ctx.fillStyle = i < sp.hp ? "#60a5fa" : "rgba(0,0,0,0.45)";
+      ctx.fillRect(px0, py, pipW, 5);
+      px0 += pipW + 4;
+    }
+  }
+
+  function drawRocketPickup(rp, s) {
+    const bob = Math.sin(rp.pulse) * 4;
+    const glow = ctx.createRadialGradient(s.x, s.y + bob, 2, s.x, s.y + bob, 28);
+    glow.addColorStop(0, "rgba(255,200,80,0.85)");
+    glow.addColorStop(1, "rgba(255,120,40,0)");
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y + bob, 28, 0, TAU);
+    ctx.fill();
+    if (rocketPickupReady) {
+      ctx.drawImage(rocketPickupImg, s.x - 22, s.y + bob - 22, 44, 44);
+    } else {
+      ctx.fillStyle = "#ffb040";
+      ctx.beginPath();
+      ctx.moveTo(s.x, s.y + bob - 16);
+      ctx.lineTo(s.x + 10, s.y + bob + 12);
+      ctx.lineTo(s.x, s.y + bob + 6);
+      ctx.lineTo(s.x - 10, s.y + bob + 12);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+
+  function drawRocketMissile(r, s) {
+    const ang = Math.atan2(r.vy, r.vx);
+    ctx.save();
+    ctx.translate(s.x, s.y);
+    ctx.rotate(ang);
+    const flame = ctx.createLinearGradient(-18, 0, 10, 0);
+    flame.addColorStop(0, "rgba(255,120,40,0)");
+    flame.addColorStop(0.5, "rgba(255,160,60,0.7)");
+    flame.addColorStop(1, "rgba(255,230,160,0.95)");
+    ctx.fillStyle = flame;
+    ctx.beginPath();
+    ctx.moveTo(-18, 0);
+    ctx.lineTo(-4, -5);
+    ctx.lineTo(-4, 5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "#ffd39a";
+    ctx.beginPath();
+    ctx.moveTo(14, 0);
+    ctx.lineTo(-2, -5);
+    ctx.lineTo(-2, 5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "#e07a2f";
+    ctx.fillRect(-6, -6, 4, 4);
+    ctx.fillRect(-6, 2, 4, 4);
+    ctx.restore();
   }
 
   function drawEnemy(e, s) {
@@ -2721,6 +3118,11 @@
       drawWeaponPickup(wpn, worldToScreen(wpn.x, wpn.y));
     }
 
+    // rocket supply drops
+    for (const rp of state.rocketPickups || []) {
+      drawRocketPickup(rp, worldToScreen(rp.x, rp.y));
+    }
+
     // star grenades
     for (const g of state.grenades) {
       drawGrenade(g, worldToScreen(g.x, g.y));
@@ -2731,9 +3133,19 @@
       drawBullet(b, worldToScreen(b.x, b.y));
     }
 
+    // large Spawners under smaller foes
+    for (const sp of state.spawners || []) {
+      drawSpawner(sp, worldToScreen(sp.x, sp.y));
+    }
+
     // enemies
     for (const e of state.enemies) {
       drawEnemy(e, worldToScreen(e.x, e.y));
+    }
+
+    // heat-seeking rockets
+    for (const rk of state.rockets || []) {
+      drawRocketMissile(rk, worldToScreen(rk.x, rk.y));
     }
 
     // nova / weapon shockwaves
@@ -3027,6 +3439,7 @@
     if (k === "a" || k === "arrowleft") input.left = true;
     if (k === "d" || k === "arrowright") input.right = true;
     if ((k === " " || k === "shift") && !e.repeat) input.dash = true;
+    if ((k === "r") && !e.repeat) input.rocket = true;
     if (k === "f") input.focus = true;
     if ((k === "p" || k === "escape") && state && !state.ended && !state.pausedChoice) {
       if (mode === "play") setMode("pause");
@@ -3111,6 +3524,13 @@
     if (e && e.cancelable) e.preventDefault();
   }
 
+  function pressRocketButton(e) {
+    if (ui.rocketBtn && ui.rocketBtn.disabled) return;
+    if (e && e.pointerType === "mouse" && typeof e.button === "number" && e.button !== 0) return;
+    input.rocket = true;
+    if (e && e.cancelable) e.preventDefault();
+  }
+
   if (ui.dashBtn) {
     // pointerdown works with a second finger while the stick is held; click often does not.
     ui.dashBtn.addEventListener("pointerdown", pressFireButton);
@@ -3118,6 +3538,17 @@
       "touchstart",
       (e) => {
         pressFireButton(e);
+      },
+      { passive: false },
+    );
+  }
+  if (ui.rocketBtn) {
+    if (ui.rocketBtnIcon) ui.rocketBtnIcon.src = enemyAssetSrc("rocket-icon.png");
+    ui.rocketBtn.addEventListener("pointerdown", pressRocketButton);
+    ui.rocketBtn.addEventListener(
+      "touchstart",
+      (e) => {
+        pressRocketButton(e);
       },
       { passive: false },
     );
@@ -3280,9 +3711,15 @@
     /** Testing helpers */
     completeRound: () => {
       if (!state || state.ended) return false;
-      state.roundKills = KILLS_PER_ROUND;
+      state.spawners = [];
       completeRound();
       return true;
+    },
+    giveRockets: (n = 5) => {
+      if (!state || !state.player) return false;
+      state.player.rockets = (state.player.rockets || 0) + Math.max(1, n | 0);
+      refreshRocketUi();
+      return state.player.rockets;
     },
     setLevel: (n) => {
       if (!state || !state.player) return false;
