@@ -577,185 +577,127 @@
     return evo;
   }
 
-  function makeArmSegment(radius, length, mat) {
-    let geo;
-    if (THREE.CapsuleGeometry) {
-      geo = new THREE.CapsuleGeometry(radius, Math.max(0.01, length - radius * 2), 4, 8);
-    } else {
-      geo = new THREE.CylinderGeometry(radius * 0.85, radius, Math.max(0.02, length), 8);
+  // Shared low-cost enemy parts (reused across all foes — critical for phone perf).
+  const ENEMY_GEO = {
+    sphere: null,
+    cyl: null,
+    cone: null,
+  };
+  const ENEMY_MAT = {
+    wispBody: null,
+    wispArm: null,
+    wispTip: null,
+    wispCore: null,
+    armorBody: null,
+    armorArm: null,
+    armorTip: null,
+    armorEye: null,
+    armorPupil: null,
+  };
+
+  function enemySharedReady() {
+    if (ENEMY_GEO.sphere) return;
+    ENEMY_GEO.sphere = new THREE.SphereGeometry(1, 10, 10);
+    ENEMY_GEO.cyl = new THREE.CylinderGeometry(1, 0.75, 1, 6);
+    ENEMY_GEO.cone = new THREE.ConeGeometry(1, 1, 6);
+    ENEMY_GEO.sphere.userData.shared = true;
+    ENEMY_GEO.cyl.userData.shared = true;
+    ENEMY_GEO.cone.userData.shared = true;
+
+    function basic(color, opts) {
+      const m = new THREE.MeshBasicMaterial(Object.assign({ color }, opts || {}));
+      m.userData.shared = true;
+      return m;
     }
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.y = -length * 0.5;
-    return mesh;
+    ENEMY_MAT.wispBody = basic(0x4ad8e8, { transparent: true, opacity: 0.9 });
+    ENEMY_MAT.wispArm = basic(0x3ec0d4, { transparent: true, opacity: 0.82 });
+    ENEMY_MAT.wispTip = basic(0xb8f6ff);
+    ENEMY_MAT.wispCore = basic(0xffffff);
+    ENEMY_MAT.armorBody = basic(0x1a1e28);
+    ENEMY_MAT.armorArm = basic(0x3a5080);
+    ENEMY_MAT.armorTip = basic(0x7ad0ff);
+    ENEMY_MAT.armorEye = basic(0x7a4cff);
+    ENEMY_MAT.armorPupil = basic(0xd8f6ff);
+  }
+
+  function disposeEnemyMesh(mesh) {
+    if (!mesh) return;
+    if (mesh.parent) mesh.parent.remove(mesh);
+    mesh.traverse((o) => {
+      if (o.geometry && !o.geometry.userData.shared) {
+        try { o.geometry.dispose(); } catch (_) {}
+      }
+      if (o.material) {
+        const mats = Array.isArray(o.material) ? o.material : [o.material];
+        for (const m of mats) {
+          if (m && !m.userData.shared) {
+            try {
+              if (m.map && !m.map.userData.shared) m.map.dispose();
+              m.dispose();
+            } catch (_) {}
+          }
+        }
+      }
+    });
   }
 
   /**
-   * Eldritch tentacle foes:
-   * - wisp/dart: bioluminescent plasma jellyfish
-   * - brute/boss: armored cosmic eye with crystalline scythe-arms
+   * Lightweight tentacle foes (shared geos/mats, few segments).
+   * Heavy per-enemy meshes were melting phones once waves got busy.
    */
   function createEnemyMesh(kind) {
+    enemySharedReady();
     const g = new THREE.Group();
     const armored = kind === "brute" || kind === "boss";
-    const scale = kind === "boss" ? 1.55 : kind === "brute" ? 1.15 : kind === "dart" ? 0.85 : 1;
-    const armCount = armored ? (kind === "boss" ? 8 : 6) : kind === "dart" ? 5 : 7;
-    const segments = armored ? 4 : 5;
+    const scale = kind === "boss" ? 1.45 : kind === "brute" ? 1.1 : kind === "dart" ? 0.85 : 1;
+    const armCount = armored ? (kind === "boss" ? 5 : 4) : 4;
+    const segments = 2;
+    const bodyR = (armored ? 0.4 : 0.3) * scale;
 
-    const bodyR = (armored ? 0.42 : 0.32) * scale;
-    const bodyMat = armored
-      ? new THREE.MeshStandardMaterial({
-          color: 0x1a1e28,
-          roughness: 0.55,
-          metalness: 0.45,
-          emissive: 0x1a1040,
-          emissiveIntensity: 0.55,
-        })
-      : new THREE.MeshStandardMaterial({
-          color: 0x3ec8d8,
-          roughness: 0.22,
-          metalness: 0.15,
-          transparent: true,
-          opacity: 0.88,
-          emissive: 0x1a8aaa,
-          emissiveIntensity: 1.6,
-        });
-    const body = new THREE.Mesh(new THREE.SphereGeometry(bodyR, 22, 22), bodyMat);
+    const body = new THREE.Mesh(ENEMY_GEO.sphere, armored ? ENEMY_MAT.armorBody : ENEMY_MAT.wispBody);
     body.name = "enemyBody";
+    body.scale.setScalar(bodyR);
     g.add(body);
 
-    // Central eye / maw
     if (armored) {
-      const iris = new THREE.Mesh(
-        new THREE.SphereGeometry(bodyR * 0.55, 18, 18),
-        new THREE.MeshStandardMaterial({
-          color: 0x6b2cff,
-          emissive: 0x3a10aa,
-          emissiveIntensity: 2.2,
-          roughness: 0.25,
-        }),
-      );
-      iris.position.z = bodyR * 0.35;
+      const iris = new THREE.Mesh(ENEMY_GEO.sphere, ENEMY_MAT.armorEye);
+      iris.scale.setScalar(bodyR * 0.55);
+      iris.position.z = bodyR * 0.38;
       g.add(iris);
-      const pupil = new THREE.Mesh(
-        new THREE.SphereGeometry(bodyR * 0.18, 10, 10),
-        new THREE.MeshStandardMaterial({
-          color: 0xe8f6ff,
-          emissive: 0x9cf0ff,
-          emissiveIntensity: 3.5,
-        }),
-      );
-      pupil.position.z = bodyR * 0.72;
-      pupil.scale.set(0.55, 1.35, 0.55);
+      const pupil = new THREE.Mesh(ENEMY_GEO.sphere, ENEMY_MAT.armorPupil);
+      pupil.scale.set(bodyR * 0.12, bodyR * 0.32, bodyR * 0.12);
+      pupil.position.z = bodyR * 0.7;
       g.add(pupil);
-      // Armor plates
-      for (let i = 0; i < 5; i++) {
-        const plate = new THREE.Mesh(
-          new THREE.BoxGeometry(bodyR * 0.55, bodyR * 0.22, bodyR * 0.35),
-          new THREE.MeshStandardMaterial({
-            color: 0x12151c,
-            roughness: 0.7,
-            metalness: 0.55,
-            emissive: 0x142038,
-            emissiveIntensity: 0.35,
-          }),
-        );
-        const a = (i / 5) * Math.PI * 2;
-        plate.position.set(Math.cos(a) * bodyR * 0.75, Math.sin(a) * bodyR * 0.55, bodyR * 0.1);
-        plate.lookAt(0, 0, 0);
-        g.add(plate);
-      }
     } else {
-      // Jagged dark maw with bright core spark
-      const maw = new THREE.Mesh(
-        new THREE.ConeGeometry(bodyR * 0.42, bodyR * 0.55, 6),
-        new THREE.MeshStandardMaterial({
-          color: 0x061018,
-          emissive: 0x0a2030,
-          emissiveIntensity: 0.8,
-          roughness: 0.4,
-        }),
-      );
-      maw.rotation.x = Math.PI / 2;
-      maw.position.z = bodyR * 0.45;
-      g.add(maw);
-      const spark = new THREE.Mesh(
-        new THREE.SphereGeometry(bodyR * 0.12, 10, 10),
-        new THREE.MeshStandardMaterial({
-          color: 0xffffff,
-          emissive: 0x9cf0ff,
-          emissiveIntensity: 4.2,
-        }),
-      );
-      spark.position.z = bodyR * 0.55;
-      g.add(spark);
-      // Soft plasma halo
-      const halo = new THREE.Sprite(
-        new THREE.SpriteMaterial({
-          map: makeGlowTexture(),
-          transparent: true,
-          depthWrite: false,
-          blending: THREE.AdditiveBlending,
-          opacity: 0.45,
-          color: 0x5ad8f0,
-        }),
-      );
-      halo.scale.set(bodyR * 4.2, bodyR * 4.2, 1);
-      halo.name = "enemyHalo";
-      g.add(halo);
+      const core = new THREE.Mesh(ENEMY_GEO.sphere, ENEMY_MAT.wispCore);
+      core.scale.setScalar(bodyR * 0.18);
+      core.position.z = bodyR * 0.55;
+      g.add(core);
     }
 
     const armsRoot = new THREE.Group();
     armsRoot.name = "enemyArms";
     g.add(armsRoot);
 
-    const armMat = armored
-      ? new THREE.MeshStandardMaterial({
-          color: 0x2a3348,
-          roughness: 0.45,
-          metalness: 0.35,
-          emissive: 0x2040aa,
-          emissiveIntensity: 1.1,
-        })
-      : new THREE.MeshStandardMaterial({
-          color: 0x4ad0e8,
-          roughness: 0.2,
-          metalness: 0.1,
-          transparent: true,
-          opacity: 0.82,
-          emissive: 0x1a90b0,
-          emissiveIntensity: 1.8,
-        });
-    const tipMat = armored
-      ? new THREE.MeshStandardMaterial({
-          color: 0x7ad0ff,
-          emissive: 0x3080ff,
-          emissiveIntensity: 2.4,
-          roughness: 0.25,
-        })
-      : new THREE.MeshStandardMaterial({
-          color: 0xb8f6ff,
-          emissive: 0x60e8ff,
-          emissiveIntensity: 2.8,
-          roughness: 0.15,
-        });
-
     const arms = [];
+    const armMat = armored ? ENEMY_MAT.armorArm : ENEMY_MAT.wispArm;
+    const tipMat = armored ? ENEMY_MAT.armorTip : ENEMY_MAT.wispTip;
     for (let i = 0; i < armCount; i++) {
       const root = new THREE.Group();
       const baseAngle = (i / armCount) * Math.PI * 2;
       root.position.set(
-        Math.cos(baseAngle) * bodyR * 0.72,
-        -bodyR * 0.15,
-        Math.sin(baseAngle) * bodyR * 0.72,
+        Math.cos(baseAngle) * bodyR * 0.7,
+        -bodyR * 0.12,
+        Math.sin(baseAngle) * bodyR * 0.7,
       );
       root.rotation.order = "YXZ";
       root.rotation.y = -baseAngle;
-      root.rotation.x = 0.85 + (i % 3) * 0.08;
+      root.rotation.x = 0.9;
 
       const segs = [];
       let parent = root;
-      let segLen = (armored ? 0.28 : 0.24) * scale;
-      let segR = (armored ? 0.07 : 0.055) * scale;
+      let segLen = 0.26 * scale;
+      let segR = 0.055 * scale;
       for (let s = 0; s < segments; s++) {
         const pivot = new THREE.Group();
         if (s === 0) parent.add(pivot);
@@ -763,80 +705,34 @@
           pivot.position.y = -segLen;
           parent.add(pivot);
         }
-        const mat = s === segments - 1 ? tipMat : armMat;
-        const r = segR * (1 - s * 0.14);
-        const len = segLen * (1 - s * 0.06);
-        const mesh = makeArmSegment(r, len, mat);
-        // Capsule default is Y-up; keep along -Y
+        const mesh = new THREE.Mesh(ENEMY_GEO.cyl, s === segments - 1 ? tipMat : armMat);
+        const r = segR * (1 - s * 0.2);
+        const len = segLen * (1 - s * 0.08);
+        mesh.scale.set(r, len, r);
+        mesh.position.y = -len * 0.5;
         pivot.add(mesh);
-        if (armored && s < segments - 1) {
-          const plate = new THREE.Mesh(
-            new THREE.BoxGeometry(r * 2.1, len * 0.7, r * 0.7),
-            new THREE.MeshStandardMaterial({
-              color: 0x0e1218,
-              roughness: 0.75,
-              metalness: 0.5,
-            }),
-          );
-          plate.position.set(0, -len * 0.45, r * 0.55);
-          pivot.add(plate);
-        }
-        segs.push({ pivot, len });
+        segs.push({ pivot });
         parent = pivot;
         segLen = len;
         segR = r;
       }
-      // Bulb / scythe tip
       const tip = new THREE.Mesh(
-        armored
-          ? new THREE.ConeGeometry(segR * 1.1, segLen * 1.1, 6)
-          : new THREE.SphereGeometry(segR * 1.6, 10, 10),
+        armored ? ENEMY_GEO.cone : ENEMY_GEO.sphere,
         tipMat,
       );
-      tip.position.y = -segLen * (armored ? 0.85 : 0.15);
+      tip.scale.setScalar(segR * (armored ? 1.4 : 1.8));
+      tip.position.y = -segLen * (armored ? 0.7 : 0.2);
       if (armored) tip.rotation.x = Math.PI;
       parent.add(tip);
 
       armsRoot.add(root);
-      arms.push({
-        root,
-        segs,
-        baseAngle,
-        phase: Math.random() * Math.PI * 2,
-        twitchUntil: 0,
-        twitchSign: 1,
-      });
-    }
-
-    // Floating shards for armored types
-    if (armored) {
-      const shards = new THREE.Group();
-      shards.name = "enemyShards";
-      for (let i = 0; i < (kind === "boss" ? 10 : 6); i++) {
-        const shard = new THREE.Mesh(
-          new THREE.OctahedronGeometry(0.05 * scale * (0.7 + Math.random() * 0.8), 0),
-          new THREE.MeshStandardMaterial({
-            color: 0x6ab0ff,
-            emissive: 0x2060ff,
-            emissiveIntensity: 1.6,
-            transparent: true,
-            opacity: 0.85,
-          }),
-        );
-        shard.userData = {
-          radius: bodyR * (1.3 + Math.random() * 0.9),
-          speed: 0.4 + Math.random() * 0.8,
-          phase: Math.random() * Math.PI * 2,
-          y: (Math.random() - 0.5) * bodyR,
-        };
-        shards.add(shard);
-      }
-      g.add(shards);
+      arms.push({ root, segs, baseAngle, phase: i * 1.7 });
     }
 
     g.userData.arms = arms;
     g.userData.armored = armored;
-    g.userData.bodyR = bodyR;
+    g.userData.body = body;
+    g.userData.baseEmissive = null;
     g.visible = false;
     scene.add(g);
     return { kind, mesh: g };
@@ -848,47 +744,21 @@
     const dx = towardX - mesh.position.x;
     const dz = towardZ - mesh.position.z;
     const reachYaw = Math.atan2(dx, dz);
+    const rate = mesh.userData.armored ? 2.0 : 2.8;
 
     for (let i = 0; i < arms.length; i++) {
       const arm = arms[i];
-      const t = time * (mesh.userData.armored ? 2.2 : 3.1) + arm.phase;
-      // Occasional menacing twitch
-      if (time > arm.twitchUntil && Math.random() < 0.004) {
-        arm.twitchUntil = time + 0.18 + Math.random() * 0.15;
-        arm.twitchSign = Math.random() < 0.5 ? -1 : 1;
-      }
-      const twitching = time < arm.twitchUntil;
-      const twitch = twitching ? arm.twitchSign * Math.sin((arm.twitchUntil - time) * 40) * 0.55 : 0;
-
-      // Base hangs down/out; lean slightly toward the player
-      const lean = 0.55 + Math.sin(t * 0.7) * 0.12;
-      arm.root.rotation.x = lean + twitch * 0.25;
-      const localReach = Math.sin(arm.baseAngle - reachYaw) * 0.22;
-      arm.root.rotation.z = localReach + Math.sin(t * 0.9 + i) * 0.08 + twitch * 0.15;
-
+      const t = time * rate + arm.phase;
+      const lean = 0.72 + Math.sin(t * 0.7) * 0.1;
+      const localReach = Math.sin(arm.baseAngle - reachYaw) * 0.2;
+      // Occasional snappy twitch without Math.random (stable + cheap).
+      const twitch = Math.sin(t * 5.5) > 0.97 ? Math.sin(t * 28) * 0.35 : 0;
+      arm.root.rotation.x = lean + twitch * 0.2;
+      arm.root.rotation.z = localReach + Math.sin(t * 0.9) * 0.07 + twitch * 0.12;
       for (let s = 0; s < arm.segs.length; s++) {
-        const wave = Math.sin(t + s * 0.85) * (0.32 - s * 0.04);
-        const lash = twitching ? twitch * (0.4 - s * 0.05) : 0;
-        // Curl + writhe; snappier on outer segments when twitching
-        arm.segs[s].pivot.rotation.x = 0.18 + wave * 0.55 + lash;
-        arm.segs[s].pivot.rotation.z = Math.sin(t * 1.15 + s * 1.1) * 0.22 + localReach * 0.15;
+        arm.segs[s].pivot.rotation.x = 0.2 + Math.sin(t + s * 0.9) * 0.38 + twitch * 0.25;
+        arm.segs[s].pivot.rotation.z = Math.sin(t * 1.1 + s) * 0.18;
       }
-    }
-
-    const shards = mesh.getObjectByName("enemyShards");
-    if (shards) {
-      shards.children.forEach((shard, idx) => {
-        const u = shard.userData;
-        const a = time * u.speed + u.phase;
-        shard.position.set(Math.cos(a) * u.radius, u.y + Math.sin(a * 1.3) * 0.08, Math.sin(a) * u.radius);
-        shard.rotation.x = time * 1.5 + idx;
-        shard.rotation.y = time * 1.1 + idx * 0.4;
-      });
-    }
-
-    const halo = mesh.getObjectByName("enemyHalo");
-    if (halo && halo.material) {
-      halo.material.opacity = 0.35 + Math.sin(time * 3.5) * 0.12;
     }
   }
 
@@ -1696,15 +1566,21 @@
     syncAtmosphere(pp, state.time, false);
 
     ensurePool(enemyPool, state.enemies.length, () => createEnemyMesh("wisp"));
+    // Trim unused pool slots so dead enemies don't keep GPU objects forever.
+    while (enemyPool.length > Math.max(state.enemies.length, 8)) {
+      const extra = enemyPool.pop();
+      disposeEnemyMesh(extra && extra.mesh);
+    }
+    const animBudget = state.enemies.length > 28 ? 2 : 1; // animate every Nth when crowded
     for (let i = 0; i < enemyPool.length; i++) {
       const slot = enemyPool[i];
       const e = state.enemies[i];
       if (!e) {
-        slot.mesh.visible = false;
+        if (slot && slot.mesh) slot.mesh.visible = false;
         continue;
       }
       if (slot.kind !== e.kind) {
-        scene.remove(slot.mesh);
+        disposeEnemyMesh(slot.mesh);
         enemyPool[i] = createEnemyMesh(e.kind);
       }
       const m = enemyPool[i].mesh;
@@ -1713,13 +1589,12 @@
       m.visible = true;
       m.position.set(ep.x, 0.55 + bounce + (e.kind === "boss" ? 0.25 : 0), ep.z);
       m.lookAt(pp.x, m.position.y, pp.z);
-      animateEnemyArms(m, state.time, pp.x, pp.z);
+      // Skip some arm updates when the field is crowded.
+      if (i % animBudget === (state.time * 10 | 0) % animBudget) {
+        animateEnemyArms(m, state.time, pp.x, pp.z);
+      }
       const hit = e.hitFlash && e.hitFlash > 0;
-      m.traverse((o) => {
-        if (o.isMesh && o.material && o.material.emissive) {
-          if (hit) o.material.emissiveIntensity = Math.max(o.material.emissiveIntensity || 1, 3.2);
-        }
-      });
+      m.scale.setScalar(hit ? 1.12 : 1);
     }
 
     ensurePool(gemPool, state.gems.length, createGemMesh);
