@@ -1208,7 +1208,7 @@
         speed: 66 * speedMul,
         damage: 16,
         xp: 40,
-        color: "#c45c26",
+        color: "#e07a4a",
         pulse: 0,
       });
       return;
@@ -1225,7 +1225,7 @@
         speed: (72 + t * 0.018) * speedMul,
         damage: 10,
         xp: 5,
-        color: "#3f6b4f",
+        color: "#7a9ae0",
         pulse: rand(0, TAU),
       });
       return;
@@ -2471,7 +2471,7 @@
     ctx.moveTo(x0, y0);
     ctx.quadraticCurveTo(x1, y1, x2, y2);
     ctx.strokeStyle = armored
-      ? `rgba(80,140,255,${0.55 + Math.sin(phase) * 0.2})`
+      ? `rgba(140,180,255,${0.78 + Math.sin(phase) * 0.15})`
       : `rgba(80,220,240,${0.5 + Math.sin(phase) * 0.25})`;
     ctx.lineWidth = armored ? Math.max(2.5, e.r * 0.22) : Math.max(2, e.r * 0.18);
     ctx.lineCap = "round";
@@ -2479,7 +2479,7 @@
 
     // Tip bulb / scythe point
     if (armored) {
-      ctx.fillStyle = "rgba(140,200,255,0.9)";
+      ctx.fillStyle = "rgba(200,230,255,0.95)";
       ctx.beginPath();
       ctx.moveTo(x2, y2);
       ctx.lineTo(x2 + Math.cos(base + 0.4) * 5, y2 + Math.sin(base + 0.4) * 5);
@@ -2550,26 +2550,38 @@
       ctx.arc(0, 0, 2.2, 0, TAU);
       ctx.fill();
     } else {
-      // Armored cosmic eye
+      // Armored cosmic eye — steel/violet so it pops on the dark marsh
+      const aura = ctx.createRadialGradient(0, 0, e.r * 0.6, 0, 0, e.r + 14);
+      aura.addColorStop(0, "rgba(150,180,255,0.35)");
+      aura.addColorStop(0.55, "rgba(120,100,220,0.18)");
+      aura.addColorStop(1, "rgba(40,50,90,0)");
+      ctx.fillStyle = aura;
+      ctx.beginPath();
+      ctx.arc(0, 0, e.r + 14, 0, TAU);
+      ctx.fill();
+
       const shell = ctx.createRadialGradient(-4, -5, 2, 0, 0, e.r + 4);
-      shell.addColorStop(0, flash ? "#d0d8f0" : "#2a3144");
-      shell.addColorStop(0.55, flash ? "#8a90a8" : "#141820");
-      shell.addColorStop(1, "#07090e");
+      shell.addColorStop(0, flash ? "#e8eefc" : "#9aabd0");
+      shell.addColorStop(0.45, flash ? "#a8b4d8" : "#5a6d92");
+      shell.addColorStop(1, "#2e3a58");
       ctx.fillStyle = shell;
       ctx.beginPath();
       ctx.arc(0, 0, e.r, 0, TAU);
       ctx.fill();
+      ctx.strokeStyle = "rgba(190,210,255,0.75)";
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
       // Iris
       const iris = ctx.createRadialGradient(0, 0, 1, 0, 0, e.r * 0.55);
-      iris.addColorStop(0, flash ? "#e8f0ff" : "#c8b0ff");
-      iris.addColorStop(0.4, "#6b2cff");
-      iris.addColorStop(1, "#1a1040");
+      iris.addColorStop(0, flash ? "#f4f0ff" : "#e0d0ff");
+      iris.addColorStop(0.4, "#a56bff");
+      iris.addColorStop(1, "#3a2068");
       ctx.fillStyle = iris;
       ctx.beginPath();
       ctx.arc(0, 0, e.r * 0.55, 0, TAU);
       ctx.fill();
       // Vertical pupil
-      ctx.fillStyle = "#9cf0ff";
+      ctx.fillStyle = "#d8f6ff";
       ctx.beginPath();
       safeEllipse(0, 0, e.r * 0.12, e.r * 0.38, 0);
       ctx.fill();
@@ -2578,8 +2590,8 @@
       safeEllipse(0, 0, e.r * 0.05, e.r * 0.28, 0);
       ctx.fill();
       // Armor notches
-      ctx.strokeStyle = "rgba(90,140,220,0.45)";
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = "rgba(180,210,255,0.7)";
+      ctx.lineWidth = 2.25;
       for (let i = 0; i < 5; i++) {
         const a = (i / 5) * TAU;
         ctx.beginPath();
@@ -2587,8 +2599,8 @@
         ctx.stroke();
       }
       if (e.kind === "boss") {
-        ctx.strokeStyle = `rgba(120,160,255,${0.4 + Math.sin(e.pulse) * 0.2})`;
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = `rgba(180,200,255,${0.65 + Math.sin(e.pulse) * 0.2})`;
+        ctx.lineWidth = 2.5;
         ctx.beginPath();
         ctx.arc(0, 0, e.r + 7 + Math.sin(e.pulse) * 2, 0, TAU);
         ctx.stroke();
