@@ -1006,7 +1006,6 @@
       emberMult: 1,
       facing: 0,
       facingSmooth: 0,
-      orbSpin: 0,
     };
 
     for (const item of SHOP) {
@@ -1938,7 +1937,6 @@
 
     if (mag > 0.1) {
       p.facing = Math.atan2(my, mx);
-      p.orbSpin = (p.orbSpin || 0) + mag * p.speed * dt * 0.028;
     }
     p.facingSmooth = lerpAngle(
       p.facingSmooth != null ? p.facingSmooth : p.facing || 0,
@@ -2321,13 +2319,12 @@
 
     const bob = Math.sin(state.time * 6) * 3;
     if (playerVisualReady) {
-      const drawH = 92;
+      const drawH = 61;
       const drawW = drawH * (playerVisualImg.naturalWidth / playerVisualImg.naturalHeight || 1);
       const cy = ps.y + bob - 8;
       const facing = p.facingSmooth != null ? p.facingSmooth : p.facing || 0;
-      const spin = p.orbSpin || 0;
-      // Canvas rotate is CW-positive; align orb face with travel + rolling spin.
-      const roll = facing - Math.PI / 2 + spin;
+      // Canvas rotate is CW-positive; turn orb to face travel direction only.
+      const roll = facing - Math.PI / 2;
       ctx.save();
       ctx.translate(ps.x, cy);
       ctx.rotate(roll);
