@@ -409,7 +409,7 @@
       id: 0,
       file: "relic-orb.png",
       // Round cyan-gold orb — sized for chase camera readability.
-      height: 1.49,
+      height: 0.745,
       // Glow core sits at image center.
       coreY: 0.02,
       // Keeps the orb hovering above the forest floor.
@@ -443,7 +443,7 @@
   /** Raise the orb so a larger sprite still clears the forest floor. */
   function relicHoverY(baseHover, visScale) {
     const form = PLAYER_VISUAL_FORMS[0];
-    const h = (form && form.height) || 1.49;
+    const h = (form && form.height) || 0.745;
     const lift = Math.max(0, (visScale - 1) * h * 0.5);
     return (baseHover || 1.55) + lift;
   }
@@ -1039,7 +1039,7 @@
     const billboard = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
     billboard.name = "crateSprite";
     billboard.renderOrder = 3;
-    billboard.scale.set(1.35, 1.35, 1);
+    billboard.scale.set(2.7, 2.7, 1);
     group.add(billboard);
 
     // Soft outer power aura
@@ -1053,8 +1053,8 @@
         color: glowCol,
       }),
     );
-    glowOuter.scale.set(3.6, 3.6, 1);
-    glowOuter.position.y = 0.08;
+    glowOuter.scale.set(7.2, 7.2, 1);
+    glowOuter.position.y = 0.16;
     glowOuter.renderOrder = 1;
     group.add(glowOuter);
 
@@ -1069,8 +1069,8 @@
         color: glowCol,
       }),
     );
-    glow.scale.set(2.4, 2.4, 1);
-    glow.position.y = 0.12;
+    glow.scale.set(4.8, 4.8, 1);
+    glow.position.y = 0.24;
     glow.renderOrder = 2;
     group.add(glow);
 
@@ -1923,10 +1923,11 @@
         applyCrateKind(m, w.kind);
       }
       const wp = worldTo3D(w.x, w.y);
-      const bob = Math.sin((w.pulse || state.time) * 4) * 0.1;
+      const bob = Math.sin((w.pulse || state.time) * 4) * 0.14;
       const pulse = 0.72 + Math.sin(state.time * 5 + (w.pulse || 0)) * 0.28;
       m.visible = true;
-      m.position.set(wp.x, 0.72 + bob, wp.z);
+      // Larger crates sit a bit higher so they clear the forest floor.
+      m.position.set(wp.x, 1.15 + bob, wp.z);
       m.rotation.set(0, 0, 0);
       // Face camera like other billboards; Y-flip so the isometric art reads upright.
       const bill = m.userData.billboard;
@@ -1936,11 +1937,11 @@
       }
       if (m.userData.glow && m.userData.glow.material) {
         m.userData.glow.material.opacity = 0.7 + pulse * 0.3;
-        m.userData.glow.scale.setScalar(2.2 + pulse * 0.55);
+        m.userData.glow.scale.setScalar(4.4 + pulse * 1.1);
       }
       if (m.userData.glowOuter && m.userData.glowOuter.material) {
         m.userData.glowOuter.material.opacity = 0.28 + pulse * 0.28;
-        m.userData.glowOuter.scale.setScalar(3.2 + pulse * 0.9);
+        m.userData.glowOuter.scale.setScalar(6.4 + pulse * 1.8);
       }
     }
 
