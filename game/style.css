@@ -710,41 +710,6 @@ button.dash-btn.loaded-grenades {
   .lede { font-size: 0.98rem; }
 }
 
-/* Portrait phone: move stick to bottom-right; keep fire on the left */
-@media (orientation: portrait) and (max-width: 900px) {
-  .stick {
-    left: auto;
-    right: max(16px, env(safe-area-inset-right));
-    bottom: max(22px, env(safe-area-inset-bottom));
-    transform: none;
-  }
-
-  .move-label {
-    left: auto;
-    right: max(16px, env(safe-area-inset-right));
-    bottom: 140px;
-    transform: none;
-    text-align: right;
-  }
-
-  /* Keep the thin meters on the right, but above the stick */
-  .hud-meters {
-    position: absolute;
-    right: max(8px, env(safe-area-inset-right));
-    top: 56px;
-    bottom: 160px;
-    transform: none;
-    width: 12px;
-    height: auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    margin: 0;
-    pointer-events: none;
-  }
-}
-
 /* Phone play (especially sideways / short screens): thin meters on the right */
 @media (orientation: landscape) and (max-height: 520px),
        (hover: none) and (pointer: coarse) and (max-height: 900px) {
@@ -872,5 +837,49 @@ button.dash-btn.loaded-grenades {
   .hud-hint,
   .touch-label {
     display: none !important;
+  }
+}
+
+/* Portrait: stick bottom-right (after phone rules so meters/stick aren't overridden) */
+@media (orientation: portrait) and (max-width: 1200px),
+       (orientation: portrait) and (hover: none) {
+  #stick.stick,
+  .stick {
+    left: unset;
+    right: max(12px, env(safe-area-inset-right, 0px));
+    bottom: max(18px, env(safe-area-inset-bottom, 0px));
+    transform: none;
+  }
+
+  .move-label {
+    left: unset;
+    right: max(12px, env(safe-area-inset-right, 0px));
+    bottom: 138px;
+    transform: none;
+    text-align: right;
+  }
+
+  /* Meters on the right rail, clear of the stick */
+  .hud-meters {
+    position: absolute;
+    right: max(8px, env(safe-area-inset-right, 0px));
+    top: 56px;
+    bottom: 150px;
+    transform: none;
+    width: 12px;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    pointer-events: none;
+  }
+
+  /* Fire stays bottom-left */
+  .dash-btn {
+    left: max(16px, env(safe-area-inset-left, 0px));
+    right: auto;
+    bottom: max(28px, env(safe-area-inset-bottom, 0px));
   }
 }
