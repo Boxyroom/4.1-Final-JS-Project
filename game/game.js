@@ -904,6 +904,11 @@
       hide(ui.touch);
       if (state) state.shopReturnMode = null;
       refreshMetaUi();
+      if (sessionStorage.getItem("lantern-sw-reload-pending")) {
+        sessionStorage.removeItem("lantern-sw-reload-pending");
+        location.reload();
+        return;
+      }
     } else if (next === "tutorial") {
       show(ui.tutorial);
       hide(ui.hud);
@@ -1131,7 +1136,15 @@
 
   window.LanternForm = { of: lanternEvolution };
 
+  const MAX_ENEMIES = 42;
+
   function spawnEnemy(kind = null) {
+    if (!state) return;
+    // Cap field density — too many tentacle meshes was melting phones / crashing WebGL.
+    if (!kind && state.enemies.length >= MAX_ENEMIES) return;
+    if (kind && kind !== "boss" && state.enemies.length >= MAX_ENEMIES) return;
+    if (kind === "boss" && state.enemies.length >= MAX_ENEMIES + 4) return;
+
     const angle = rand(0, TAU);
     const distAway = Math.max(state.w, state.h) * 0.55 + rand(20, 120);
     const x = state.player.x + Math.cos(angle) * distAway;
@@ -1985,7 +1998,7 @@
       for (let i = 0; i < count; i++) spawnEnemy();
       state.spawnTimer = early
         ? 1.05
-        : Math.max(0.22, 0.95 / density);
+        : Math.max(0.38, 0.95 / density);
     }
     if (state.time >= state.nextBossAt) {
       spawnEnemy("boss");
@@ -2435,7 +2448,16 @@
     ctx.scale(1.12, 1.12);
 
     const armored = e.kind === "brute" || e.kind === "boss";
-    const armCount = armored ? (e.kind === "boss" ? 8 : 6) : e.kind === "dart" ? 5 : 7;
+    const busy = state.enemies.length > 26;
+    const armCount = busy
+      ? armored
+        ? 3
+        : 3
+      : armored
+        ? e.kind === "boss"
+          ? 5
+          : 4
+        : 4;
     // Arms behind body
     for (let i = 0; i < armCount; i++) drawEnemyArm(e, armored, i, armCount, state.time);
 
@@ -2955,12 +2977,22 @@
   function frame(ts) {
     const dt = Math.min(0.033, (ts - lastTs) / 1000 || 0.016);
     lastTs = ts;
-    if (mode === "play") update(dt);
-    window.__lanternFocus = !!(input && input.focus);
-    if (window.LanternCGI && window.LanternCGI.ready()) {
-      window.LanternCGI.sync(state, mode);
-    } else {
-      draw();
+    try {
+      if (mode === "play") update(dt);
+      window.__lanternFocus = !!(input && input.focus);
+      if (window.LanternCGI && window.LanternCGI.ready()) {
+        window.LanternCGI.sync(state, mode);
+      } else {
+        draw();
+      }
+    } catch (err) {
+      console.error("frame", err);
+      // Keep the loop alive after a render glitch so the run doesn't die silently.
+      try {
+        if (!(window.LanternCGI && window.LanternCGI.ready())) draw();
+      } catch (_) {
+        /* ignore */
+      }
     }
     animId = requestAnimationFrame(frame);
   }
@@ -3237,6 +3269,11 @@
           const key = "lantern-sw-reload-" + ev.data.cache;
           if (!sessionStorage.getItem(key)) {
             sessionStorage.setItem(key, "1");
+            // Never reload mid-run — that looked like the game "breaking" to title.
+            if (mode === "play" || mode === "levelup" || mode === "pause" || mode === "round") {
+              sessionStorage.setItem("lantern-sw-reload-pending", "1");
+              return;
+            }
             location.reload();
           }
         }
