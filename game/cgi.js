@@ -738,7 +738,7 @@
           bill.material.needsUpdate = true;
           const img = tex.image;
           if (img && img.width && img.height) {
-            const h = m.userData.spriteH || 3.8;
+            const h = m.userData.spriteH || 7.4;
             bill.scale.set(h * (img.width / img.height), h, 1);
           }
         }
@@ -766,7 +766,7 @@
     const billboard = new THREE.Mesh(ENEMY_SPRITE.plane, mat);
     billboard.name = "spawnerSprite";
     billboard.renderOrder = 2;
-    const h = 3.9;
+    const h = 7.4;
     billboard.scale.set(h * 1.3, h, 1);
     g.add(billboard);
     g.userData.billboard = billboard;
@@ -780,20 +780,31 @@
   function createRocketMesh() {
     const g = new THREE.Group();
     const body = new THREE.Mesh(
-      new THREE.ConeGeometry(0.12, 0.55, 6),
-      new THREE.MeshBasicMaterial({ color: 0xffd39a }),
+      new THREE.ConeGeometry(0.22, 1.05, 7),
+      new THREE.MeshBasicMaterial({ color: 0xffe08a }),
     );
     body.rotation.x = Math.PI / 2;
     g.add(body);
     const flame = new THREE.Mesh(
-      new THREE.ConeGeometry(0.1, 0.35, 5),
-      new THREE.MeshBasicMaterial({ color: 0xff6b3a, transparent: true, opacity: 0.9 }),
+      new THREE.ConeGeometry(0.2, 0.75, 6),
+      new THREE.MeshBasicMaterial({ color: 0xff6b3a, transparent: true, opacity: 0.95 }),
     );
     flame.rotation.x = -Math.PI / 2;
-    flame.position.z = -0.35;
+    flame.position.z = -0.7;
     g.add(flame);
+    const glow = new THREE.Sprite(
+      new THREE.SpriteMaterial({
+        color: 0xffb040,
+        transparent: true,
+        opacity: 0.55,
+        depthWrite: false,
+      }),
+    );
+    glow.scale.set(2.4, 2.4, 1);
+    g.add(glow);
     g.userData.body = body;
     g.userData.flame = flame;
+    g.userData.glow = glow;
     g.visible = false;
     scene.add(g);
     return g;
@@ -1702,21 +1713,21 @@
           m.userData.billboard.material.needsUpdate = true;
           const img = tex.image;
           if (img && img.width && img.height) {
-            const h = m.userData.spriteH || 3.9;
+            const h = m.userData.spriteH || 7.4;
             m.userData.billboard.scale.set(h * (img.width / img.height), h, 1);
           }
         }
       }
       const sp = worldTo3D(s.x, s.y);
-      const bob = Math.sin(s.pulse || state.time * 2) * 0.1;
+      const bob = Math.sin(s.pulse || state.time * 2) * 0.12;
       m.visible = true;
-      m.position.set(sp.x, 1.15 + bob, sp.z);
+      m.position.set(sp.x, 1.85 + bob, sp.z);
       const bill = m.userData.billboard;
       if (bill && camera) {
         bill.quaternion.copy(camera.quaternion);
         bill.rotateY(Math.PI);
         const hit = s.hitFlash && s.hitFlash > 0;
-        m.scale.setScalar(hit ? 1.08 : 1);
+        m.scale.setScalar(hit ? 1.06 : 1);
         if (bill.material) bill.material.opacity = hit ? 1 : 0.98;
       }
     }
@@ -1736,11 +1747,17 @@
       }
       const rp = worldTo3D(r.x, r.y);
       m.visible = true;
-      m.position.set(rp.x, 0.85, rp.z);
+      m.position.set(rp.x, 1.05, rp.z);
       const ang = Math.atan2(r.vy || 0, r.vx || 1);
       m.rotation.y = -ang;
+      const gscale = 1.15 + Math.min(0.55, (r.glow || 1) * 0.2);
+      m.scale.setScalar(gscale);
       if (m.userData.flame && m.userData.flame.material) {
-        m.userData.flame.material.opacity = 0.65 + Math.sin(state.time * 30 + i) * 0.25;
+        m.userData.flame.material.opacity = 0.75 + Math.sin(state.time * 30 + i) * 0.2;
+      }
+      if (m.userData.glow && m.userData.glow.material) {
+        m.userData.glow.material.opacity = 0.4 + Math.sin(state.time * 22 + i) * 0.15;
+        m.userData.glow.scale.setScalar(2.2 + Math.sin(state.time * 18 + i) * 0.35);
       }
     }
 
