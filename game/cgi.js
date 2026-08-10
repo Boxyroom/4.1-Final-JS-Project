@@ -778,32 +778,31 @@
   }
 
   function createRocketMesh() {
+    // Camera-facing energy bolt — no cartoon “missile card” mesh.
     const g = new THREE.Group();
-    const body = new THREE.Mesh(
-      new THREE.ConeGeometry(0.22, 1.05, 7),
-      new THREE.MeshBasicMaterial({ color: 0xffe08a }),
-    );
-    body.rotation.x = Math.PI / 2;
-    g.add(body);
-    const flame = new THREE.Mesh(
-      new THREE.ConeGeometry(0.2, 0.75, 6),
-      new THREE.MeshBasicMaterial({ color: 0xff6b3a, transparent: true, opacity: 0.95 }),
-    );
-    flame.rotation.x = -Math.PI / 2;
-    flame.position.z = -0.7;
-    g.add(flame);
-    const glow = new THREE.Sprite(
+    const core = new THREE.Sprite(
       new THREE.SpriteMaterial({
-        color: 0xffb040,
+        color: 0xffe08a,
         transparent: true,
-        opacity: 0.55,
+        opacity: 0.95,
         depthWrite: false,
+        fog: false,
       }),
     );
-    glow.scale.set(2.4, 2.4, 1);
+    core.scale.set(0.85, 0.85, 1);
+    g.add(core);
+    const glow = new THREE.Sprite(
+      new THREE.SpriteMaterial({
+        color: 0xff6b3a,
+        transparent: true,
+        opacity: 0.5,
+        depthWrite: false,
+        fog: false,
+      }),
+    );
+    glow.scale.set(1.9, 1.9, 1);
     g.add(glow);
-    g.userData.body = body;
-    g.userData.flame = flame;
+    g.userData.core = core;
     g.userData.glow = glow;
     g.visible = false;
     scene.add(g);
@@ -811,10 +810,6 @@
   }
 
   function createRocketPickupMesh() {
-    if (!ENEMY_SPRITE.plane) {
-      ENEMY_SPRITE.plane = new THREE.PlaneGeometry(1, 1);
-      ENEMY_SPRITE.plane.userData.shared = true;
-    }
     if (!rocketPickupTex && !rocketPickupLoading) {
       rocketPickupLoading = true;
       const loader = new THREE.TextureLoader();
@@ -826,10 +821,10 @@
           rocketPickupTex = tex;
           rocketPickupLoading = false;
           for (let i = 0; i < rocketPickupPool.length; i++) {
-            const bill = rocketPickupPool[i] && rocketPickupPool[i].userData.billboard;
-            if (bill) {
-              bill.material.map = tex;
-              bill.material.needsUpdate = true;
+            const spr = rocketPickupPool[i] && rocketPickupPool[i].userData.sprite;
+            if (spr && spr.material) {
+              spr.material.map = tex;
+              spr.material.needsUpdate = true;
             }
           }
         },
@@ -840,18 +835,20 @@
       );
     }
     const g = new THREE.Group();
-    const mat = new THREE.MeshBasicMaterial({
-      map: rocketPickupTex,
-      transparent: true,
-      depthWrite: false,
-      fog: false,
-      toneMapped: false,
-      side: THREE.DoubleSide,
-    });
-    const billboard = new THREE.Mesh(ENEMY_SPRITE.plane, mat);
-    billboard.scale.set(1.2, 1.2, 1);
-    g.add(billboard);
-    g.userData.billboard = billboard;
+    // Sprite always faces camera — avoids the square plane “trading card” look.
+    const spr = new THREE.Sprite(
+      new THREE.SpriteMaterial({
+        map: rocketPickupTex,
+        transparent: true,
+        depthWrite: false,
+        fog: false,
+        toneMapped: false,
+      }),
+    );
+    spr.scale.set(1.55, 1.55, 1);
+    g.add(spr);
+    g.userData.sprite = spr;
+    g.userData.billboard = null;
     g.visible = false;
     scene.add(g);
     return g;
@@ -1749,16 +1746,15 @@
       const rp = worldTo3D(r.x, r.y);
       m.visible = true;
       m.position.set(rp.x, 1.05, rp.z);
-      const ang = Math.atan2(r.vy || 0, r.vx || 1);
-      m.rotation.y = -ang;
-      const gscale = 1.15 + Math.min(0.55, (r.glow || 1) * 0.2);
-      m.scale.setScalar(gscale);
-      if (m.userData.flame && m.userData.flame.material) {
-        m.userData.flame.material.opacity = 0.75 + Math.sin(state.time * 30 + i) * 0.2;
-      }
-      if (m.userData.glow && m.userData.glow.material) {
-        m.userData.glow.material.opacity = 0.4 + Math.sin(state.time * 22 + i) * 0.15;
-        m.userData.glow.scale.setScalar(2.2 + Math.sin(state.time * 18 + i) * 0.35);
+      m.rotation.set(0, 0, 0);
+      const pulse = 1 + Math.sin(state.time * 28 + i) * 0.08;
+      const gscale = (1.05 + Math.min(0.35, (r.glow || 1) * 0.12)) * pulse;
+      if (m.userData.core) m.userData.core.scale.setScalar(0.8 * gscale);
+      if (m.userData.glow) {
+        m.userData.glow.scale.setScalar(1.85 * gscale);
+        if (m.userData.glow.material) {
+          m.userData.glow.material.opacity = 0.42 + Math.sin(state.time * 20 + i) * 0.12;
+        }
       }
     }
 
@@ -1778,11 +1774,11 @@
       const wp = worldTo3D(r.x, r.y);
       const bob = Math.sin((r.pulse || state.time) * 5) * 0.12;
       m.visible = true;
-      m.position.set(wp.x, 0.7 + bob, wp.z);
-      const bill = m.userData.billboard;
-      if (bill && camera) {
-        bill.quaternion.copy(camera.quaternion);
-        bill.rotateY(Math.PI);
+      m.position.set(wp.x, 0.85 + bob, wp.z);
+      const spr = m.userData.sprite;
+      if (spr) {
+        const sc = 1.45 + Math.sin((r.pulse || state.time) * 4) * 0.08;
+        spr.scale.set(sc, sc, 1);
       }
     }
 

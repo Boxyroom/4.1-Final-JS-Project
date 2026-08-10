@@ -2986,28 +2986,37 @@
     octx.save();
     octx.translate(s.x, s.y);
     octx.rotate(ang);
-    // Direction stem + chevron so travel heading is obvious in CGI.
-    octx.strokeStyle = "rgba(255, 230, 160, 0.95)";
-    octx.fillStyle = "rgba(255, 176, 64, 0.95)";
-    octx.lineWidth = 3;
-    octx.lineCap = "round";
+    // Soft energy bolt + slim direction tip (no cartoon rocket plate).
+    const bloom = octx.createRadialGradient(0, 0, 1, 0, 0, 18);
+    bloom.addColorStop(0, "rgba(255, 240, 180, 0.95)");
+    bloom.addColorStop(0.45, "rgba(255, 160, 60, 0.55)");
+    bloom.addColorStop(1, "rgba(255, 80, 20, 0)");
+    octx.fillStyle = bloom;
     octx.beginPath();
-    octx.moveTo(-10, 0);
-    octx.lineTo(28, 0);
-    octx.stroke();
+    octx.arc(0, 0, 18, 0, TAU);
+    octx.fill();
+    octx.fillStyle = "rgba(255, 230, 160, 0.95)";
     octx.beginPath();
-    octx.moveTo(36, 0);
-    octx.lineTo(18, -10);
-    octx.lineTo(18, 10);
+    if (octx.ellipse) octx.ellipse(0, 0, 14, 5.5, 0, 0, TAU);
+    else {
+      octx.scale(1, 0.4);
+      octx.arc(0, 0, 14, 0, TAU);
+      octx.scale(1, 2.5);
+    }
+    octx.fill();
+    octx.fillStyle = "rgba(255, 176, 64, 0.98)";
+    octx.beginPath();
+    octx.moveTo(20, 0);
+    octx.lineTo(8, -6);
+    octx.lineTo(8, 6);
     octx.closePath();
     octx.fill();
-    octx.strokeStyle = "rgba(255, 255, 255, 0.55)";
-    octx.lineWidth = 1.25;
-    octx.stroke();
-    // Small rear marker
-    octx.fillStyle = "rgba(255, 107, 58, 0.9)";
+    octx.fillStyle = "rgba(255, 100, 40, 0.85)";
     octx.beginPath();
-    octx.arc(-14, 0, 4, 0, TAU);
+    octx.moveTo(-12, 0);
+    octx.lineTo(-4, -3.5);
+    octx.lineTo(-4, 3.5);
+    octx.closePath();
     octx.fill();
     octx.restore();
   }
@@ -3061,45 +3070,7 @@
   }
 
   function drawRocketMissile(r, s) {
-    const ang = Math.atan2(r.vy, r.vx);
-    const g = r.glow || 1;
-    ctx.save();
-    ctx.translate(s.x, s.y);
-    ctx.rotate(ang);
-    const bloom = ctx.createRadialGradient(0, 0, 2, 0, 0, 34 * g);
-    bloom.addColorStop(0, "rgba(255,230,160,0.85)");
-    bloom.addColorStop(0.35, "rgba(255,140,50,0.45)");
-    bloom.addColorStop(1, "rgba(255,80,20,0)");
-    ctx.fillStyle = bloom;
-    ctx.beginPath();
-    ctx.arc(0, 0, 34 * g, 0, TAU);
-    ctx.fill();
-    const flame = ctx.createLinearGradient(-42, 0, 18, 0);
-    flame.addColorStop(0, "rgba(255,80,20,0)");
-    flame.addColorStop(0.45, "rgba(255,120,40,0.75)");
-    flame.addColorStop(1, "rgba(255,240,180,0.98)");
-    ctx.fillStyle = flame;
-    ctx.beginPath();
-    ctx.moveTo(-40, 0);
-    ctx.lineTo(-6, -9);
-    ctx.lineTo(-6, 9);
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = "#ffe08a";
-    ctx.beginPath();
-    ctx.moveTo(26, 0);
-    ctx.lineTo(-4, -8);
-    ctx.lineTo(-4, 8);
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = "#e07a2f";
-    ctx.fillRect(-10, -10, 7, 6);
-    ctx.fillRect(-10, 4, 7, 6);
-    ctx.fillStyle = "#93c5fd";
-    ctx.beginPath();
-    ctx.arc(8, 0, 3.5, 0, TAU);
-    ctx.fill();
-    ctx.restore();
+    drawMissileIndicator(ctx, r, s);
   }
 
   function drawEnemy(e, s) {
