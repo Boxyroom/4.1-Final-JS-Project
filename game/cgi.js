@@ -98,9 +98,9 @@
     c.height = 128;
     const g = c.getContext("2d");
     const grad = g.createRadialGradient(64, 64, 4, 64, 64, 62);
-    grad.addColorStop(0, "rgba(255,220,140,0.95)");
-    grad.addColorStop(0.35, "rgba(255,160,60,0.35)");
-    grad.addColorStop(1, "rgba(255,120,20,0)");
+    grad.addColorStop(0, "rgba(200,250,255,0.95)");
+    grad.addColorStop(0.35, "rgba(60,200,220,0.35)");
+    grad.addColorStop(1, "rgba(20,140,160,0)");
     g.fillStyle = grad;
     g.fillRect(0, 0, 128, 128);
     const tex = new THREE.CanvasTexture(c);
@@ -399,16 +399,15 @@
   const PLAYER_VISUAL_FORMS = {
     0: {
       id: 0,
-      file: "ancient-relic.png",
-      // Sized for the chase camera (~20u) so the stone silhouette stays readable.
-      height: 4.0,
-      // Glowing orange core is at image center.
+      file: "relic-orb.png",
+      // Round cyan-gold orb — sized for chase camera readability.
+      height: 3.35,
+      // Glow core sits at image center.
       coreY: 0.02,
-      // Keeps the stone body hovering above the forest floor.
-      hoverY: 1.72,
-      // Texture roll (rad via loader). Negated because rotateY(π) flips screen X,
-      // so Three's +CCW UV rotation reads clockwise on screen.
-      levelRollDeg: -8.8,
+      // Keeps the orb hovering above the forest floor.
+      hoverY: 1.55,
+      // Art is already level; facing rotation is applied at runtime.
+      levelRollDeg: 0,
     },
   };
 
@@ -499,22 +498,22 @@
     );
   }
 
-  /** Keep the player PNG facing the camera (billboard), upright on screen. */
-  function orientPlayerBillboard() {
+  /** Keep the player orb facing the camera, then roll it with movement. */
+  function orientPlayerBillboard(facingRad = 0, spinRad = 0) {
     if (!lanternGroup || !camera) return;
     const billboard = lanternGroup.getObjectByName("playerSprite");
     if (!billboard) return;
-    // Match camera orientation, then yaw 180° so the plane's +Z faces the
-    // camera. Without this, DoubleSide shows the mirrored back face and the
-    // relic reads as leaning the wrong way.
+    // Match camera, yaw 180° so the plane faces the lens, then spin with travel.
     billboard.quaternion.copy(camera.quaternion);
     billboard.rotateY(Math.PI);
+    // Game facing: 0 = +X (right), π/2 = +Y (down on the playfield).
+    const face = -facingRad + Math.PI / 2;
+    billboard.rotateZ(face + spinRad);
   }
 
   /**
-   * Floating Ancient Relic billboard — Level 0 base player visual.
-   * Uses a camera-facing plane (not a ground fixture) so the exact PNG
-   * stays readable under the chase camera / software WebGL.
+   * Floating relic-orb billboard — Level 0 base player visual.
+   * Camera-facing plane so the PNG stays readable under the chase camera.
    */
   function createPlayerVisual() {
     const form = PLAYER_VISUAL_FORMS[0];
@@ -538,7 +537,7 @@
     const billboard = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
     billboard.name = "playerSprite";
     billboard.renderOrder = 3;
-    const aspect = 1024 / 1536;
+    const aspect = 1;
     billboard.scale.set(form.height * aspect, form.height, 1);
     group.add(billboard);
 
@@ -1322,12 +1321,12 @@
     scene.add(lanternGroup);
 
     // Warm lantern as the dominant light — soft decay, wide enough to read the floor
-    lanternLight = new THREE.PointLight(0xffb040, 110, 36, 1.25);
+    lanternLight = new THREE.PointLight(0x3ec6d8, 110, 36, 1.25);
     // Shadows are expensive/unreliable on software WebGL; keep them off for stability
     lanternLight.castShadow = false;
     scene.add(lanternLight);
 
-    flameLight = new THREE.PointLight(0xffe08a, 22, 11, 1.9);
+    flameLight = new THREE.PointLight(0x9cf0ff, 22, 11, 1.9);
     scene.add(flameLight);
 
     glowSprite = new THREE.Sprite(
@@ -1441,7 +1440,8 @@
       const coreY = lanternGroup.userData.coreY || 0.02;
       lanternGroup.position.set(0, hover + bob, 0);
       lanternGroup.rotation.set(0, 0, 0);
-      orientPlayerBillboard();
+      const titleSpin = now * 0.00055;
+      orientPlayerBillboard(titleSpin, titleSpin * 0.35);
       lanternLight.position.set(0, hover + bob + coreY, 0);
       flameLight.position.set(0, hover + bob + coreY, 0);
       glowSprite.position.set(0, hover + bob + coreY, 0);
@@ -1473,11 +1473,13 @@
     const coreY = lanternGroup.userData.coreY || 0.02;
     lanternGroup.position.set(pp.x, hover, pp.z);
     lanternGroup.rotation.set(0, 0, 0);
-    orientPlayerBillboard();
+    const facing = p.facingSmooth != null ? p.facingSmooth : p.facing || 0;
+    const spin = p.orbSpin || 0;
+    orientPlayerBillboard(facing, spin);
 
     const flick = 0.88 + Math.sin(state.time * 18) * 0.08 + Math.sin(state.time * 41) * 0.03;
     const lightMul = evo.light != null ? evo.light : 1;
-    // Warm light locked to the relic's orange core
+    // Cyan core light matching the relic orb
     const coreWorldY = hover + coreY;
     lanternLight.position.set(pp.x, coreWorldY, pp.z);
     lanternLight.intensity = 88 * flick * lightMul;

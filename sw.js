@@ -1,5 +1,5 @@
 /* Lantern Hollow — lightweight offline cache for phone install / testing */
-const CACHE = "lantern-hollow-v11";
+const CACHE = "lantern-hollow-v12";
 const PRECACHE = [
   "./",
   "./lantern.html",
@@ -10,6 +10,7 @@ const PRECACHE = [
   "./game/style.css",
   "./game/cgi.js",
   "./game/game.js",
+  "./game/assets/relic-orb.png",
   "./game/assets/ancient-relic.png",
   "./game/assets/forest-floor.webp",
   "./game/assets/forest-floor.png",
