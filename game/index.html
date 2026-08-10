@@ -20,6 +20,26 @@
 </head>
 <body>
   <div id="app" data-ground="assets/forest-floor.webp">
+    <script>
+      (function () {
+        var app = document.getElementById("app");
+        if (!app) return;
+        function syncLayoutBoot() {
+          var touch =
+            window.matchMedia("(pointer: coarse)").matches ||
+            window.matchMedia("(hover: none)").matches ||
+            (navigator.maxTouchPoints || 0) > 0;
+          var portrait =
+            window.matchMedia("(orientation: portrait)").matches ||
+            window.innerHeight >= window.innerWidth;
+          app.classList.toggle("layout-touch", touch);
+          app.classList.toggle("layout-portrait", portrait);
+        }
+        syncLayoutBoot();
+        window.addEventListener("resize", syncLayoutBoot);
+        window.addEventListener("orientationchange", syncLayoutBoot);
+      })();
+    </script>
     <canvas id="game" aria-label="Lantern Hollow game canvas"></canvas>
 
     <div id="hud" class="hidden">
@@ -37,18 +57,26 @@
         </div>
       </div>
       <div class="hud-meters">
-        <div class="life-row" title="Your life. When this hits 0, the run ends.">
-          <span class="life-label">LIFE</span>
-          <div class="life-track">
-            <div id="life-fill"></div>
+        <div class="meter-block meter-life" title="Your life. When this hits 0, the run ends.">
+          <div class="life-row">
+            <span class="life-label">LIFE</span>
+            <div class="life-track">
+              <div id="life-fill"></div>
+            </div>
+            <span id="hud-hp">100 / 100</span>
           </div>
-          <span id="hud-hp">100 / 100</span>
+          <span class="meter-tag meter-heart" aria-hidden="true">♥</span>
         </div>
-        <div class="xp-track" title="XP bar — fill it to level up">
-          <div id="xp-fill"></div>
+        <div class="meter-block meter-xp" title="XP bar — fill it to level up">
+          <div class="xp-track">
+            <div id="xp-fill"></div>
+          </div>
+          <span class="meter-tag">XP</span>
         </div>
-        <div class="dash-track" title="Special weapon loaded">
-          <div id="dash-fill"></div>
+        <div class="meter-block meter-dash" title="Special weapon loaded">
+          <div class="dash-track">
+            <div id="dash-fill"></div>
+          </div>
         </div>
       </div>
       <div class="hud-hint">LIFE = health · Green mark = grenades · Red mark = swarm · Blue mark = nuke</div>

@@ -728,9 +728,208 @@ button.dash-btn.loaded-grenades {
   .lede { font-size: 0.98rem; }
 }
 
-/* Phone play (especially sideways / short screens): thin meters on the right */
+.meter-tag {
+  display: none;
+  font-family: var(--font-body);
+  font-weight: 800;
+  line-height: 1;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75);
+  pointer-events: none;
+}
+
+.meter-block {
+  display: contents;
+}
+
+/* Touch phones: thin vertical meters on the right edge */
+#app.layout-touch .hud-meters {
+  position: absolute;
+  right: max(8px, env(safe-area-inset-right, 0px));
+  top: 52%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: min(62vh, 320px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+
+#app.layout-touch .meter-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  min-height: 0;
+}
+
+#app.layout-touch .meter-life {
+  flex: 1.35;
+  height: auto;
+}
+
+#app.layout-touch .meter-xp {
+  flex: 0.55;
+}
+
+#app.layout-touch .meter-dash {
+  flex: 0.28;
+}
+
+#app.layout-touch .life-row {
+  margin: 0;
+  max-width: none;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+#app.layout-touch .life-label,
+#app.layout-touch #hud-hp {
+  display: none;
+}
+
+#app.layout-touch .life-track,
+#app.layout-touch .xp-track,
+#app.layout-touch .dash-track {
+  margin: 0;
+  max-width: none;
+  width: 8px;
+  border-radius: 3px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+  flex: 1;
+  height: auto;
+  min-height: 28px;
+}
+
+#app.layout-touch .life-track {
+  border: 1px solid rgba(125, 206, 160, 0.45);
+  background: rgba(8, 16, 12, 0.7);
+}
+
+#app.layout-touch .xp-track,
+#app.layout-touch .dash-track {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+#app.layout-touch #life-fill,
+#app.layout-touch #xp-fill,
+#app.layout-touch #dash-fill {
+  width: 100% !important;
+  height: var(--meter, 100%) !important;
+  align-self: stretch;
+  background-image: linear-gradient(180deg, #7dcea0, #2f6a45);
+}
+
+#app.layout-touch #xp-fill {
+  background-image: linear-gradient(180deg, var(--amber), var(--fern));
+}
+
+#app.layout-touch #dash-fill {
+  background-image: linear-gradient(180deg, var(--amber), var(--ember));
+}
+
+#app.layout-touch #dash-fill.nuke {
+  background-image: linear-gradient(180deg, #c084fc, #7c3aed);
+}
+
+#app.layout-touch #dash-fill.grenades {
+  background-image: linear-gradient(180deg, #86efac, #15803d);
+}
+
+#app.layout-touch #dash-fill.swarm {
+  background-image: linear-gradient(180deg, #fb7185, #9f1239);
+}
+
+#app.layout-touch .life-row.danger #life-fill {
+  background-image: linear-gradient(180deg, #f0b429, #8a3a18);
+}
+
+#app.layout-touch .meter-tag {
+  display: block;
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  color: var(--mist);
+  text-align: center;
+}
+
+#app.layout-touch .meter-heart {
+  font-size: 0.85rem;
+  color: #7dcea0;
+}
+
+#app.layout-touch .meter-life:has(.life-row.danger) .meter-heart {
+  color: #e07a2f;
+}
+
+#app.layout-touch .hud-top {
+  gap: 6px;
+  align-items: flex-start;
+}
+
+#app.layout-touch #hud {
+  padding: 6px 8px 0;
+}
+
+#app.layout-touch .hud-brand {
+  font-size: 0.85rem;
+}
+
+#app.layout-touch .hud-stats {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px 10px;
+  font-size: 0.72rem;
+  max-width: 72vw;
+}
+
+#app.layout-touch .hud-pause {
+  font-size: 0.72rem;
+  padding: 3px 8px;
+}
+
+#app.layout-touch .banner,
+#app.layout-touch .coach,
+#app.layout-touch .hud-hint,
+#app.layout-touch .touch-label {
+  display: none !important;
+}
+
+/* Portrait touch: stick bottom-right; meters clear above it */
+#app.layout-touch.layout-portrait .stick {
+  left: auto !important;
+  right: max(12px, env(safe-area-inset-right, 0px)) !important;
+  bottom: max(18px, env(safe-area-inset-bottom, 0px)) !important;
+  transform: none !important;
+}
+
+#app.layout-touch.layout-portrait .dash-btn {
+  left: max(16px, env(safe-area-inset-left, 0px));
+  right: auto;
+  bottom: max(28px, env(safe-area-inset-bottom, 0px));
+}
+
+#app.layout-touch.layout-portrait .hud-meters {
+  top: 56px;
+  bottom: 150px;
+  transform: none;
+  height: auto;
+  right: max(10px, env(safe-area-inset-right, 0px));
+}
+
+/* Fallback media queries (when JS classes are delayed) */
 @media (orientation: landscape) and (max-height: 520px),
-       (hover: none) and (pointer: coarse) and (max-height: 900px) {
+       (hover: none) and (pointer: coarse) {
   #hud {
     padding: 6px 8px 0;
   }
@@ -757,99 +956,6 @@ button.dash-btn.loaded-grenades {
     padding: 3px 8px;
   }
 
-  .hud-meters {
-    position: absolute;
-    right: max(6px, env(safe-area-inset-right));
-    top: 50%;
-    transform: translateY(-50%);
-    width: 12px;
-    height: min(58vh, 260px);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    margin: 0;
-    pointer-events: none;
-  }
-
-  .life-row {
-    margin: 0;
-    max-width: none;
-    width: 100%;
-    height: 58%;
-    flex-direction: column;
-    align-items: center;
-    gap: 3px;
-  }
-
-  .life-label,
-  #hud-hp {
-    display: none;
-  }
-
-  .life-track,
-  .xp-track,
-  .dash-track {
-    margin: 0;
-    max-width: none;
-    width: 6px;
-    border-radius: 2px;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    overflow: hidden;
-  }
-
-  .life-track {
-    flex: 1;
-    height: auto;
-    min-height: 0;
-  }
-
-  .xp-track {
-    height: 22%;
-    min-height: 36px;
-  }
-
-  .dash-track {
-    height: 12%;
-    min-height: 22px;
-  }
-
-  #life-fill,
-  #xp-fill,
-  #dash-fill {
-    width: 100% !important;
-    height: var(--meter, 100%);
-    align-self: stretch;
-    background-image: linear-gradient(180deg, #7dcea0, #2f6a45);
-  }
-
-  #xp-fill {
-    background-image: linear-gradient(180deg, var(--amber), var(--fern));
-  }
-
-  #dash-fill {
-    background-image: linear-gradient(180deg, var(--amber), var(--ember));
-  }
-
-  #dash-fill.nuke {
-    background-image: linear-gradient(180deg, #c084fc, #7c3aed);
-  }
-
-  #dash-fill.grenades {
-    background-image: linear-gradient(180deg, #86efac, #15803d);
-  }
-
-  #dash-fill.swarm {
-    background-image: linear-gradient(180deg, #fb7185, #9f1239);
-  }
-
-  .life-row.danger #life-fill {
-    background-image: linear-gradient(180deg, #f0b429, #8a3a18);
-  }
-
-  /* No coach/banner chrome during play */
   .banner,
   .coach,
   .hud-hint,
@@ -858,43 +964,15 @@ button.dash-btn.loaded-grenades {
   }
 }
 
-/* Portrait: stick bottom-right (after phone rules so meters/stick aren't overridden) */
-@media (orientation: portrait) and (max-width: 1200px),
-       (orientation: portrait) and (hover: none) {
-  #stick.stick,
+@media (orientation: portrait) and (hover: none),
+       (orientation: portrait) and (pointer: coarse) {
   .stick {
-    left: unset;
-    right: max(12px, env(safe-area-inset-right, 0px));
-    bottom: max(18px, env(safe-area-inset-bottom, 0px));
-    transform: none;
+    left: auto !important;
+    right: max(12px, env(safe-area-inset-right, 0px)) !important;
+    bottom: max(18px, env(safe-area-inset-bottom, 0px)) !important;
+    transform: none !important;
   }
 
-  .move-label {
-    left: unset;
-    right: max(12px, env(safe-area-inset-right, 0px));
-    bottom: 138px;
-    transform: none;
-    text-align: right;
-  }
-
-  /* Meters on the right rail, clear of the stick */
-  .hud-meters {
-    position: absolute;
-    right: max(8px, env(safe-area-inset-right, 0px));
-    top: 56px;
-    bottom: 150px;
-    transform: none;
-    width: 12px;
-    height: auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    margin: 0;
-    pointer-events: none;
-  }
-
-  /* Fire stays bottom-left */
   .dash-btn {
     left: max(16px, env(safe-area-inset-left, 0px));
     right: auto;
@@ -902,11 +980,32 @@ button.dash-btn.loaded-grenades {
   }
 }
 
-</style>
+  </style>
   <link rel="icon" type="image/png" href="assets/icons/icon-192.png" />
 </head>
 <body>
+
   <div id="app" data-ground="assets/forest-floor.webp">
+    <script>
+      (function () {
+        var app = document.getElementById("app");
+        if (!app) return;
+        function syncLayoutBoot() {
+          var touch =
+            window.matchMedia("(pointer: coarse)").matches ||
+            window.matchMedia("(hover: none)").matches ||
+            (navigator.maxTouchPoints || 0) > 0;
+          var portrait =
+            window.matchMedia("(orientation: portrait)").matches ||
+            window.innerHeight >= window.innerWidth;
+          app.classList.toggle("layout-touch", touch);
+          app.classList.toggle("layout-portrait", portrait);
+        }
+        syncLayoutBoot();
+        window.addEventListener("resize", syncLayoutBoot);
+        window.addEventListener("orientationchange", syncLayoutBoot);
+      })();
+    </script>
     <canvas id="game" aria-label="Lantern Hollow game canvas"></canvas>
 
     <div id="hud" class="hidden">
@@ -924,18 +1023,26 @@ button.dash-btn.loaded-grenades {
         </div>
       </div>
       <div class="hud-meters">
-        <div class="life-row" title="Your life. When this hits 0, the run ends.">
-          <span class="life-label">LIFE</span>
-          <div class="life-track">
-            <div id="life-fill"></div>
+        <div class="meter-block meter-life" title="Your life. When this hits 0, the run ends.">
+          <div class="life-row">
+            <span class="life-label">LIFE</span>
+            <div class="life-track">
+              <div id="life-fill"></div>
+            </div>
+            <span id="hud-hp">100 / 100</span>
           </div>
-          <span id="hud-hp">100 / 100</span>
+          <span class="meter-tag meter-heart" aria-hidden="true">♥</span>
         </div>
-        <div class="xp-track" title="XP bar — fill it to level up">
-          <div id="xp-fill"></div>
+        <div class="meter-block meter-xp" title="XP bar — fill it to level up">
+          <div class="xp-track">
+            <div id="xp-fill"></div>
+          </div>
+          <span class="meter-tag">XP</span>
         </div>
-        <div class="dash-track" title="Special weapon loaded">
-          <div id="dash-fill"></div>
+        <div class="meter-block meter-dash" title="Special weapon loaded">
+          <div class="dash-track">
+            <div id="dash-fill"></div>
+          </div>
         </div>
       </div>
       <div class="hud-hint">LIFE = health · Green mark = grenades · Red mark = swarm · Blue mark = nuke</div>
@@ -1066,6 +1173,7 @@ button.dash-btn.loaded-grenades {
       </div>
     </section>
   </div>
+
   <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
   <script>
 /* Photoreal-leaning WebGL renderer for Lantern Hollow (Three.js) */
@@ -2888,7 +2996,7 @@ button.dash-btn.loaded-grenades {
   };
 })();
 
-</script>
+  </script>
   <script>
 (() => {
   "use strict";
@@ -3701,8 +3809,36 @@ button.dash-btn.loaded-grenades {
   function setMeterFill(el, pct) {
     if (!el) return;
     const v = `${clamp(pct, 0, 100)}%`;
-    el.style.width = v;
     el.style.setProperty("--meter", v);
+    // Desktop/horizontal bars use width; vertical phone rail uses height via CSS var.
+    el.style.width = v;
+    el.style.height = "";
+  }
+
+  function syncTouchLayout() {
+    const app = document.getElementById("app");
+    if (!app) return;
+    const touch = isTouchPrimary();
+    const portrait =
+      window.matchMedia("(orientation: portrait)").matches ||
+      window.innerHeight >= window.innerWidth;
+    app.classList.toggle("layout-touch", touch);
+    app.classList.toggle("layout-portrait", portrait);
+
+    // Inline pin so cached/older CSS cannot leave the stick centered in portrait.
+    if (ui.stick) {
+      if (touch && portrait) {
+        ui.stick.style.left = "auto";
+        ui.stick.style.right = "max(12px, env(safe-area-inset-right, 0px))";
+        ui.stick.style.bottom = "max(18px, env(safe-area-inset-bottom, 0px))";
+        ui.stick.style.transform = "none";
+      } else {
+        ui.stick.style.left = "";
+        ui.stick.style.right = "";
+        ui.stick.style.bottom = "";
+        ui.stick.style.transform = "";
+      }
+    }
   }
 
   function dist(a, b) {
@@ -3720,6 +3856,7 @@ button.dash-btn.loaded-grenades {
       state.w = window.innerWidth;
       state.h = window.innerHeight;
     }
+    syncTouchLayout();
   }
 
   function show(el) {
@@ -5988,6 +6125,7 @@ button.dash-btn.loaded-grenades {
   on("btn-quit", "click", () => endRun(true));
 
   window.addEventListener("resize", resize);
+  window.addEventListener("orientationchange", syncTouchLayout);
 
   try {
     if (window.LanternCGI) {
@@ -6050,6 +6188,6 @@ button.dash-btn.loaded-grenades {
   };
 })();
 
-</script>
+  </script>
 </body>
 </html>
