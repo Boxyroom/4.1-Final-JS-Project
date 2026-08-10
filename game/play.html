@@ -620,6 +620,10 @@ h2 {
   border: 1px solid rgba(240, 180, 41, 0.35);
   background: rgba(12, 20, 16, 0.35);
   pointer-events: auto;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  z-index: 5;
 }
 
 .stick-knob {
@@ -650,6 +654,11 @@ h2 {
   font-weight: 700;
   font-size: 1rem;
   pointer-events: auto;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  z-index: 6;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -6272,7 +6281,7 @@ button.dash-btn.loaded-grenades {
     if (k === "f") input.focus = false;
   });
 
-  // touch stick
+  // touch stick + fire button (multitouch: move with one finger, fire with another)
   let stickActive = null;
   function stickHandler(clientX, clientY) {
     const rect = ui.stick.getBoundingClientRect();
@@ -6293,12 +6302,22 @@ button.dash-btn.loaded-grenades {
 
   if (ui.stick) {
     ui.stick.addEventListener("pointerdown", (e) => {
+      // Only track this finger; a second finger can still hit the fire button.
+      if (stickActive != null && stickActive !== e.pointerId) return;
       stickActive = e.pointerId;
-      ui.stick.setPointerCapture(e.pointerId);
+      try {
+        ui.stick.setPointerCapture(e.pointerId);
+      } catch (_) {
+        /* ignore */
+      }
       stickHandler(e.clientX, e.clientY);
+      e.preventDefault();
     });
     ui.stick.addEventListener("pointermove", (e) => {
-      if (stickActive === e.pointerId) stickHandler(e.clientX, e.clientY);
+      if (stickActive === e.pointerId) {
+        stickHandler(e.clientX, e.clientY);
+        e.preventDefault();
+      }
     });
     function endStick(e) {
       if (stickActive === e.pointerId) {
@@ -6306,16 +6325,41 @@ button.dash-btn.loaded-grenades {
         input.ax = 0;
         input.ay = 0;
         if (ui.stickKnob) ui.stickKnob.style.transform = "translate(0,0)";
+        try {
+          if (ui.stick.hasPointerCapture && ui.stick.hasPointerCapture(e.pointerId)) {
+            ui.stick.releasePointerCapture(e.pointerId);
+          }
+        } catch (_) {
+          /* ignore */
+        }
       }
     }
     ui.stick.addEventListener("pointerup", endStick);
     ui.stick.addEventListener("pointercancel", endStick);
+    ui.stick.addEventListener("lostpointercapture", (e) => {
+      if (stickActive === e.pointerId) endStick(e);
+    });
   }
 
-  on(ui.dashBtn, "click", () => {
+  function pressFireButton(e) {
+    if (ui.dashBtn && ui.dashBtn.disabled) return;
+    // Ignore non-primary mouse buttons; accept every touch/pen pointer.
+    if (e && e.pointerType === "mouse" && typeof e.button === "number" && e.button !== 0) return;
     input.dash = true;
-  });
+    if (e && e.cancelable) e.preventDefault();
+  }
 
+  if (ui.dashBtn) {
+    // pointerdown works with a second finger while the stick is held; click often does not.
+    ui.dashBtn.addEventListener("pointerdown", pressFireButton);
+    ui.dashBtn.addEventListener(
+      "touchstart",
+      (e) => {
+        pressFireButton(e);
+      },
+      { passive: false },
+    );
+  }
   // Play always starts the game. Tutorial is optional via How to play.
   on("btn-start", "click", () => {
     markTutorialSeen();

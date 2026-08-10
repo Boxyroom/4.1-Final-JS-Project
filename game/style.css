@@ -602,6 +602,10 @@ h2 {
   border: 1px solid rgba(240, 180, 41, 0.35);
   background: rgba(12, 20, 16, 0.35);
   pointer-events: auto;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  z-index: 5;
 }
 
 .stick-knob {
@@ -632,6 +636,11 @@ h2 {
   font-weight: 700;
   font-size: 1rem;
   pointer-events: auto;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  z-index: 6;
   display: flex;
   flex-direction: column;
   align-items: center;
