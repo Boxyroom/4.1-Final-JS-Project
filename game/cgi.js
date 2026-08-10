@@ -424,6 +424,30 @@
     return PLAYER_VISUAL_FORMS[0];
   }
 
+  /** Sideways phone: double the relic's on-screen appearance (visual only). */
+  function relicAppearanceScale() {
+    try {
+      const landscape =
+        window.matchMedia("(orientation: landscape)").matches ||
+        window.innerWidth > window.innerHeight;
+      const touch =
+        window.matchMedia("(pointer: coarse)").matches ||
+        window.matchMedia("(hover: none)").matches ||
+        "ontouchstart" in window;
+      return landscape && touch ? 2 : 1;
+    } catch (_) {
+      return 1;
+    }
+  }
+
+  /** Raise the orb so a larger sprite still clears the forest floor. */
+  function relicHoverY(baseHover, visScale) {
+    const form = PLAYER_VISUAL_FORMS[0];
+    const h = (form && form.height) || 1.49;
+    const lift = Math.max(0, (visScale - 1) * h * 0.5);
+    return (baseHover || 1.55) + lift;
+  }
+
   const GROUND_TILE_REPEAT = 8;
   const GROUND_PLANE_SIZE = 90;
 
@@ -576,7 +600,9 @@
       if (lanternGroup.userData.formId !== form.id) {
         loadPlayerFormTexture(lanternGroup, form);
       }
-      lanternGroup.scale.setScalar(1);
+      const visScale = relicAppearanceScale();
+      lanternGroup.scale.setScalar(visScale);
+      lanternGroup.userData.visScale = visScale;
       // Strip any leftover procedural attachment meshes from older builds.
       const stale = lanternGroup.getObjectByName("evoAttachments");
       if (stale && stale.parent) stale.parent.remove(stale);
@@ -1594,16 +1620,17 @@
       applyLanternEvolution(1, false);
       const origin = { x: 0, y: 0, z: 0 };
       followGround(origin);
-      const hover = lanternGroup.userData.hoverY || 1.72;
+      const visScale = lanternGroup.userData.visScale || relicAppearanceScale();
+      const hover = relicHoverY(lanternGroup.userData.hoverY || 1.72, visScale);
       const bob = Math.sin(now * 0.0025) * 0.05;
-      const coreY = lanternGroup.userData.coreY || 0.02;
+      const coreY = (lanternGroup.userData.coreY || 0.02) * visScale;
       lanternGroup.position.set(0, hover + bob, 0);
       lanternGroup.rotation.set(0, 0, 0);
       orientPlayerBillboard(0);
       lanternLight.position.set(0, hover + bob + coreY, 0);
       flameLight.position.set(0, hover + bob + coreY, 0);
       glowSprite.position.set(0, hover + bob + coreY, 0);
-      glowSprite.scale.setScalar(3.4);
+      glowSprite.scale.setScalar(3.4 * visScale);
       lanternLight.color.setHex(0x3ec6d8);
       flameLight.color.setHex(0x9cf0ff);
       if (glowSprite.material) glowSprite.material.color.setHex(0x3ec6d8);
@@ -1630,8 +1657,9 @@
     const pp = worldTo3D(p.x, p.y);
     followGround(pp);
     const bob = Math.sin(state.time * 6) * 0.04;
-    const hover = (lanternGroup.userData.hoverY || 1.72) + bob;
-    const coreY = lanternGroup.userData.coreY || 0.02;
+    const visScale = lanternGroup.userData.visScale || relicAppearanceScale();
+    const hover = relicHoverY(lanternGroup.userData.hoverY || 1.72, visScale) + bob;
+    const coreY = (lanternGroup.userData.coreY || 0.02) * visScale;
     lanternGroup.position.set(pp.x, hover, pp.z);
     lanternGroup.rotation.set(0, 0, 0);
     const facing = p.facingSmooth != null ? p.facingSmooth : p.facing || 0;
@@ -1676,7 +1704,7 @@
       glowSprite.material.color.setHex(glowHex);
       glowSprite.material.opacity = (0.16 + flick * 0.1) * lightMul * (armed ? 1.8 : 1);
     }
-    glowSprite.scale.setScalar((1.8 + flick * 0.35) * (armed ? 1.55 : 1));
+    glowSprite.scale.setScalar((1.8 + flick * 0.35) * (armed ? 1.55 : 1) * visScale);
 
     const hp = Math.max(0.05, p.hp / p.maxHp);
 
