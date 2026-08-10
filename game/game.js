@@ -3066,7 +3066,7 @@
       } catch (_) {
         /* ignore */
       }
-      const drawH = 25.625 * visScale;
+      const drawH = 32.03125 * visScale;
       const drawW = drawH * (playerVisualImg.naturalWidth / playerVisualImg.naturalHeight || 1);
       const cy = ps.y + bob - 8;
       const facing = p.facingSmooth != null ? p.facingSmooth : p.facing || 0;
