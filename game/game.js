@@ -810,9 +810,15 @@
     if (!el) return;
     const v = `${clamp(pct, 0, 100)}%`;
     el.style.setProperty("--meter", v);
-    // Desktop/horizontal bars use width; vertical phone rail uses height via CSS var.
-    el.style.width = v;
-    el.style.height = "";
+    const vertical =
+      document.getElementById("app")?.classList.contains("layout-touch");
+    if (vertical) {
+      el.style.width = "100%";
+      el.style.height = v;
+    } else {
+      el.style.width = v;
+      el.style.height = "";
+    }
   }
 
   function syncTouchLayout() {
@@ -825,29 +831,21 @@
     app.classList.toggle("layout-touch", touch);
     app.classList.toggle("layout-portrait", portrait);
 
-    // Inline pin: move stick stays far bottom-right on phones (portrait + sideways).
-    if (ui.stick) {
-      if (touch) {
-        const edge = portrait ? "12px" : "6px";
-        const bottom = portrait ? "18px" : "6px";
-        ui.stick.style.left = "auto";
-        ui.stick.style.right = `max(${edge}, env(safe-area-inset-right, 0px))`;
-        ui.stick.style.bottom = `max(${bottom}, env(safe-area-inset-bottom, 0px))`;
-        ui.stick.style.transform = "none";
-        if (!portrait) {
-          ui.stick.style.width = "96px";
-          ui.stick.style.height = "96px";
-        } else {
-          ui.stick.style.width = "";
-          ui.stick.style.height = "";
-        }
+    // Always pin move stick to the far bottom-right on phones.
+    const stick = ui.stick || document.getElementById("stick");
+    if (stick) {
+      const edge = touch && !portrait ? "6px" : "8px";
+      const bottom = touch && !portrait ? "4px" : "8px";
+      stick.style.setProperty("left", "auto", "important");
+      stick.style.setProperty("right", edge, "important");
+      stick.style.setProperty("bottom", bottom, "important");
+      stick.style.setProperty("transform", "none", "important");
+      if (touch && !portrait) {
+        stick.style.setProperty("width", "96px", "important");
+        stick.style.setProperty("height", "96px", "important");
       } else {
-        ui.stick.style.left = "";
-        ui.stick.style.right = "";
-        ui.stick.style.bottom = "";
-        ui.stick.style.transform = "";
-        ui.stick.style.width = "";
-        ui.stick.style.height = "";
+        stick.style.removeProperty("width");
+        stick.style.removeProperty("height");
       }
     }
   }
@@ -913,9 +911,11 @@
       show(ui.round);
       show(ui.hud);
       if (isTouchPrimary()) show(ui.touch);
+      syncTouchLayout();
     } else if (next === "play") {
       show(ui.hud);
       if (isTouchPrimary()) show(ui.touch);
+      syncTouchLayout();
     } else if (next === "levelup") {
       show(ui.levelup);
     } else if (next === "tactic") {
@@ -3136,7 +3136,11 @@
   on("btn-quit", "click", () => endRun(true));
 
   window.addEventListener("resize", resize);
-  window.addEventListener("orientationchange", syncTouchLayout);
+  window.addEventListener("orientationchange", () => {
+    syncTouchLayout();
+    setTimeout(syncTouchLayout, 50);
+    setTimeout(syncTouchLayout, 250);
+  });
 
   try {
     if (window.LanternCGI) {
@@ -3161,6 +3165,15 @@
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
       navigator.serviceWorker.register("sw.js").catch(() => {});
+      navigator.serviceWorker.addEventListener("message", (ev) => {
+        if (ev.data && ev.data.type === "LANTERN_SW_UPDATED") {
+          const key = "lantern-sw-reload-" + ev.data.cache;
+          if (!sessionStorage.getItem(key)) {
+            sessionStorage.setItem(key, "1");
+            location.reload();
+          }
+        }
+      });
     });
   }
 
