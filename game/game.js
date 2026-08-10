@@ -2380,119 +2380,137 @@
     }
   }
 
+  function drawEnemyArm(e, armored, armIndex, armCount, time) {
+    const base = (armIndex / armCount) * TAU;
+    const phase = e.pulse * (armored ? 1.1 : 1.45) + armIndex * 0.9;
+    const reach = Math.atan2(state.player.y - e.y, state.player.x - e.x);
+    const lean = Math.sin(base - reach) * 0.35;
+    const twitch = Math.sin(phase * 4.5 + armIndex) > 0.92 ? Math.sin(time * 28 + armIndex) * 0.45 : 0;
+    const len = e.r * (armored ? 1.85 : 1.65);
+    const x0 = Math.cos(base) * e.r * 0.55;
+    const y0 = Math.sin(base) * e.r * 0.35;
+    const x1 = Math.cos(base + lean * 0.5) * (e.r + len * 0.45) + Math.cos(phase) * 4;
+    const y1 = Math.sin(base + lean * 0.5) * (e.r + len * 0.35) + Math.sin(phase * 1.2) * 5 + twitch * 6;
+    const x2 = Math.cos(base + lean) * (e.r + len) + Math.cos(phase + 1.1) * 3 + twitch * 4;
+    const y2 = Math.sin(base + lean) * (e.r + len * 0.85) + Math.sin(phase * 0.8) * 4 + 6;
+
+    ctx.beginPath();
+    ctx.moveTo(x0, y0);
+    ctx.quadraticCurveTo(x1, y1, x2, y2);
+    ctx.strokeStyle = armored
+      ? `rgba(80,140,255,${0.55 + Math.sin(phase) * 0.2})`
+      : `rgba(80,220,240,${0.5 + Math.sin(phase) * 0.25})`;
+    ctx.lineWidth = armored ? Math.max(2.5, e.r * 0.22) : Math.max(2, e.r * 0.18);
+    ctx.lineCap = "round";
+    ctx.stroke();
+
+    // Tip bulb / scythe point
+    if (armored) {
+      ctx.fillStyle = "rgba(140,200,255,0.9)";
+      ctx.beginPath();
+      ctx.moveTo(x2, y2);
+      ctx.lineTo(x2 + Math.cos(base + 0.4) * 5, y2 + Math.sin(base + 0.4) * 5);
+      ctx.lineTo(x2 + Math.cos(base - 0.4) * 4, y2 + Math.sin(base - 0.4) * 4);
+      ctx.closePath();
+      ctx.fill();
+    } else {
+      const tip = ctx.createRadialGradient(x2, y2, 0.5, x2, y2, 5);
+      tip.addColorStop(0, "rgba(220,255,255,0.95)");
+      tip.addColorStop(1, "rgba(40,180,210,0)");
+      ctx.fillStyle = tip;
+      ctx.beginPath();
+      ctx.arc(x2, y2, 4.5, 0, TAU);
+      ctx.fill();
+    }
+  }
+
   function drawEnemy(e, s) {
     const flash = e.hitFlash && e.hitFlash > 0;
     if (e.hitFlash) e.hitFlash = Math.max(0, e.hitFlash - 0.016);
     const bob = Math.sin(e.pulse) * 2;
-    drawShadow(s.x, s.y + 4, e.r * 0.95, e.r * 0.55, 0.32);
+    drawShadow(s.x, s.y + 4, e.r * 1.15, e.r * 0.6, 0.32);
 
     ctx.save();
     ctx.translate(s.x, s.y + bob);
-    ctx.scale(1.15, 1.15);
+    ctx.scale(1.12, 1.12);
 
-    if (e.kind === "wisp") {
-      const body = ctx.createRadialGradient(0, 0, 2, 0, 0, e.r + 6);
-      body.addColorStop(0, flash ? "#f4efe4" : "rgba(190,230,190,0.9)");
-      body.addColorStop(0.5, flash ? "#dfe8d0" : "rgba(90,140,95,0.75)");
-      body.addColorStop(1, "rgba(40,80,50,0)");
+    const armored = e.kind === "brute" || e.kind === "boss";
+    const armCount = armored ? (e.kind === "boss" ? 8 : 6) : e.kind === "dart" ? 5 : 7;
+    // Arms behind body
+    for (let i = 0; i < armCount; i++) drawEnemyArm(e, armored, i, armCount, state.time);
+
+    if (!armored) {
+      // Plasma jellyfish core
+      const body = ctx.createRadialGradient(-2, -2, 1, 0, 0, e.r + 8);
+      body.addColorStop(0, flash ? "#f4ffff" : "rgba(200,250,255,0.95)");
+      body.addColorStop(0.35, flash ? "#c8f0ff" : "rgba(60,200,220,0.85)");
+      body.addColorStop(0.75, "rgba(20,100,130,0.55)");
+      body.addColorStop(1, "rgba(10,40,60,0)");
       ctx.fillStyle = body;
       ctx.beginPath();
       ctx.arc(0, 0, e.r + 6, 0, TAU);
       ctx.fill();
-      // trailing smoke
-      for (let i = 0; i < 3; i++) {
-        const a = e.pulse + i * 0.8;
-        ctx.globalAlpha = 0.25;
-        ctx.beginPath();
-        ctx.fillStyle = "#6f9a72";
-        ctx.arc(Math.cos(a) * 6, 8 + i * 3, 3 - i * 0.5, 0, TAU);
-        ctx.fill();
+      // Star maw
+      ctx.fillStyle = "#061018";
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * TAU - Math.PI / 2;
+        const r = i % 2 === 0 ? e.r * 0.42 : e.r * 0.18;
+        const x = Math.cos(a) * r;
+        const y = Math.sin(a) * r;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
       }
-      ctx.globalAlpha = 1;
-      // eyes
-      ctx.fillStyle = "#0c160f";
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "#9cf0ff";
       ctx.beginPath();
-      ctx.arc(-3, -1, 1.4, 0, TAU);
-      ctx.arc(3, -1, 1.4, 0, TAU);
+      ctx.arc(0, 0, 2.2, 0, TAU);
       ctx.fill();
-    } else if (e.kind === "dart") {
-      const ang = Math.atan2(state.player.y - e.y, state.player.x - e.x);
-      ctx.rotate(ang);
-      ctx.fillStyle = "rgba(180,220,190,0.4)";
-      safeEllipse(-2, -5, 7, 3, -0.4);
-      ctx.fill();
-      safeEllipse(-2, 5, 7, 3, 0.4);
-      ctx.fill();
-      const body = ctx.createLinearGradient(-8, 0, 10, 0);
-      body.addColorStop(0, flash ? "#f4efe4" : "#3d6b52");
-      body.addColorStop(1, flash ? "#ddd" : "#8fd0a8");
-      ctx.fillStyle = body;
-      safeEllipse(0, 0, e.r + 2, e.r * 0.55, 0);
-      ctx.fill();
-      ctx.fillStyle = "#163226";
-      ctx.beginPath();
-      ctx.arc(6, 0, 1.5, 0, TAU);
-      ctx.fill();
-    } else if (e.kind === "brute") {
-      // mossy hulking shape
-      ctx.fillStyle = flash ? "#e8e0d0" : "#2f4f38";
-      ctx.beginPath();
-      ctx.moveTo(0, -e.r - 2);
-      ctx.quadraticCurveTo(e.r + 4, -4, e.r, e.r * 0.75);
-      ctx.quadraticCurveTo(0, e.r + 4, -e.r, e.r * 0.75);
-      ctx.quadraticCurveTo(-e.r - 4, -4, 0, -e.r - 2);
-      ctx.fill();
-      // moss clumps
-      ctx.fillStyle = "#4f7a52";
-      ctx.beginPath();
-      ctx.arc(-6, -4, 4, 0, TAU);
-      ctx.arc(5, -6, 3.5, 0, TAU);
-      ctx.arc(0, 2, 5, 0, TAU);
-      ctx.fill();
-      // eyes
-      ctx.fillStyle = "#f0b429";
-      ctx.beginPath();
-      ctx.arc(-4, -2, 2.2, 0, TAU);
-      ctx.arc(5, -2, 2.2, 0, TAU);
-      ctx.fill();
-      ctx.fillStyle = "#1a1008";
-      ctx.beginPath();
-      ctx.arc(-4, -2, 1, 0, TAU);
-      ctx.arc(5, -2, 1, 0, TAU);
-      ctx.fill();
-    } else if (e.kind === "boss") {
-      const body = ctx.createRadialGradient(-6, -8, 4, 0, 0, e.r + 4);
-      body.addColorStop(0, flash ? "#f2d2b0" : "#8a4020");
-      body.addColorStop(0.6, flash ? "#d9a070" : "#5a2814");
-      body.addColorStop(1, "#2a140c");
-      ctx.fillStyle = body;
+    } else {
+      // Armored cosmic eye
+      const shell = ctx.createRadialGradient(-4, -5, 2, 0, 0, e.r + 4);
+      shell.addColorStop(0, flash ? "#d0d8f0" : "#2a3144");
+      shell.addColorStop(0.55, flash ? "#8a90a8" : "#141820");
+      shell.addColorStop(1, "#07090e");
+      ctx.fillStyle = shell;
       ctx.beginPath();
       ctx.arc(0, 0, e.r, 0, TAU);
       ctx.fill();
-      // crown of roots
-      ctx.strokeStyle = "#c45c26";
-      ctx.lineWidth = 3;
-      for (let i = -2; i <= 2; i++) {
+      // Iris
+      const iris = ctx.createRadialGradient(0, 0, 1, 0, 0, e.r * 0.55);
+      iris.addColorStop(0, flash ? "#e8f0ff" : "#c8b0ff");
+      iris.addColorStop(0.4, "#6b2cff");
+      iris.addColorStop(1, "#1a1040");
+      ctx.fillStyle = iris;
+      ctx.beginPath();
+      ctx.arc(0, 0, e.r * 0.55, 0, TAU);
+      ctx.fill();
+      // Vertical pupil
+      ctx.fillStyle = "#9cf0ff";
+      ctx.beginPath();
+      safeEllipse(0, 0, e.r * 0.12, e.r * 0.38, 0);
+      ctx.fill();
+      ctx.fillStyle = "#061018";
+      ctx.beginPath();
+      safeEllipse(0, 0, e.r * 0.05, e.r * 0.28, 0);
+      ctx.fill();
+      // Armor notches
+      ctx.strokeStyle = "rgba(90,140,220,0.45)";
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 5; i++) {
+        const a = (i / 5) * TAU;
         ctx.beginPath();
-        ctx.moveTo(i * 7, -e.r + 4);
-        ctx.lineTo(i * 8, -e.r - 10 - Math.abs(i));
+        ctx.arc(0, 0, e.r * 0.82, a - 0.25, a + 0.25);
         ctx.stroke();
       }
-      // eye
-      ctx.fillStyle = "#f0b429";
-      ctx.beginPath();
-      ctx.arc(0, -4, 6, 0, TAU);
-      ctx.fill();
-      ctx.fillStyle = "#1a0c08";
-      ctx.beginPath();
-      ctx.arc(0, -4, 2.5, 0, TAU);
-      ctx.fill();
-      // aura
-      ctx.strokeStyle = `rgba(224,122,47,${0.45 + Math.sin(e.pulse) * 0.2})`;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(0, 0, e.r + 6 + Math.sin(e.pulse) * 3, 0, TAU);
-      ctx.stroke();
+      if (e.kind === "boss") {
+        ctx.strokeStyle = `rgba(120,160,255,${0.4 + Math.sin(e.pulse) * 0.2})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, e.r + 7 + Math.sin(e.pulse) * 2, 0, TAU);
+        ctx.stroke();
+      }
     }
 
     ctx.restore();
