@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  window.LITTLE_DRONE_VERSION = 4;
+  window.LITTLE_DRONE_VERSION = 5;
 
   const STORAGE_KEY = "little-drone-v1";
   const RING_COUNT = 12;
@@ -919,15 +919,13 @@
     const len = Math.hypot(ix, iy);
     if (len > 1) { ix /= len; iy /= len; }
 
-    // Camera-relative movement on XZ
+    // Camera-relative movement on XZ (stick up = forward, stick right = camera right)
     const camYaw = Math.atan2(
       drone.position.x - camera.position.x,
       drone.position.z - camera.position.z
     );
-    // Stick: up on stick = forward
     const forward = new THREE.Vector3(Math.sin(camYaw), 0, Math.cos(camYaw));
-    const right = new THREE.Vector3(Math.cos(camYaw), 0, -Math.sin(camYaw));
-    // Actually camera looks at drone from behind; use drone yaw for control feel
+    const right = new THREE.Vector3(-Math.cos(camYaw), 0, Math.sin(camYaw));
     const move = new THREE.Vector3();
     move.addScaledVector(right, ix);
     move.addScaledVector(forward, -iy);

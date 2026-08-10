@@ -198,7 +198,7 @@ body {
 .stick {
   pointer-events: auto;
   position: absolute;
-  left: calc(28px + var(--safe-left));
+  right: calc(28px + var(--safe-right));
   bottom: calc(28px + var(--safe-bottom));
   width: 126px;
   height: 126px;
@@ -221,14 +221,14 @@ body {
   transition: transform 60ms linear;
 }
 
-.right-controls {
+.left-controls {
   pointer-events: none;
   position: absolute;
-  right: calc(20px + var(--safe-right));
+  left: calc(20px + var(--safe-left));
   bottom: calc(22px + var(--safe-bottom));
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: 12px;
 }
 
@@ -564,6 +564,6 @@ body {
 }
 
 @media (min-width: 900px) {
-  .stick { left: calc(48px + var(--safe-left)); bottom: calc(40px + var(--safe-bottom)); }
-  .right-controls { right: calc(40px + var(--safe-right)); bottom: calc(36px + var(--safe-bottom)); }
+  .stick { right: calc(48px + var(--safe-right)); bottom: calc(40px + var(--safe-bottom)); }
+  .left-controls { left: calc(40px + var(--safe-left)); bottom: calc(36px + var(--safe-bottom)); }
 }
