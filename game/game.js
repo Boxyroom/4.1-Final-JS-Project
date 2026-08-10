@@ -2319,7 +2319,7 @@
 
     const bob = Math.sin(state.time * 6) * 3;
     if (playerVisualReady) {
-      const drawH = 61;
+      const drawH = 41;
       const drawW = drawH * (playerVisualImg.naturalWidth / playerVisualImg.naturalHeight || 1);
       const cy = ps.y + bob - 8;
       const facing = p.facingSmooth != null ? p.facingSmooth : p.facing || 0;

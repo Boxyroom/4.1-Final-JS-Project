@@ -401,7 +401,7 @@
       id: 0,
       file: "relic-orb.png",
       // Round cyan-gold orb — sized for chase camera readability.
-      height: 2.23,
+      height: 1.49,
       // Glow core sits at image center.
       coreY: 0.02,
       // Keeps the orb hovering above the forest floor.
