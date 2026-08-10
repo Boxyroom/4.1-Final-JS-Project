@@ -836,11 +836,11 @@
     app.classList.toggle("layout-touch", touch);
     app.classList.toggle("layout-portrait", portrait);
 
-    // Always pin move stick to the far bottom-right on phones.
+    // Pin move stick bottom-right; in landscape nudge up + left from the corner.
     const stick = ui.stick || document.getElementById("stick");
     if (stick) {
-      const edge = touch && !portrait ? "6px" : "8px";
-      const bottom = touch && !portrait ? "4px" : "8px";
+      const edge = touch && !portrait ? "36px" : "8px";
+      const bottom = touch && !portrait ? "36px" : "8px";
       stick.style.setProperty("left", "auto", "important");
       stick.style.setProperty("right", edge, "important");
       stick.style.setProperty("bottom", bottom, "important");
