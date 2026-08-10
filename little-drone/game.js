@@ -680,7 +680,7 @@
     state.scanCd = 0;
     state.vel.set(0, 0, 0);
     state.yaw = 0;
-    drone.position.set(0, 4.5, 10);
+    drone.position.set(0, 6.5, 12);
     drone.rotation.set(0, 0, 0);
     setExpression("happy");
     placeGems();
@@ -924,9 +924,15 @@
     state.vel.x += (move.x * speed - state.vel.x) * Math.min(1, dt * 4);
     state.vel.z += (move.z * speed - state.vel.z) * Math.min(1, dt * 4);
 
-    // Hover by default; lift climbs; release sinks gently (concept: only ↑ button)
-    if (lift) state.vel.y += (9 - state.vel.y) * Math.min(1, dt * 3.2);
-    else state.vel.y += (-1.15 - state.vel.y) * Math.min(1, dt * 1.4);
+    // Hover by default; lift climbs; hold S/ArrowDown or release near sky to sink slowly
+    if (lift) {
+      state.vel.y += (9 - state.vel.y) * Math.min(1, dt * 3.2);
+    } else if (input.keys.KeyQ || input.keys.ControlLeft) {
+      state.vel.y += (-6 - state.vel.y) * Math.min(1, dt * 2.2);
+    } else {
+      // True hover — casual flight matches the concept art
+      state.vel.y += (0 - state.vel.y) * Math.min(1, dt * 2.5);
+    }
 
     if (boost) {
       boostTrail.visible = true;
@@ -936,9 +942,9 @@
       boostTrail.visible = false;
     }
 
-    // Slow cruise drain — full battery lasts a few minutes of flying
-    state.battery -= 0.35 * dt;
-    if (lift) state.battery -= 0.45 * dt;
+    // Slow cruise drain — ~3+ minutes at full battery while exploring
+    state.battery -= 0.22 * dt;
+    if (lift) state.battery -= 0.35 * dt;
 
     drone.position.x += state.vel.x * dt;
     drone.position.y += state.vel.y * dt;
@@ -958,13 +964,19 @@
     drone.position.z = THREE.MathUtils.clamp(drone.position.z, -90, 90);
     drone.position.y = THREE.MathUtils.clamp(drone.position.y, -3.5, 42);
 
-    // Water splash — bounce up once, don't melt the battery
-    if (drone.position.y < -2.2) {
-      drone.position.y = -2.0;
-      state.vel.y = Math.max(5.5, Math.abs(state.vel.y) * 0.6);
+    // Soft floor above water so casual flights stay airborne
+    if (drone.position.y < 1.2) {
+      drone.position.y = 1.2;
+      if (state.vel.y < 0) state.vel.y = 0;
+    }
+
+    // Deep splash only if forced lower somehow
+    if (drone.position.y < -1.5) {
+      drone.position.y = 2.5;
+      state.vel.y = 6;
       if (state.invuln <= 0) {
-        state.battery -= 6;
-        state.invuln = 1.1;
+        state.battery -= 4;
+        state.invuln = 1.2;
         setExpression("surprised");
         sfx.hurt();
         showToast("Splash! Climb up");
@@ -1001,7 +1013,7 @@
         state.ringsCleared += 1;
         state.nextRing += 1;
         state.score += 100 + state.nextRing * 10;
-        state.battery = Math.min(100, state.battery + 8);
+        state.battery = Math.min(100, state.battery + 10);
         sfx.ring();
         setExpression("happy");
         showToast(`Ring ${state.ringsCleared}!`);

@@ -1,4 +1,4 @@
-const CACHE = "little-drone-v1";
+const CACHE = "little-drone-v3";
 const ASSETS = [
   "./",
   "./index.html",
@@ -28,18 +28,30 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;
-  event.respondWith(
-    caches.match(req).then((cached) => {
-      const fetchPromise = fetch(req)
+  const url = new URL(req.url);
+  if (url.origin !== self.location.origin) return;
+
+  // Network-first for app shell so gameplay fixes ship immediately
+  const networkFirst = url.pathname.endsWith(".js")
+    || url.pathname.endsWith(".css")
+    || url.pathname.endsWith(".html")
+    || url.pathname.endsWith("/")
+    || url.pathname.endsWith("manifest.webmanifest");
+
+  if (networkFirst) {
+    event.respondWith(
+      fetch(req)
         .then((res) => {
           const copy = res.clone();
-          if (res.ok && new URL(req.url).origin === self.location.origin) {
-            caches.open(CACHE).then((cache) => cache.put(req, copy));
-          }
+          if (res.ok) caches.open(CACHE).then((cache) => cache.put(req, copy));
           return res;
         })
-        .catch(() => cached);
-      return cached || fetchPromise;
-    })
+        .catch(() => caches.match(req))
+    );
+    return;
+  }
+
+  event.respondWith(
+    caches.match(req).then((cached) => cached || fetch(req))
   );
 });
