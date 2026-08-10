@@ -1,5 +1,5 @@
 /* Lantern Hollow game folder — lightweight offline cache */
-const CACHE = "lantern-hollow-game-v25";
+const CACHE = "lantern-hollow-game-v26";
 const PRECACHE = [
   "./",
   "./play.html",

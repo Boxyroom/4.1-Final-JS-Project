@@ -1379,9 +1379,9 @@
         s.spawnTimer = Math.max(1.05, 2.4 / density) + rand(0, 0.5);
       }
 
-      // Touching a Spawner hurts lightly — they still do not chase you.
+      // Touching a Spawner costs half your life — they still do not chase you.
       if (dist(state.player, s) < state.player.r + s.r * 0.42) {
-        hurtPlayer(8, null);
+        hurtPlayer(state.player.maxHp * 0.5, null);
       }
     }
   }
