@@ -1512,6 +1512,9 @@
       flameLight.position.set(0, hover + bob + coreY, 0);
       glowSprite.position.set(0, hover + bob + coreY, 0);
       glowSprite.scale.setScalar(3.4);
+      lanternLight.color.setHex(0x3ec6d8);
+      flameLight.color.setHex(0x9cf0ff);
+      if (glowSprite.material) glowSprite.material.color.setHex(0x3ec6d8);
       lanternLight.intensity = 70 + Math.sin(now * 0.018) * 6;
       lanternLight.distance = 28;
       flameLight.intensity = 18;
@@ -1544,17 +1547,44 @@
 
     const flick = 0.88 + Math.sin(state.time * 18) * 0.08 + Math.sin(state.time * 41) * 0.03;
     const lightMul = evo.light != null ? evo.light : 1;
-    // Cyan core light matching the relic orb
+    // Weapon-armed tint: swarm red / grenades green / nuke blue / default cyan
+    const armed =
+      p.swarmTimer > 0
+        ? "swarm"
+        : p.equippedWeapon === "grenades" || p.equippedWeapon === "nuke" || p.equippedWeapon === "swarm"
+          ? p.equippedWeapon
+          : null;
+    const glowHex =
+      armed === "swarm"
+        ? 0xe11d48
+        : armed === "grenades"
+          ? 0x22c55e
+          : armed === "nuke"
+            ? 0x3b82f6
+            : 0x3ec6d8;
+    const glowSoft =
+      armed === "swarm"
+        ? 0xff6b8a
+        : armed === "grenades"
+          ? 0x86efac
+          : armed === "nuke"
+            ? 0x93c5fd
+            : 0x9cf0ff;
+    const armedBoost = armed ? 1.45 : 1;
     const coreWorldY = hover + coreY;
     lanternLight.position.set(pp.x, coreWorldY, pp.z);
-    lanternLight.intensity = 88 * flick * lightMul;
-    lanternLight.distance = 30 + (evo.stage || 0) * 1.8;
+    lanternLight.color.setHex(glowHex);
+    lanternLight.intensity = 88 * flick * lightMul * armedBoost;
+    lanternLight.distance = (30 + (evo.stage || 0) * 1.8) * (armed ? 1.15 : 1);
     flameLight.position.set(pp.x, coreWorldY, pp.z);
-    flameLight.intensity = 20 * flick * lightMul;
-    // Soft core bloom only — keep the relic PNG readable (no heavy wash).
+    flameLight.color.setHex(glowSoft);
+    flameLight.intensity = 20 * flick * lightMul * armedBoost;
     glowSprite.position.set(pp.x, coreWorldY, pp.z);
-    glowSprite.material.opacity = (0.16 + flick * 0.1) * lightMul;
-    glowSprite.scale.setScalar(1.8 + flick * 0.35);
+    if (glowSprite.material) {
+      glowSprite.material.color.setHex(glowHex);
+      glowSprite.material.opacity = (0.16 + flick * 0.1) * lightMul * (armed ? 1.8 : 1);
+    }
+    glowSprite.scale.setScalar((1.8 + flick * 0.35) * (armed ? 1.55 : 1));
 
     const hp = Math.max(0.05, p.hp / p.maxHp);
 
