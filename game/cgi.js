@@ -409,7 +409,7 @@
       id: 0,
       file: "relic-orb.png",
       // Round cyan-gold orb — sized for chase camera readability.
-      height: 0.93125,
+      height: 1.1640625,
       // Glow core sits at image center.
       coreY: 0.02,
       // Keeps the orb hovering above the forest floor.
@@ -443,7 +443,7 @@
   /** Raise the orb so a larger sprite still clears the forest floor. */
   function relicHoverY(baseHover, visScale) {
     const form = PLAYER_VISUAL_FORMS[0];
-    const h = (form && form.height) || 0.93125;
+    const h = (form && form.height) || 1.1640625;
     const lift = Math.max(0, (visScale - 1) * h * 0.5);
     return (baseHover || 1.55) + lift;
   }
