@@ -3051,7 +3051,21 @@
 
     const bob = Math.sin(state.time * 6) * 3;
     if (playerVisualReady) {
-      const drawH = 41;
+      // Match CGI: double relic appearance on sideways phones.
+      let visScale = 1;
+      try {
+        const landscape =
+          window.matchMedia("(orientation: landscape)").matches ||
+          window.innerWidth > window.innerHeight;
+        const touch =
+          document.getElementById("app")?.classList.contains("layout-touch") ||
+          window.matchMedia("(pointer: coarse)").matches ||
+          window.matchMedia("(hover: none)").matches;
+        if (landscape && touch) visScale = 2;
+      } catch (_) {
+        /* ignore */
+      }
+      const drawH = 41 * visScale;
       const drawW = drawH * (playerVisualImg.naturalWidth / playerVisualImg.naturalHeight || 1);
       const cy = ps.y + bob - 8;
       const facing = p.facingSmooth != null ? p.facingSmooth : p.facing || 0;
