@@ -2357,7 +2357,8 @@
       kind,
       x,
       y,
-      r: kind === "nuke" ? 16 : 13,
+      // Larger pickup radius matches 2× chest visuals.
+      r: kind === "nuke" ? 32 : 26,
       pulse: rand(0, TAU),
     });
     if (kind === "nuke") showBanner("Rare nuke crate appeared!", 1.6);
@@ -3065,7 +3066,7 @@
       } catch (_) {
         /* ignore */
       }
-      const drawH = 41 * visScale;
+      const drawH = 20.5 * visScale;
       const drawW = drawH * (playerVisualImg.naturalWidth / playerVisualImg.naturalHeight || 1);
       const cy = ps.y + bob - 8;
       const facing = p.facingSmooth != null ? p.facingSmooth : p.facing || 0;
