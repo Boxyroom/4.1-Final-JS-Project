@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=5" />
 </head>
 <body>
   <div id="app">
@@ -40,10 +40,7 @@
     </div>
 
     <div id="touch" class="hidden" aria-hidden="true">
-      <div id="stick" class="stick" aria-label="Move stick">
-        <div id="stick-knob" class="stick-knob"></div>
-      </div>
-      <div class="right-controls">
+      <div class="left-controls">
         <div class="ability-row">
           <button type="button" id="btn-radar" class="ability" title="Radar">
             <span class="ability-icon">◎</span>
@@ -61,6 +58,9 @@
         <button type="button" id="btn-lift" class="lift-btn" title="Lift up" aria-label="Lift">
           <span class="lift-arrow">↑</span>
         </button>
+      </div>
+      <div id="stick" class="stick" aria-label="Move stick">
+        <div id="stick-knob" class="stick-knob"></div>
       </div>
     </div>
 
@@ -94,8 +94,8 @@
     <section id="howto" class="panel hidden">
       <h2>How to fly</h2>
       <ul class="howto-list">
-        <li><strong>Stick</strong> — move forward, back, left, right</li>
-        <li><strong>Lift ↑</strong> — climb. Release to hover in place</li>
+        <li><strong>Stick</strong> (right) — move forward, back, left, right</li>
+        <li><strong>Lift ↑</strong> (left) — climb. Release to hover in place</li>
         <li><strong>Boost</strong> — hold for a jet burst (uses battery)</li>
         <li><strong>Radar</strong> — pulse to reveal nearby gems</li>
         <li><strong>Scan</strong> — cone-scan the ground for supply crates</li>
@@ -151,6 +151,6 @@
   </div>
 
   <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
-  <script src="game.js?v=4"></script>
+  <script src="game.js?v=5"></script>
 </body>
 </html>

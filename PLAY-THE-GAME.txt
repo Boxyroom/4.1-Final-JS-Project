@@ -10,8 +10,8 @@ https://boxyroom.github.io/4.1-Final-JS-Project/little-drone/
 4. Optional: Add to Home Screen / Install app for a full-screen icon
 
 Controls
-- Left stick: move
-- Orange ↑ button: lift up (release to hover)
+- Right stick: move
+- Orange ↑ button (left): lift up (release to hover)
 - Boost: speed burst (uses battery)
 - Radar: reveal nearby gems
 - Scan: find hidden supply crates
