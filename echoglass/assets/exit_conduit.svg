@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <!-- Escape conduit  cyan portal -->
+  <circle cx="64" cy="64" r="54" fill="#111827" stroke="#374151" stroke-width="10"/>
+  <!-- clamp tabs -->
+  <rect x="56" y="6" width="16" height="22" rx="4" fill="#9ca3af"/>
+  <rect x="56" y="100" width="16" height="22" rx="4" fill="#9ca3af"/>
+  <rect x="6" y="56" width="22" height="16" rx="4" fill="#9ca3af"/>
+  <rect x="100" y="56" width="22" height="16" rx="4" fill="#9ca3af"/>
+  <circle cx="64" cy="64" r="36" fill="#020617"/>
+  <circle cx="64" cy="64" r="30" fill="none" stroke="#22d3ee" stroke-width="4" stroke-dasharray="7 6"/>
+  <circle cx="64" cy="64" r="18" fill="#22d3ee"/>
+  <circle cx="64" cy="64" r="5" fill="#ffffff"/>
+</svg>
