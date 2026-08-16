@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 90" fill="none">
+  <!-- Containment pad  starting / return zone -->
+  <rect x="6" y="10" width="208" height="70" rx="16" fill="#1e293b" stroke="#475569" stroke-width="8"/>
+  <rect x="22" y="24" width="176" height="42" rx="8" fill="#020617"/>
+  <rect x="28" y="30" width="164" height="30" rx="6" fill="none" stroke="#22d3ee" stroke-width="2.5" stroke-dasharray="8 6"/>
+  <circle cx="110" cy="45" r="12" fill="none" stroke="#22d3ee" stroke-width="2.5"/>
+  <circle cx="110" cy="45" r="4" fill="#22d3ee"/>
+</svg>

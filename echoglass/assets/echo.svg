@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 160" fill="none">
+  <!-- Echo  contained intelligent entity -->
+  <defs>
+    <radialGradient id="echoCore" cx="50%" cy="42%" r="48%">
+      <stop offset="0%" stop-color="#7dd3fc"/>
+      <stop offset="35%" stop-color="#1d4ed8"/>
+      <stop offset="75%" stop-color="#0a1628"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </radialGradient>
+    <filter id="echoGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="2.2" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <!-- stubby limbs -->
+  <path d="M28 118c-10 4-18 14-16 22 6-2 14-6 22-14" stroke="#22d3ee" stroke-width="7" stroke-linecap="round" fill="none" filter="url(#echoGlow)"/>
+  <path d="M100 118c10 4 18 14 16 22-6-2-14-6-22-14" stroke="#22d3ee" stroke-width="7" stroke-linecap="round" fill="none" filter="url(#echoGlow)"/>
+  <!-- body -->
+  <ellipse cx="64" cy="78" rx="42" ry="54" fill="url(#echoCore)" stroke="#22d3ee" stroke-width="5" filter="url(#echoGlow)"/>
+  <!-- glass highlight -->
+  <path d="M36 48c8-18 48-22 56-4" stroke="rgba(255,255,255,0.35)" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <!-- face -->
+  <circle cx="52" cy="72" r="6.5" fill="#020617"/>
+  <circle cx="76" cy="72" r="6.5" fill="#020617"/>
+  <circle cx="54" cy="70" r="1.8" fill="#f8fafc"/>
+  <circle cx="78" cy="70" r="1.8" fill="#f8fafc"/>
+  <path d="M56 88c4 6 12 6 16 0" stroke="#020617" stroke-width="3" stroke-linecap="round" fill="none"/>
+</svg>
