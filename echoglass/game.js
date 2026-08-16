@@ -202,11 +202,12 @@
       rect(310, 560, 130, 16, { label: "ledgeR", angle: 0.22 }),
       rect(120, 430, 150, 14, { label: "midRamp", angle: 0.28 }),
       rect(290, 360, 140, 14, { label: "upperRamp", angle: -0.2 }),
-      rect(55, 280, 90, 14, { label: "cellShelf" }),
+      // Energy cell shelf — reachable via left climb + tilt assist
+      rect(70, 340, 100, 14, { label: "cellShelf" }),
       rect(W / 2, 190, 180, 12, { label: "conduitShelf" }),
       // blockers / pillars
       rect(200, 500, 18, 90, { label: "pillar" }),
-      rect(140, 320, 14, 70, { label: "column" }),
+      rect(155, 380, 14, 50, { label: "column" }),
     ];
 
     padZone = Bodies.rectangle(W / 2, 705, 160, 40, {
@@ -214,7 +215,7 @@
       isSensor: true,
       label: "pad",
     });
-    reactorZone = Bodies.circle(78, 470, 36, {
+    reactorZone = Bodies.circle(78, 500, 36, {
       isStatic: true,
       isSensor: true,
       label: "reactor",
@@ -243,7 +244,7 @@
       collisionFilter: { category: ACTOR, mask: WALL | GATE | FIELD | ACTOR },
     });
 
-    cell = Bodies.rectangle(55, 250, 28, 48, {
+    cell = Bodies.rectangle(70, 310, 28, 48, {
       label: "cell",
       density: 0.0018,
       friction: 0.55,
